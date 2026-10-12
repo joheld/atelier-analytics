@@ -136,6 +136,7 @@ gitGraph
 | **CP-07** | Batería Zero-Defect: Typecheck, Tests, Build estático y Liveness HTTP | **Completado** | `tsc --noEmit` limpio, build en 2.11s, HTTP 200 en puerto 5173 |
 | **CP-08** | Sistema Interactivo de Filtros: Shelf drag-and-drop, Modal categórico y numérico | **Completado** | `FilterShelf` y `FilterModal` integrados con consultas DuckDB para valores únicos y rangos |
 | **CP-09** | Modelo Workbook Completo: Multi-Tabs, Dashboards Compuestos, Campos Calculados y Parámetros | **Completado** | Pestañas inferiores Tableau, `DashboardGrid` multi-visual, persistencia `.atelier`/localStorage, editor de cálculos y parámetros |
+| **CP-10** | Inferencia Automática (Tableau-Style) y Superpoderes Vectoriales | **Completado** | Detección automática en vivo del rol analítico (Métrica verde vs Dimensión azul) y tipo de dato mediante `typeof()` en DuckDB-WASM, con toggle de anulación manual opcional. Soporte de funciones avanzadas (Pearson `CORR`, Regresión `REGR_SLOPE`/`REGR_R2`, Percentiles exactos `QUANTILE_CONT`, HLL, Regex PCRE y JSON). |
 
 ---
 
@@ -165,7 +166,7 @@ atelier-analytics/
     │   │   ├── sqlCompiler.ts    # Compilador optimizado AST -> SQL con soporte para campos calculados y parámetros
     │   │   └── sqlCompiler.test.ts # Suite de pruebas unitarias (5/5 tests pasados)
     │   ├── engine/
-    │   │   └── duckdbClient.ts   # Conector DuckDB-WASM, Apache Arrow, loader universal, queries de metadatos y validador de fórmulas
+    │   │   └── duckdbClient.ts   # Conector DuckDB-WASM, Apache Arrow, loader universal, queries de metadatos y validador de fórmulas con introspección de tipo/rol
     │   └── store/
     │       └── worksheetStore.ts # Almacén Zustand reactivo multi-hoja, gestión de cálculos, parámetros y persistencia
     ├── components/
@@ -178,7 +179,7 @@ atelier-analytics/
     │   ├── Dashboard/
     │   │   └── DashboardGrid.tsx # Lienzo compuesto que combina múltiples hojas en un grid interactivo 1x1 o 2x2
     │   ├── CalculatedFields/
-    │   │   └── CalculatedFieldModal.tsx # Editor de fórmulas con inserción de columnas, funciones y validación en vivo con DuckDB
+    │   │   └── CalculatedFieldModal.tsx # Editor de fórmulas con biblioteca de funciones, recetas analíticas, validación reactiva e inferencia automática de tipo/rol
     │   ├── Parameters/
     │   │   └── ParameterModal.tsx # Diálogo de creación y edición de parámetros con soporte para rangos y sliders
     │   ├── Shelves/
@@ -201,5 +202,5 @@ atelier-analytics/
 
 ## 6. Estado de la Sesión
 
-- **Estado Actual:** Biblioteca interactiva de funciones y recetas analíticas incorporada al modal de Campos Calculados (`CalculatedFieldModal.tsx`). Incluye buscador y filtro por categorías (Lógicas, Numéricas, Texto, Fecha y Conversión), tarjeta de documentación detallada con sintaxis, descripción en español y ejemplos prácticos, botón de inserción a la fórmula, y plantillas rápidas de cálculo analítico común (Margen %, Clasificación IF/CASE, Año de Fecha, Multiplicadores con IVA y Limpieza de Nulos).
-- **Siguiente Paso:** Verificación en el navegador en http://127.0.0.1:5173.
+- **Estado Actual:** Inferencia automática de tipo de dato y rol analítico 100% implementada y operativa (estilo Tableau con introspección `typeof()` en DuckDB-WASM). El usuario solo escribe la fórmula y la app detecta reactivamente si es Métrica (verde) o Dimensión (azul) junto a su tipo concreto (`DOUBLE`, `VARCHAR`, `TIMESTAMP`, etc.), manteniendo un botón para personalización manual en caso de requerirse.
+- **Siguiente Paso:** Listo para continuar con exploraciones analíticas avanzadas o flujos de usuario adicionales.

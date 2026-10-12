@@ -216,20 +216,62 @@ class DuckDBManager {
   }
 
   /**
-   * Validates a calculated field formula expression against DuckDB
+   * Validates a calculated field formula expression against DuckDB and automatically
+   * infers the analytical role (measure vs dimension) and data type (number, string, date, boolean).
    */
   public async validateCalculatedFormula(
     tableName: string,
     formula: string
-  ): Promise<{ valid: boolean; error?: string; returnType?: string }> {
+  ): Promise<{
+    valid: boolean;
+    error?: string;
+    rawType?: string;
+    inferredDataType?: 'string' | 'number' | 'date' | 'boolean';
+    inferredRole?: 'dimension' | 'measure';
+  }> {
     try {
       const conn = await this.getConnection();
       const safeTable = `"${tableName.replace(/"/g, '""')}"`;
-      const testQuery = `SELECT (${formula}) AS __test_calc__ FROM ${safeTable} LIMIT 1;`;
+      const testQuery = `SELECT typeof((${formula})) AS col_type, (${formula}) AS sample_val FROM ${safeTable} LIMIT 1;`;
       const result = await conn.query(testQuery);
-      const fields = result.schema.fields;
-      const returnType = fields[0]?.type?.toString() || 'unknown';
-      return { valid: true, returnType };
+      const row = result.toArray()[0]?.toJSON();
+      const rawType = String(row?.col_type || '').toUpperCase();
+
+      let inferredDataType: 'string' | 'number' | 'date' | 'boolean' = 'string';
+      let inferredRole: 'dimension' | 'measure' = 'dimension';
+
+      if (
+        rawType.includes('INT') ||
+        rawType.includes('DOUBLE') ||
+        rawType.includes('FLOAT') ||
+        rawType.includes('DECIMAL') ||
+        rawType.includes('NUMERIC') ||
+        rawType.includes('REAL') ||
+        rawType.includes('HUGEINT')
+      ) {
+        inferredDataType = 'number';
+        inferredRole = 'measure';
+      } else if (
+        rawType.includes('DATE') ||
+        rawType.includes('TIMESTAMP') ||
+        rawType.includes('TIME')
+      ) {
+        inferredDataType = 'date';
+        inferredRole = 'dimension';
+      } else if (rawType.includes('BOOL')) {
+        inferredDataType = 'boolean';
+        inferredRole = 'dimension';
+      } else {
+        inferredDataType = 'string';
+        inferredRole = 'dimension';
+      }
+
+      return {
+        valid: true,
+        rawType,
+        inferredDataType,
+        inferredRole,
+      };
     } catch (err: unknown) {
       return {
         valid: false,

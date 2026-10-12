@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CalculatedField, DatasetColumn, Parameter, FieldRole, DataType } from '../../core/ast/types';
 import { duckdbEngine } from '../../core/engine/duckdbClient';
 import { substituteParameters } from '../../core/compiler/sqlCompiler';
@@ -16,6 +16,9 @@ import {
   ArrowRight,
   Info,
   Wand2,
+  Hash,
+  Type,
+  Settings2,
 } from 'lucide-react';
 
 interface FunctionDoc {
@@ -394,12 +397,49 @@ export const CalculatedFieldModal: React.FC<CalculatedFieldModalProps> = ({
   const [role, setRole] = useState<FieldRole>(initialField?.role || 'measure');
   const [dataType, setDataType] = useState<DataType>(initialField?.dataType || 'number');
   const [formula, setFormula] = useState(initialField?.formula || '');
+  const [autoInferred, setAutoInferred] = useState<{
+    role: FieldRole;
+    dataType: DataType;
+    rawType: string;
+  } | null>(null);
+  const [isManualOverride, setIsManualOverride] = useState(Boolean(initialField));
+
   const [isValidating, setIsValidating] = useState(false);
   const [validationResult, setValidationResult] = useState<{
     tested: boolean;
     valid: boolean;
     error?: string;
   } | null>(null);
+
+  // Automatic Debounced Type & Role Inference (Tableau Style)
+  useEffect(() => {
+    if (!formula.trim() || !tableName) {
+      setAutoInferred(null);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        const evaluated = substituteParameters(formula, parameters);
+        const res = await duckdbEngine.validateCalculatedFormula(tableName, evaluated);
+        if (res.valid && res.inferredRole && res.inferredDataType) {
+          setAutoInferred({
+            role: res.inferredRole,
+            dataType: res.inferredDataType,
+            rawType: res.rawType || '',
+          });
+          if (!isManualOverride) {
+            setRole(res.inferredRole);
+            setDataType(res.inferredDataType);
+          }
+        }
+      } catch {
+        // Ignore typing intermediate errors
+      }
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [formula, tableName, parameters, isManualOverride]);
 
   // Reference Library State
   const [activeTab, setActiveTab] = useState<'functions' | 'fields' | 'recipes'>('functions');
@@ -427,6 +467,17 @@ export const CalculatedFieldModal: React.FC<CalculatedFieldModalProps> = ({
         valid: res.valid,
         error: res.error,
       });
+      if (res.valid && res.inferredRole && res.inferredDataType) {
+        setAutoInferred({
+          role: res.inferredRole,
+          dataType: res.inferredDataType,
+          rawType: res.rawType || '',
+        });
+        if (!isManualOverride) {
+          setRole(res.inferredRole);
+          setDataType(res.inferredDataType);
+        }
+      }
     } finally {
       setIsValidating(false);
     }
@@ -513,37 +564,100 @@ export const CalculatedFieldModal: React.FC<CalculatedFieldModalProps> = ({
               />
             </div>
 
-            {/* Role & DataType Selector */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
-                  Rol Analítico (Tableau)
-                </label>
-                <select
-                  value={role}
-                  onChange={(e) => setRole(e.target.value as FieldRole)}
-                  className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs text-stone-900 focus:border-stone-400 focus:outline-none dark:border-stone-700 dark:bg-stone-950 dark:text-stone-100"
+            {/* Role & DataType: Inferencia Automática (Tableau Style) o Manual Override */}
+            <div className="rounded-xl border border-stone-200/90 bg-stone-50/70 p-3 dark:border-stone-800 dark:bg-stone-900/50">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-1.5">
+                  <Sparkles className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                  <span className="text-[11px] font-semibold text-stone-700 dark:text-stone-300">
+                    Inferencia de Tipo y Rol
+                  </span>
+                  <span className="text-[10px] text-stone-400 font-mono">
+                    (Estilo Tableau • DuckDB AST)
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = !isManualOverride;
+                    setIsManualOverride(next);
+                    if (!next && autoInferred) {
+                      setRole(autoInferred.role);
+                      setDataType(autoInferred.dataType);
+                    }
+                  }}
+                  className="flex items-center gap-1 text-[11px] font-medium text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-200 transition-colors"
                 >
-                  <option value="measure">Métrica (Verde • Agregación SUM/AVG)</option>
-                  <option value="dimension">Dimensión (Azul • Agrupación GROUP BY)</option>
-                </select>
+                  <Settings2 className="h-3 w-3" />
+                  <span>{isManualOverride ? 'Reactivar auto-inferencia' : 'Personalizar'}</span>
+                </button>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
-                  Tipo de Dato
-                </label>
-                <select
-                  value={dataType}
-                  onChange={(e) => setDataType(e.target.value as DataType)}
-                  className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs text-stone-900 focus:border-stone-400 focus:outline-none dark:border-stone-700 dark:bg-stone-950 dark:text-stone-100"
-                >
-                  <option value="number">Número (Float / Int)</option>
-                  <option value="string">Cadena de Texto (String)</option>
-                  <option value="boolean">Booleano (True / False)</option>
-                  <option value="date">Fecha (Date / Timestamp)</option>
-                </select>
-              </div>
+              {!isManualOverride ? (
+                <div className="flex items-center justify-between gap-3 bg-white px-3 py-2 rounded-lg border border-stone-200 dark:border-stone-800 dark:bg-stone-950">
+                  <div className="flex items-center gap-2">
+                    {role === 'measure' ? (
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        Métrica (Verde • Agregable)
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-sky-300 bg-sky-50 px-2.5 py-0.5 text-[11px] font-semibold text-sky-700 dark:border-sky-800 dark:bg-sky-950/60 dark:text-sky-300">
+                        <span className="h-1.5 w-1.5 rounded-full bg-sky-500" />
+                        Dimensión (Azul • Discreta)
+                      </span>
+                    )}
+
+                    <span className="text-stone-300 dark:text-stone-700">•</span>
+
+                    <span className="inline-flex items-center gap-1 text-[11px] font-mono text-stone-600 dark:text-stone-300">
+                      {dataType === 'number' && <Hash className="h-3 w-3 text-stone-400" />}
+                      {dataType === 'string' && <Type className="h-3 w-3 text-stone-400" />}
+                      <span className="font-semibold capitalize">{dataType}</span>
+                      {autoInferred?.rawType && (
+                        <span className="text-[10px] text-stone-400">({autoInferred.rawType})</span>
+                      )}
+                    </span>
+                  </div>
+
+                  <span className="text-[10px] text-emerald-600 font-mono dark:text-emerald-400 flex items-center gap-1">
+                    <CheckCircle2 className="h-3 w-3" />
+                    Auto-detectado por DuckDB
+                  </span>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3 pt-1">
+                  <div>
+                    <label className="block text-[11px] font-medium text-stone-600 dark:text-stone-400 mb-1">
+                      Rol Analítico
+                    </label>
+                    <select
+                      value={role}
+                      onChange={(e) => setRole(e.target.value as FieldRole)}
+                      className="w-full rounded-lg border border-stone-200 bg-white px-2.5 py-1.5 text-xs text-stone-900 focus:border-stone-400 focus:outline-none dark:border-stone-700 dark:bg-stone-950 dark:text-stone-100"
+                    >
+                      <option value="measure">Métrica (Verde • Agregación SUM/AVG)</option>
+                      <option value="dimension">Dimensión (Azul • Agrupación GROUP BY)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-medium text-stone-600 dark:text-stone-400 mb-1">
+                      Tipo de Dato
+                    </label>
+                    <select
+                      value={dataType}
+                      onChange={(e) => setDataType(e.target.value as DataType)}
+                      className="w-full rounded-lg border border-stone-200 bg-white px-2.5 py-1.5 text-xs text-stone-900 focus:border-stone-400 focus:outline-none dark:border-stone-700 dark:bg-stone-950 dark:text-stone-100"
+                    >
+                      <option value="number">Número (Float / Int)</option>
+                      <option value="string">Cadena de Texto (String)</option>
+                      <option value="boolean">Booleano (True / False)</option>
+                      <option value="date">Fecha (Date / Timestamp)</option>
+                    </select>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Formula Editor */}
