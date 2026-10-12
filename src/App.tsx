@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 import { useWorksheetStore } from './core/store/worksheetStore';
 import { Header } from './components/Header/Header';
 import { DataSidebar } from './components/DataSidebar/DataSidebar';
@@ -39,8 +39,6 @@ export const App: React.FC = () => {
     toggleSQLDrawer,
   } = useWorksheetStore();
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
   useEffect(() => {
     void initEngine();
   }, [initEngine]);
@@ -60,18 +58,6 @@ export const App: React.FC = () => {
 
   return (
     <div className="flex h-screen w-screen flex-col overflow-hidden bg-stone-100 text-stone-900 dark:bg-stone-950 dark:text-stone-100 font-sans">
-      {/* Hidden File Picker Input */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".parquet,.csv,.tsv,.json"
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) void loadFile(file);
-        }}
-        className="hidden"
-      />
-
       {/* Top Header */}
       <Header
         theme={theme}
@@ -80,7 +66,6 @@ export const App: React.FC = () => {
         onToggleSQLDrawer={toggleSQLDrawer}
         onClearShelves={clearAllShelves}
         onCloseDataset={closeDataset}
-        onUploadClick={() => fileInputRef.current?.click()}
         latencyMs={queryResult?.durationMs}
         rowCount={queryResult?.rowCount}
         hasPillsOnShelves={hasPillsOnShelves}
@@ -92,14 +77,12 @@ export const App: React.FC = () => {
         <DataSidebar
           currentDataset={currentDataset}
           onAddPill={(shelf, pill) => addPillToShelf(shelf, pill)}
-          onFileUpload={(file) => void loadFile(file)}
-          isUploading={isExecuting && !currentDataset}
         />
 
         {/* Center Analytical Workbench */}
         <main className="flex flex-1 flex-col overflow-hidden bg-stone-50 dark:bg-stone-950">
           {!currentDataset ? (
-            /* Empty State: Prompt to connect data */
+            /* El ÚNICO lugar para cargar archivos en toda la app */
             <EmptyWorkspace
               onFileUpload={(file) => void loadFile(file)}
               isUploading={isExecuting}

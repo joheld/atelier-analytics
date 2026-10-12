@@ -188,5 +188,5 @@ atelier-analytics/
 
 ## 6. Estado de la Sesión
 
-- **Estado Actual:** Modelo libre de datos sintéticos y presets implementado. La aplicación inicia en estado virgen (Empty State) esperando que el usuario conecte cualquier archivo local (.parquet, .csv, .tsv, .json).
-- **Siguiente Paso:** El usuario puede arrastrar y soltar cualquier dataset real directamente al lienzo para analizarlo.
+- **Estado Actual:** Punto de carga unificado exclusivamente en el lienzo central (EmptyWorkspace). Se eliminaron todos los botones y selectores duplicados en el Header y DataSidebar para evitar redundancia en la interfaz.
+- **Siguiente Paso:** Interacción del usuario arrastrando cualquier archivo .parquet o .csv a la zona central para comenzar el análisis.

@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   Code,
   RotateCcw,
@@ -6,7 +5,6 @@ import {
   Moon,
   Zap,
   Table,
-  Upload,
   X,
 } from 'lucide-react';
 import { DatasetMeta } from '../../core/ast/types';
@@ -18,7 +16,6 @@ interface HeaderProps {
   onToggleSQLDrawer: () => void;
   onClearShelves: () => void;
   onCloseDataset?: () => void;
-  onUploadClick?: () => void;
   latencyMs?: number;
   rowCount?: number;
   hasPillsOnShelves: boolean;
@@ -31,7 +28,6 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleSQLDrawer,
   onClearShelves,
   onCloseDataset,
-  onUploadClick,
   latencyMs,
   rowCount,
   hasPillsOnShelves,
@@ -83,21 +79,9 @@ export const Header: React.FC<HeaderProps> = ({
             )}
           </div>
         ) : (
-          <div className="flex items-center gap-2">
-            <span className="rounded-full bg-stone-100 px-3 py-1 text-xs font-mono text-stone-500 dark:bg-stone-800 dark:text-stone-400">
-              DuckDB-WASM Listo • Sin datos en memoria
-            </span>
-            {onUploadClick && (
-              <button
-                type="button"
-                onClick={onUploadClick}
-                className="flex items-center gap-1.5 rounded-full bg-stone-900 px-3 py-1 text-xs font-medium text-white hover:bg-stone-800 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-white shadow-xs transition-all"
-              >
-                <Upload className="h-3 w-3" />
-                <span>Cargar archivo</span>
-              </button>
-            )}
-          </div>
+          <span className="rounded-full bg-stone-100 px-3 py-1 text-xs font-mono text-stone-500 dark:bg-stone-800 dark:text-stone-400">
+            DuckDB-WASM Motor Columnar Listo
+          </span>
         )}
       </div>
 

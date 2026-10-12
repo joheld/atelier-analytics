@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { DatasetMeta, Pill } from '../../core/ast/types';
 import {
   Search,
-  Upload,
   Type,
   Calendar,
   Hash,
@@ -15,24 +14,13 @@ import {
 interface DataSidebarProps {
   currentDataset: DatasetMeta | null;
   onAddPill: (shelf: 'columns' | 'rows', pill: Pill) => void;
-  onFileUpload: (file: File) => void;
-  isUploading?: boolean;
 }
 
 export const DataSidebar: React.FC<DataSidebarProps> = ({
   currentDataset,
   onAddPill,
-  onFileUpload,
-  isUploading = false,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
-
-  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      onFileUpload(file);
-    }
-  };
 
   const columns = currentDataset?.columns || [];
   const filteredColumns = columns.filter((c) =>
@@ -57,24 +45,13 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
   };
 
   return (
-    <aside className="flex h-full w-64 flex-col border-r border-stone-200/90 bg-stone-50/70 dark:border-stone-800 dark:bg-stone-950/80">
-      {/* Dataset Header / Load Action */}
+    <aside className="flex h-full w-64 flex-col border-r border-stone-200/90 bg-stone-50/70 dark:border-stone-800 dark:bg-stone-950/80 select-none">
+      {/* Dataset Header */}
       <div className="p-3 border-b border-stone-200/80 dark:border-stone-800">
         <div className="flex items-center justify-between text-xs font-semibold text-stone-600 dark:text-stone-400">
           <span className="font-mono uppercase tracking-wider text-[11px]">
             Campos del Dataset
           </span>
-          <label className="cursor-pointer text-[11px] text-sky-600 hover:text-sky-700 dark:text-sky-400 font-sans font-medium flex items-center gap-1">
-            <Upload className="h-3 w-3" />
-            <span>{isUploading ? 'Cargando...' : 'Cargar'}</span>
-            <input
-              type="file"
-              accept=".parquet,.csv,.tsv,.json"
-              onChange={handleFileInputChange}
-              disabled={isUploading}
-              className="hidden"
-            />
-          </label>
         </div>
 
         {currentDataset ? (
@@ -92,7 +69,7 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
         ) : (
           <div className="mt-2 rounded-md border border-dashed border-stone-300 p-2.5 text-center dark:border-stone-700">
             <FileCode className="mx-auto h-4 w-4 text-stone-400" />
-            <p className="mt-1 text-[11px] text-stone-500">Ningún archivo cargado</p>
+            <p className="mt-1 text-[11px] text-stone-500">Esperando archivo...</p>
           </div>
         )}
       </div>
@@ -197,7 +174,7 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
       ) : (
         <div className="flex-1 p-4 flex flex-col items-center justify-center text-center text-stone-400">
           <p className="text-xs leading-relaxed">
-            Carga un archivo <strong>.parquet</strong> o <strong>.csv</strong> para inspeccionar sus columnas y comenzar el análisis.
+            Los campos aparecerán aquí una vez cargues un archivo.
           </p>
         </div>
       )}
