@@ -4,31 +4,37 @@ import {
   RotateCcw,
   Sun,
   Moon,
-  Sparkles,
   Zap,
-  BarChart,
-  ScatterChart,
-  Cpu,
+  Table,
+  Upload,
+  X,
 } from 'lucide-react';
+import { DatasetMeta } from '../../core/ast/types';
 
 interface HeaderProps {
   theme: 'light' | 'dark';
+  currentDataset: DatasetMeta | null;
   onToggleTheme: () => void;
   onToggleSQLDrawer: () => void;
   onClearShelves: () => void;
-  onLoadPreset: (preset: 'sales_by_category' | 'profit_vs_sales_detail' | 'telemetry_100k_clusters') => void;
+  onCloseDataset?: () => void;
+  onUploadClick?: () => void;
   latencyMs?: number;
   rowCount?: number;
+  hasPillsOnShelves: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   theme,
+  currentDataset,
   onToggleTheme,
   onToggleSQLDrawer,
   onClearShelves,
-  onLoadPreset,
+  onCloseDataset,
+  onUploadClick,
   latencyMs,
   rowCount,
+  hasPillsOnShelves,
 }) => {
   return (
     <header className="flex h-14 w-full items-center justify-between border-b border-stone-200/90 bg-white px-4 dark:border-stone-800 dark:bg-stone-900 select-none">
@@ -42,53 +48,62 @@ export const Header: React.FC<HeaderProps> = ({
             <rect width="7" height="5" x="3" y="16" rx="1" />
           </svg>
         </div>
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="font-editorial text-lg font-bold tracking-tight text-stone-900 dark:text-stone-100">
-              Atelier
-            </h1>
-            <span className="rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-mono font-medium text-stone-600 dark:bg-stone-800 dark:text-stone-400">
-              Visual Analytics Studio
-            </span>
-          </div>
+        <div className="flex items-center gap-2.5">
+          <h1 className="font-editorial text-lg font-bold tracking-tight text-stone-900 dark:text-stone-100">
+            Atelier
+          </h1>
+          <span className="text-stone-300 dark:text-stone-700">/</span>
+          <span className="text-xs font-mono font-medium text-stone-500 dark:text-stone-400">
+            Visual Analytics
+          </span>
         </div>
       </div>
 
-      {/* Editorial Presets */}
-      <div className="flex items-center gap-1.5 rounded-lg border border-stone-200/80 bg-stone-50/80 p-1 dark:border-stone-800 dark:bg-stone-950/60">
-        <span className="px-2 text-[10px] font-mono uppercase tracking-wider text-stone-400 flex items-center gap-1">
-          <Sparkles className="h-3 w-3 text-amber-500" />
-          Presets:
-        </span>
-        <button
-          type="button"
-          onClick={() => onLoadPreset('sales_by_category')}
-          className="flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium text-stone-700 hover:bg-white hover:shadow-xs dark:text-stone-300 dark:hover:bg-stone-800 transition-all"
-        >
-          <BarChart className="h-3 w-3 text-sky-600 dark:text-sky-400" />
-          <span>Ventas Categoría</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => onLoadPreset('profit_vs_sales_detail')}
-          className="flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium text-stone-700 hover:bg-white hover:shadow-xs dark:text-stone-300 dark:hover:bg-stone-800 transition-all"
-        >
-          <ScatterChart className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
-          <span>Dispersión + Detail</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => onLoadPreset('telemetry_100k_clusters')}
-          className="flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium text-stone-700 hover:bg-white hover:shadow-xs dark:text-stone-300 dark:hover:bg-stone-800 transition-all"
-        >
-          <Cpu className="h-3 w-3 text-amber-600 dark:text-amber-400" />
-          <span>Estrés 100k Filas</span>
-        </button>
+      {/* Center Dataset Info Badge */}
+      <div className="flex items-center gap-2">
+        {currentDataset ? (
+          <div className="flex items-center gap-2 rounded-full border border-stone-200/80 bg-stone-50 px-3 py-1 font-mono text-xs dark:border-stone-800 dark:bg-stone-950">
+            <Table className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+            <span className="font-semibold text-stone-800 dark:text-stone-200 truncate max-w-[200px]">
+              {currentDataset.name}
+            </span>
+            <span className="text-stone-300 dark:text-stone-700">•</span>
+            <span className="text-stone-500 dark:text-stone-400 tabular-nums">
+              {currentDataset.rowCount.toLocaleString()} filas
+            </span>
+            {onCloseDataset && (
+              <button
+                type="button"
+                onClick={onCloseDataset}
+                className="ml-1 rounded-full p-0.5 text-stone-400 hover:bg-stone-200 hover:text-stone-700 dark:hover:bg-stone-800 dark:hover:text-stone-200"
+                title="Cerrar dataset"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <span className="rounded-full bg-stone-100 px-3 py-1 text-xs font-mono text-stone-500 dark:bg-stone-800 dark:text-stone-400">
+              DuckDB-WASM Listo • Sin datos en memoria
+            </span>
+            {onUploadClick && (
+              <button
+                type="button"
+                onClick={onUploadClick}
+                className="flex items-center gap-1.5 rounded-full bg-stone-900 px-3 py-1 text-xs font-medium text-white hover:bg-stone-800 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-white shadow-xs transition-all"
+              >
+                <Upload className="h-3 w-3" />
+                <span>Cargar archivo</span>
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Actions & Metrics */}
       <div className="flex items-center gap-2">
-        {latencyMs !== undefined && (
+        {latencyMs !== undefined && currentDataset && (
           <div className="flex items-center gap-1.5 rounded-md border border-stone-200/80 bg-stone-50 px-2.5 py-1 font-mono text-xs dark:border-stone-800 dark:bg-stone-950">
             <Zap className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
             <span className="font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">
@@ -96,7 +111,7 @@ export const Header: React.FC<HeaderProps> = ({
             </span>
             {rowCount !== undefined && (
               <span className="text-stone-400 dark:text-stone-600">
-                ({rowCount.toLocaleString()} filas)
+                ({rowCount.toLocaleString()} marcas)
               </span>
             )}
           </div>
@@ -112,14 +127,16 @@ export const Header: React.FC<HeaderProps> = ({
           <span>SQL</span>
         </button>
 
-        <button
-          type="button"
-          onClick={onClearShelves}
-          className="rounded-md border border-stone-200/80 bg-white p-1.5 text-stone-500 shadow-xs hover:bg-stone-50 hover:text-stone-900 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-100"
-          title="Limpiar estantes"
-        >
-          <RotateCcw className="h-3.5 w-3.5" />
-        </button>
+        {hasPillsOnShelves && (
+          <button
+            type="button"
+            onClick={onClearShelves}
+            className="rounded-md border border-stone-200/80 bg-white p-1.5 text-stone-500 shadow-xs hover:bg-stone-50 hover:text-stone-900 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-100"
+            title="Limpiar estantes"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+          </button>
+        )}
 
         <button
           type="button"

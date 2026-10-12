@@ -168,15 +168,16 @@ atelier-analytics/
     │       └── worksheetStore.ts # Almacén Zustand reactivo con presets y ejecución OLAP
     ├── components/
     │   ├── Header/
-    │   │   └── Header.tsx        # Barra editorial con presets, latencia OLAP (ms) y tema
+    │   │   └── Header.tsx        # Barra editorial minimalista con estado del dataset, latencia y tema
     │   ├── DataSidebar/
-    │   │   └── DataSidebar.tsx   # Panel de dimensiones y métricas arrastrables + CSV upload
+    │   │   └── DataSidebar.tsx   # Panel de dimensiones y métricas dinámicas del archivo cargado
     │   ├── Shelves/
     │   │   ├── ShelfDropZone.tsx # Zonas de Drag & Drop para Columns, Rows y Filtros
     │   │   └── PillBadge.tsx     # Pastillas con menú contextual (agregación, orden, truncamiento)
     │   ├── Marks/
     │   │   └── MarksCard.tsx     # Tarjeta de marcas con Color, Size, Detail, Tooltip y Opacity
     │   └── Canvas/
+    │       ├── EmptyWorkspace.tsx # Zona de bienvenida y drag & drop para archivos locales
     │       ├── PlotRenderer.tsx  # Renderizador reactivo Observable Plot con paletas OKLCH
     │       └── SQLInspectorDrawer.tsx # Drawer para auditar el SQL DuckDB y memoria Arrow
     └── utils/
@@ -187,5 +188,5 @@ atelier-analytics/
 
 ## 6. Estado de la Sesión
 
-- **Estado Actual:** Prototipo completamente funcional, probado y en ejecución en segundo plano.
-- **Siguiente Paso:** Demostración al usuario y visualización de consultas analíticas interactivas en `http://127.0.0.1:5173`.
+- **Estado Actual:** Modelo libre de datos sintéticos y presets implementado. La aplicación inicia en estado virgen (Empty State) esperando que el usuario conecte cualquier archivo local (.parquet, .csv, .tsv, .json).
+- **Siguiente Paso:** El usuario puede arrastrar y soltar cualquier dataset real directamente al lienzo para analizarlo.

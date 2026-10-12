@@ -27,6 +27,8 @@ export interface WorksheetStore extends WorksheetState {
 
   // Actions
   initEngine: () => Promise<void>;
+  loadFile: (file: File) => Promise<void>;
+  closeDataset: () => void;
   selectDataset: (datasetId: string) => Promise<void>;
   addPillToShelf: (shelf: ShelfId, pill: Pill) => void;
   removePillFromShelf: (shelf: ShelfId, pillId: string) => void;
@@ -43,12 +45,11 @@ export interface WorksheetStore extends WorksheetState {
   toggleSQLDrawer: () => void;
   toggleTheme: () => void;
   executeCurrentState: () => Promise<void>;
-  loadPreset: (presetId: 'sales_by_category' | 'profit_vs_sales_detail' | 'telemetry_100k_clusters') => Promise<void>;
 }
 
 export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
-  datasetId: 'superstore',
-  tableName: 'superstore',
+  datasetId: '',
+  tableName: '',
   columns: [],
   rows: [],
   filters: [],
@@ -75,25 +76,66 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
     try {
       set({ isExecuting: true, engineError: null });
       await duckdbEngine.getDB();
-      const datasets = duckdbEngine.getAvailableDatasets();
-      const defaultDs = datasets.find((d) => d.id === 'superstore') || datasets[0];
-
       set({
         isEngineReady: true,
-        availableDatasets: datasets,
-        currentDataset: defaultDs,
-        datasetId: defaultDs.id,
-        tableName: defaultDs.tableName,
+        isExecuting: false,
       });
-
-      // Load a vibrant starter visualization
-      await get().loadPreset('sales_by_category');
     } catch (err: unknown) {
       set({
         engineError: err instanceof Error ? err.message : 'Error al inicializar DuckDB-WASM',
         isExecuting: false,
       });
     }
+  },
+
+  loadFile: async (file: File) => {
+    try {
+      set({ isExecuting: true, engineError: null });
+      const meta = await duckdbEngine.loadUserFile(file);
+      const allDatasets = duckdbEngine.getAvailableDatasets();
+
+      set({
+        availableDatasets: allDatasets,
+        currentDataset: meta,
+        datasetId: meta.id,
+        tableName: meta.tableName,
+        columns: [],
+        rows: [],
+        filters: [],
+        marks: {
+          markType: 'auto',
+          detail: [],
+          tooltip: [],
+          opacity: 0.85,
+        },
+      });
+
+      await get().executeCurrentState();
+    } catch (err: unknown) {
+      set({
+        isExecuting: false,
+        engineError: err instanceof Error ? err.message : 'Error al cargar archivo en memoria',
+      });
+    }
+  },
+
+  closeDataset: () => {
+    set({
+      currentDataset: null,
+      datasetId: '',
+      tableName: '',
+      columns: [],
+      rows: [],
+      filters: [],
+      compiledQuery: null,
+      queryResult: null,
+      marks: {
+        markType: 'auto',
+        detail: [],
+        tooltip: [],
+        opacity: 0.85,
+      },
+    });
   },
 
   selectDataset: async (datasetId: string) => {
@@ -292,7 +334,7 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
 
   executeCurrentState: async () => {
     const state = get();
-    if (!state.isEngineReady) return;
+    if (!state.isEngineReady || !state.tableName) return;
 
     try {
       set({ isExecuting: true, engineError: null });
@@ -329,145 +371,5 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
         engineError: err instanceof Error ? err.message : 'Error ejecutando consulta en DuckDB-WASM',
       });
     }
-  },
-
-  loadPreset: async (presetId) => {
-    const state = get();
-    if (presetId === 'sales_by_category') {
-      const ds = state.availableDatasets.find((d) => d.id === 'superstore');
-      if (ds) {
-        set({
-          datasetId: ds.id,
-          tableName: ds.tableName,
-          currentDataset: ds,
-          columns: [
-            {
-              id: 'col_cat',
-              columnName: 'category',
-              role: 'dimension',
-              dataType: 'string',
-            },
-          ],
-          rows: [
-            {
-              id: 'row_sales',
-              columnName: 'sales',
-              role: 'measure',
-              dataType: 'number',
-              aggregation: 'SUM',
-            },
-          ],
-          filters: [],
-          marks: {
-            markType: 'bar',
-            color: {
-              id: 'mark_cat',
-              columnName: 'category',
-              role: 'dimension',
-              dataType: 'string',
-            },
-            detail: [],
-            tooltip: [],
-            opacity: 0.9,
-          },
-        });
-      }
-    } else if (presetId === 'profit_vs_sales_detail') {
-      const ds = state.availableDatasets.find((d) => d.id === 'superstore');
-      if (ds) {
-        set({
-          datasetId: ds.id,
-          tableName: ds.tableName,
-          currentDataset: ds,
-          columns: [
-            {
-              id: 'col_sales',
-              columnName: 'sales',
-              role: 'measure',
-              dataType: 'number',
-              aggregation: 'SUM',
-            },
-          ],
-          rows: [
-            {
-              id: 'row_profit',
-              columnName: 'profit',
-              role: 'measure',
-              dataType: 'number',
-              aggregation: 'SUM',
-            },
-          ],
-          filters: [],
-          marks: {
-            markType: 'dot',
-            color: {
-              id: 'mark_region',
-              columnName: 'region',
-              role: 'dimension',
-              dataType: 'string',
-            },
-            size: {
-              id: 'mark_qty',
-              columnName: 'quantity',
-              role: 'measure',
-              dataType: 'number',
-              aggregation: 'SUM',
-            },
-            // CRITICAL: Detail alters granularity without adding spatial axes!
-            detail: [
-              {
-                id: 'detail_subcat',
-                columnName: 'sub_category',
-                role: 'dimension',
-                dataType: 'string',
-              },
-            ],
-            tooltip: [],
-            opacity: 0.85,
-          },
-        });
-      }
-    } else if (presetId === 'telemetry_100k_clusters') {
-      const ds = state.availableDatasets.find((d) => d.id === 'telemetry_100k');
-      if (ds) {
-        set({
-          datasetId: ds.id,
-          tableName: ds.tableName,
-          currentDataset: ds,
-          columns: [
-            {
-              id: 'col_cluster',
-              columnName: 'cluster',
-              role: 'dimension',
-              dataType: 'string',
-            },
-          ],
-          rows: [
-            {
-              id: 'row_temp',
-              columnName: 'temperature',
-              role: 'measure',
-              dataType: 'number',
-              aggregation: 'AVG',
-            },
-          ],
-          filters: [],
-          marks: {
-            markType: 'bar',
-            color: {
-              id: 'mark_datacenter',
-              columnName: 'datacenter',
-              role: 'dimension',
-              dataType: 'string',
-            },
-            detail: [],
-            tooltip: [],
-            opacity: 0.9,
-          },
-        });
-      }
-    }
-
-    await get().executeCurrentState();
   },
 }));
