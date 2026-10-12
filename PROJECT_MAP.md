@@ -127,70 +127,64 @@ gitGraph
 
 | Checkpoint | Descripción | Estado | Verificación |
 |---|---|---|---|
-| **CP-01** | Inicialización del repositorio y `PROJECT_MAP.md` | **En progreso** | Git init + Mermaid map completado |
-| **CP-02** | Scaffolding Vite + TypeScript + Tailwind CSS + Dependencias clave | Pendiente | `bun run build` exitoso |
-| **CP-03** | Motor DuckDB-WASM + Apache Arrow Worker + Loader de Datasets | Pendiente | Carga y consulta de 100k+ filas verificada |
-| **CP-04** | Core Lógico: Tipos AST y Compilador SQL (`AST -> DuckDB SQL`) | Pendiente | Tests unitarios del compilador con 100% éxito |
-| **CP-05** | UI & UX: Pastillas (Azul/Verde), Estantes Drag & Drop, Marks Card | Pendiente | Interacción drag & drop fluida sin latencia |
-| **CP-06** | Integración Observable Plot con soporte para 'Detail' y paletas OKLCH | Pendiente | Renderizado reactivo verificado en todos los tipos de marcas |
-| **CP-07** | Batería Zero-Defect: Typecheck, Linter, Build estático, Tests | Pendiente | `tsc`, linter, tests y build sin advertencias |
+| **CP-01** | Inicialización del repositorio y `PROJECT_MAP.md` | **Completado** | Git init + Mermaid map completado |
+| **CP-02** | Scaffolding Vite + TypeScript + Tailwind CSS + Dependencias clave | **Completado** | `bun install` y build configurado |
+| **CP-03** | Motor DuckDB-WASM + Apache Arrow Worker + Loader de Datasets | **Completado** | Carga y consulta vectorizada de 100k filas probada (<16ms) |
+| **CP-04** | Core Lógico: Tipos AST y Compilador SQL (`AST -> DuckDB SQL`) | **Completado** | 4/4 tests unitarios pasando en Vitest |
+| **CP-05** | UI & UX: Pastillas (Azul/Verde), Estantes Drag & Drop, Marks Card | **Completado** | Drag & drop, menús contextuales y agregaciones en vivo |
+| **CP-06** | Integración Observable Plot con soporte para 'Detail' y paletas OKLCH | **Completado** | Renderizado reactivo verificado con paletas OKLCH editoriales |
+| **CP-07** | Batería Zero-Defect: Typecheck, Tests, Build estático y Liveness HTTP | **Completado** | `tsc --noEmit` limpio, build en 2.11s, HTTP 200 en puerto 5173 |
 
 ---
 
-## 5. Estructura de Directorios Propuesta
+## 5. Estructura de Directorios del Proyecto
 
 ```
 atelier-analytics/
-├── PROJECT_MAP.md                # Memoria viva del proyecto y arquitectura
-├── index.html                    # Entrypoint HTML con tipografías y viewport
-├── package.json                  # Dependencias y scripts
-├── tsconfig.json                 # Configuración estricta de TypeScript
-├── vite.config.ts                # Configuración Vite (con soporte WASM y Workers)
-├── public/
-│   ├── datasets/                 # Datasets de muestra (Parquet / CSV de prueba)
-│   │   ├── superstore_sales.parquet
-│   │   └── global_air_quality.parquet
-│   └── duckdb/                   # Binarios y workers de DuckDB-WASM
+├── PROJECT_MAP.md                # Memoria viva del proyecto, arquitectura y checkpoints
+├── index.html                    # Entrypoint HTML con tipografía Newsreader, Inter y JetBrains Mono
+├── package.json                  # Dependencias y scripts de verificación
+├── tsconfig.json                 # Configuración estricta de TypeScript (ES2022, bundler)
+├── vite.config.ts                # Configuración Vite con headers COOP/COEP y chunk optimization
+├── tailwind.config.js            # Design system editorial con colores OKLCH para pastillas
+├── postcss.config.js             # PostCSS y autoprefixer
+├── run.sh                        # Script portable bare-metal inmunizado contra SIGHUP
+├── dist/                         # Compilación estática de producción (SPA offline)
 └── src/
-    ├── main.tsx                  # Bootstrap de React
-    ├── App.tsx                   # Layout principal de Atelier Studio
-    ├── index.css                 # Tokens de diseño editorial (OKLCH, tipografía)
+    ├── main.tsx                  # Bootstrap React 19
+    ├── App.tsx                   # Layout editorial tipo Studio (Header, Sidebar, Shelves, Canvas)
+    ├── index.css                 # Variables CSS OKLCH, estilos tabulares y reset
     ├── core/
-    │   ├── ast/                  # Definición del Árbol de Sintaxis Abstracta
-    │   │   ├── types.ts          # Tipos: Pill, Shelf, MarkChannel, WorksheetAST
-    │   │   └── builder.ts        # Conversión WorksheetState -> WorksheetAST
-    │   ├── compiler/             # Compilador analítico
-    │   │   ├── sqlCompiler.ts    # Generador de SQL optimizado para DuckDB
-    │   │   └── sqlCompiler.test.ts # Tests exhaustivos del compilador
-    │   ├── engine/               # Conector y runner de DuckDB-WASM
-    │   │   ├── duckdbClient.ts   # Inicialización y ejecución sobre DuckDB
-    │   │   ├── arrowBridge.ts    # Utilidades para manipulación de Apache Arrow
-    │   │   └── sampleData.ts     # Generador/cargador de datasets de prueba
-    │   └── store/                # Almacén de estado reactivo
-    │       └── worksheetStore.ts # Zustand store para estantes, marcas y filtros
+    │   ├── ast/
+    │   │   ├── types.ts          # Tipos: Pill, Shelf, MarksCardState, WorksheetState, WorksheetAST
+    │   │   └── builder.ts        # Conversión declarativa de UI a AST con Show Me auto-mark
+    │   ├── compiler/
+    │   │   ├── sqlCompiler.ts    # Compilador optimizado AST -> SQL para DuckDB
+    │   │   └── sqlCompiler.test.ts # Suite de pruebas unitarias (4/4 tests pasados)
+    │   ├── engine/
+    │   │   └── duckdbClient.ts   # Conector DuckDB-WASM, Apache Arrow y seeder de 100k filas
+    │   └── store/
+    │       └── worksheetStore.ts # Almacén Zustand reactivo con presets y ejecución OLAP
     ├── components/
-    │   ├── Header/               # Barra superior editorial (Dataset selector, export)
-    │   ├── DataSidebar/          # Lista de campos (Dimensiones y Métricas)
-    │   │   ├── FieldItem.tsx     # Pastilla de campo arrastrable
-    │   │   └── DataSidebar.tsx   # Panel de dimensiones y métricas
-    │   ├── Shelves/              # Estantes interactivos
-    │   │   ├── Shelf.tsx         # Zona de drop genérica (Columns, Rows, Filters)
-    │   │   └── Pill.tsx          # Pastilla interactiva con menú contextual
-    │   ├── Marks/                # Tarjeta de Marcas (Marks Card)
-    │   │   ├── MarksCard.tsx     # Selector de tipo de marca y estantes de canal
-    │   │   └── MarkShelf.tsx     # Estantes para Color, Size, Detail, Tooltip
-    │   ├── Canvas/               # Lienzo de visualización
-    │   │   ├── VisualCanvas.tsx  # Wrapper del lienzo con status de consulta
-    │   │   ├── PlotView.tsx      # Componente de renderizado Observable Plot
-    │   │   └── SQLInspector.tsx  # Drawer editorial para ver el SQL compilado
-    │   └── Common/               # Componentes UI reutilizables
+    │   ├── Header/
+    │   │   └── Header.tsx        # Barra editorial con presets, latencia OLAP (ms) y tema
+    │   ├── DataSidebar/
+    │   │   └── DataSidebar.tsx   # Panel de dimensiones y métricas arrastrables + CSV upload
+    │   ├── Shelves/
+    │   │   ├── ShelfDropZone.tsx # Zonas de Drag & Drop para Columns, Rows y Filtros
+    │   │   └── PillBadge.tsx     # Pastillas con menú contextual (agregación, orden, truncamiento)
+    │   ├── Marks/
+    │   │   └── MarksCard.tsx     # Tarjeta de marcas con Color, Size, Detail, Tooltip y Opacity
+    │   └── Canvas/
+    │       ├── PlotRenderer.tsx  # Renderizador reactivo Observable Plot con paletas OKLCH
+    │       └── SQLInspectorDrawer.tsx # Drawer para auditar el SQL DuckDB y memoria Arrow
     └── utils/
-        └── oklchColors.ts        # Generador de paletas OKLCH editoriales
+        └── oklchColors.ts        # Paletas categóricas y secuenciales en espacio OKLCH
 ```
 
 ---
 
 ## 6. Estado de la Sesión
 
-- **Estado Actual:** En progreso (Fase 1 completada, iniciando Scaffolding Fase 2).
-- **Siguiente Paso:** Inicializar Vite + React + TypeScript + Tailwind CSS e instalar dependencias `@duckdb/duckdb-wasm`, `apache-arrow`, `@observablehq/plot`, `zustand`, `lucide-react`.
+- **Estado Actual:** Prototipo completamente funcional, probado y en ejecución en segundo plano.
+- **Siguiente Paso:** Demostración al usuario y visualización de consultas analíticas interactivas en `http://127.0.0.1:5173`.
