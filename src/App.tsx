@@ -58,6 +58,11 @@ export const App: React.FC = () => {
     duplicateTab,
     deleteTab,
     setDashboardSheets,
+    addDashboardFilter,
+    updateDashboardFilter,
+    removeDashboardFilter,
+    setFilterTargetSheets,
+    setParameterTargetSheets,
     dashboardResults,
 
     // Calculated Fields & Parameters
@@ -164,8 +169,18 @@ export const App: React.FC = () => {
                   activeDashboard={activeSheet}
                   dashboardResults={dashboardResults}
                   theme={theme}
+                  datasetColumns={currentDataset?.columns}
+                  parameters={parameters}
                   onSwitchTab={switchTab}
                   onSetDashboardSheets={setDashboardSheets}
+                  onAddDashboardFilter={addDashboardFilter}
+                  onUpdateDashboardFilter={updateDashboardFilter}
+                  onRemoveDashboardFilter={removeDashboardFilter}
+                  onSetFilterTargetSheets={setFilterTargetSheets}
+                  onSetParameterValue={setParameterValue}
+                  onSetParameterTargetSheets={setParameterTargetSheets}
+                  onOpenFilterModal={(filter) => setActiveFilterModal(filter)}
+                  onOpenParameterModal={openParameterModal}
                 />
               ) : (
                 /* Active Worksheet: Shelves + Marks + Canvas */
@@ -279,10 +294,21 @@ export const App: React.FC = () => {
         <FilterModal
           filter={activeFilterModal}
           tableName={currentDataset.tableName}
-          onSave={(updated) => upsertFilter(updated)}
+          onSave={(updated) => {
+            if (isDashboardTab) {
+              updateDashboardFilter(activeSheet.id, updated);
+            } else {
+              upsertFilter(updated);
+            }
+            setActiveFilterModal(null);
+          }}
           onClose={() => setActiveFilterModal(null)}
           onRemove={() => {
-            removeFilter(activeFilterModal.id);
+            if (isDashboardTab) {
+              removeDashboardFilter(activeSheet.id, activeFilterModal.id);
+            } else {
+              removeFilter(activeFilterModal.id);
+            }
             setActiveFilterModal(null);
           }}
         />

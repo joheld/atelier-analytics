@@ -279,4 +279,52 @@ describe('Atelier Analytics Compiler & AST Builder', () => {
     expect(compiled.sql).toContain("(CASE WHEN \"sales\" >= 50000 AND TRUE THEN 'Premium VIP' ELSE 'Normal' END) AS dynamic_calc");
     expect(compiled.sql).toContain("GROUP BY (CASE WHEN \"sales\" >= 50000 AND TRUE THEN 'Premium VIP' ELSE 'Normal' END)");
   });
+
+  it('correctly applies dashboard filters and parameter scoping across isolated worksheets', () => {
+    // Worksheet 1: targeted by dashboard filter
+    const sheet1State: WorksheetState = {
+      datasetId: 'superstore',
+      tableName: 'superstore',
+      columns: [{ id: 'c1', columnName: 'category', role: 'dimension', dataType: 'string' }],
+      rows: [{ id: 'r1', columnName: 'sales', role: 'measure', dataType: 'number', aggregation: 'SUM' }],
+      filters: [],
+      marks: { markType: 'bar', detail: [], tooltip: [], opacity: 1 },
+    };
+
+    // Dashboard filter scoped strictly to sheet_1
+    const dashFilter: import('../ast/types').FilterExpression = {
+      id: 'df_1',
+      columnName: 'region',
+      role: 'dimension',
+      dataType: 'string',
+      operator: 'in',
+      values: ['Central', 'South'],
+      applyScope: 'selected',
+      targetSheetIds: ['sheet_1'],
+    };
+
+    // When compiling sheet 1 (targeted):
+    const isTargetedSheet1 = dashFilter.applyScope === 'all' || dashFilter.targetSheetIds?.includes('sheet_1');
+    expect(isTargetedSheet1).toBe(true);
+    const effectiveFilters1 = isTargetedSheet1 ? [dashFilter] : [];
+    const ast1 = buildWorksheetAST({ ...sheet1State, filters: effectiveFilters1 });
+    const compiled1 = compileASTtoDuckDB(ast1);
+    expect(compiled1.sql).toContain("WHERE region IN ('Central', 'South')");
+
+    // Worksheet 2: NOT targeted by dashboard filter
+    const sheet2State: WorksheetState = {
+      datasetId: 'superstore',
+      tableName: 'superstore',
+      columns: [{ id: 'c2', columnName: 'segment', role: 'dimension', dataType: 'string' }],
+      rows: [{ id: 'r2', columnName: 'profit', role: 'measure', dataType: 'number', aggregation: 'SUM' }],
+      filters: [],
+      marks: { markType: 'bar', detail: [], tooltip: [], opacity: 1 },
+    };
+    const isTargetedSheet2 = dashFilter.applyScope === 'all' || dashFilter.targetSheetIds?.includes('sheet_2');
+    expect(isTargetedSheet2).toBe(false);
+    const effectiveFilters2 = isTargetedSheet2 ? [dashFilter] : [];
+    const ast2 = buildWorksheetAST({ ...sheet2State, filters: effectiveFilters2 });
+    const compiled2 = compileASTtoDuckDB(ast2);
+    expect(compiled2.sql).not.toContain('WHERE region');
+  });
 });

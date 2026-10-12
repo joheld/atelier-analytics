@@ -98,6 +98,9 @@ export interface Parameter {
   step?: number;
   options?: string[]; // Backward compatibility
   showControl?: boolean; // Tableau "Mostrar control de parámetro" (default true)
+  // Tableau "Apply to Worksheets" scope:
+  applyScope?: 'all' | 'selected';
+  targetSheetIds?: string[]; // IDs of worksheets this parameter applies to
 }
 
 export type SheetType = 'worksheet' | 'dashboard';
@@ -112,6 +115,7 @@ export interface WorksheetTab {
   marks: MarksCardState;
   limit?: number;
   dashboardSheetIds?: string[];
+  dashboardFilters?: FilterExpression[];
 }
 
 export interface WorkbookProject {
@@ -134,6 +138,9 @@ export interface FilterExpression {
   values?: (string | number | boolean)[];
   rangeMin?: number;
   rangeMax?: number;
+  // Tableau "Apply to Worksheets" scope:
+  applyScope?: 'all' | 'selected';
+  targetSheetIds?: string[]; // IDs of worksheets this filter applies to
 }
 
 export interface MarksCardState {

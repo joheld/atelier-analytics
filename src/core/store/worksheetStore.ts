@@ -85,6 +85,11 @@ export interface WorksheetStore extends WorksheetState {
   duplicateTab: (tabId: string) => void;
   deleteTab: (tabId: string) => void;
   setDashboardSheets: (dashboardId: string, sheetIds: string[]) => void;
+  addDashboardFilter: (dashboardId: string, filter: FilterExpression) => void;
+  updateDashboardFilter: (dashboardId: string, filter: FilterExpression) => void;
+  removeDashboardFilter: (dashboardId: string, filterId: string) => void;
+  setFilterTargetSheets: (dashboardId: string, filterId: string, scope: 'all' | 'selected', targetSheetIds: string[]) => void;
+  setParameterTargetSheets: (paramId: string, scope: 'all' | 'selected', targetSheetIds: string[]) => void;
 
   // Actions - Calculated Fields
   openCalculatedFieldModal: (field?: CalculatedField) => void;
@@ -710,6 +715,71 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
     void get().executeCurrentState();
   },
 
+  addDashboardFilter: (dashboardId: string, filter: FilterExpression) => {
+    set((state) => ({
+      sheets: state.sheets.map((s) => {
+        if (s.id !== dashboardId) return s;
+        const currentFilters = s.dashboardFilters || [];
+        return {
+          ...s,
+          dashboardFilters: [...currentFilters, filter],
+        };
+      }),
+    }));
+    void get().executeCurrentState();
+  },
+
+  updateDashboardFilter: (dashboardId: string, filter: FilterExpression) => {
+    set((state) => ({
+      sheets: state.sheets.map((s) => {
+        if (s.id !== dashboardId) return s;
+        const currentFilters = s.dashboardFilters || [];
+        return {
+          ...s,
+          dashboardFilters: currentFilters.map((f) => (f.id === filter.id ? filter : f)),
+        };
+      }),
+    }));
+    void get().executeCurrentState();
+  },
+
+  removeDashboardFilter: (dashboardId: string, filterId: string) => {
+    set((state) => ({
+      sheets: state.sheets.map((s) => {
+        if (s.id !== dashboardId) return s;
+        return {
+          ...s,
+          dashboardFilters: (s.dashboardFilters || []).filter((f) => f.id !== filterId),
+        };
+      }),
+    }));
+    void get().executeCurrentState();
+  },
+
+  setFilterTargetSheets: (dashboardId: string, filterId: string, scope: 'all' | 'selected', targetSheetIds: string[]) => {
+    set((state) => ({
+      sheets: state.sheets.map((s) => {
+        if (s.id !== dashboardId) return s;
+        return {
+          ...s,
+          dashboardFilters: (s.dashboardFilters || []).map((f) =>
+            f.id === filterId ? { ...f, applyScope: scope, targetSheetIds } : f
+          ),
+        };
+      }),
+    }));
+    void get().executeCurrentState();
+  },
+
+  setParameterTargetSheets: (paramId: string, scope: 'all' | 'selected', targetSheetIds: string[]) => {
+    set((state) => ({
+      parameters: state.parameters.map((p) =>
+        p.id === paramId ? { ...p, applyScope: scope, targetSheetIds } : p
+      ),
+    }));
+    void get().executeCurrentState();
+  },
+
   // CALCULATED FIELDS ACTIONS
   openCalculatedFieldModal: (field?: CalculatedField) => {
     set({
@@ -940,17 +1010,56 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
           if (!s) continue;
 
           try {
+            // Effective filters for this worksheet:
+            let effectiveFilters = [...s.filters];
+
+            // Merge in Dashboard Filters that target this sheet
+            if (activeSheet.dashboardFilters && activeSheet.dashboardFilters.length > 0) {
+              for (const dFilter of activeSheet.dashboardFilters) {
+                const targetsThisSheet =
+                  !dFilter.applyScope ||
+                  dFilter.applyScope === 'all' ||
+                  (dFilter.targetSheetIds && dFilter.targetSheetIds.includes(s.id));
+
+                if (targetsThisSheet) {
+                  // Override worksheet local filter on the same column with dashboard filter
+                  effectiveFilters = effectiveFilters.filter((f) => f.columnName !== dFilter.columnName);
+                  effectiveFilters.push(dFilter);
+                }
+              }
+            }
+
+            // Effective parameters for this worksheet:
+            const effectiveParameters = state.parameters.map((p) => {
+              const targetsThisSheet =
+                !p.applyScope ||
+                p.applyScope === 'all' ||
+                (p.targetSheetIds && p.targetSheetIds.includes(s.id));
+
+              if (targetsThisSheet) {
+                return p;
+              }
+              // If parameter does NOT target this sheet, keep initial or neutral value
+              return {
+                ...p,
+                currentValue:
+                  p.allowableType === 'range' && p.min !== undefined
+                    ? p.min
+                    : (p.listItems?.[0]?.value ?? p.currentValue),
+              };
+            });
+
             const sheetAST = buildWorksheetAST({
               datasetId: state.datasetId,
               tableName: state.tableName,
               columns: s.columns,
               rows: s.rows,
-              filters: s.filters,
+              filters: effectiveFilters,
               marks: s.marks,
               limit: s.limit || state.limit,
             });
 
-            const compiled = compileASTtoDuckDB(sheetAST, state.parameters);
+            const compiled = compileASTtoDuckDB(sheetAST, effectiveParameters);
             const queryRes = await duckdbEngine.executeQuery(compiled.sql);
 
             newDashboardResults[sId] = {

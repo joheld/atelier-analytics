@@ -119,6 +119,11 @@ gitGraph
     commit id: "editorial-theme-and-datasets"
     checkout main
     merge feature/tableau-ui id: "merge-ui" tag: "v1.0.0"
+    commit id: "interactive-filters" tag: "v1.1.0"
+    commit id: "workbooks-dashboards-calc-params" tag: "v1.2.0"
+    commit id: "auto-role-duckdb-functions" tag: "v1.3.0"
+    commit id: "tableau-parameter-dialog-controls" tag: "v1.4.0"
+    commit id: "dashboard-filters-and-scoping" tag: "v1.5.0"
 ```
 
 ---
@@ -138,6 +143,7 @@ gitGraph
 | **CP-09** | Modelo Workbook Completo: Multi-Tabs, Dashboards Compuestos, Campos Calculados y Parámetros | **Completado** | Pestañas inferiores Tableau, `DashboardGrid` multi-visual, persistencia `.atelier`/localStorage, editor de cálculos y parámetros |
 | **CP-10** | Inferencia Automática (Tableau-Style) y Superpoderes Vectoriales | **Completado** | Detección automática en vivo del rol analítico (Métrica verde vs Dimensión azul) y tipo de dato mediante `typeof()` en DuckDB-WASM, con toggle de anulación manual opcional. Soporte de funciones avanzadas (Pearson `CORR`, Regresión `REGR_SLOPE`/`REGR_R2`, Percentiles exactos `QUANTILE_CONT`, HLL, Regex PCRE y JSON). |
 | **CP-11** | Parámetros Auténticos Estilo Tableau Desktop | **Completado** | Diálogo completo "Crear Parámetro": Tipos de datos (Float, Int, String, Boolean, Date), Formato de visualización, Valores permisibles (Todos, Lista, Rango), importación con 1 clic ("Añadir valores desde campo..." y "Establecer rango desde campo..."), tokens con espacios `[Top N]` y barra interactiva de controles en lienzo (`ParameterControlsBar.tsx`). |
+| **CP-12** | Filtros y Parámetros en Dashboards con Scoping "Aplicar a hojas de trabajo..." | **Completado** | Adición y edición de filtros directamente en Dashboards (`+ Añadir Filtro`). Menú de alcance de impacto idéntico a Tableau Desktop (*"Todas las hojas del dashboard"* vs *"Hojas seleccionadas..."* con checklist). Bucle de ejecución DuckDB-WASM aislado por visual, indicadores visuales de impacto en cada tarjeta y 7/7 tests unitarios pasando. |
 
 ---
 
@@ -165,11 +171,11 @@ atelier-analytics/
     │   │   └── builder.ts        # Conversión declarativa de UI a AST con Show Me auto-mark
     │   ├── compiler/
     │   │   ├── sqlCompiler.ts    # Compilador optimizado AST -> SQL con soporte para tokens de parámetros [Nombre Con Espacios] y cálculos
-    │   │   └── sqlCompiler.test.ts # Suite de pruebas unitarias (6/6 tests pasados)
+    │   │   └── sqlCompiler.test.ts # Suite de pruebas unitarias (7/7 tests pasados con scoping de dashboard)
     │   ├── engine/
     │   │   └── duckdbClient.ts   # Conector DuckDB-WASM, Apache Arrow, loader universal, queries de metadatos, validador de fórmulas e introspección de tipo/rol
     │   └── store/
-    │       └── worksheetStore.ts # Almacén Zustand reactivo multi-hoja, gestión de cálculos, parámetros (toggle control, duplicar) y persistencia
+    │       └── worksheetStore.ts # Almacén Zustand reactivo multi-hoja, gestión de cálculos, parámetros, filtros de dashboard y scoping aislado por hoja
     ├── components/
     │   ├── Header/
     │   │   └── Header.tsx        # Barra editorial con estado, latencia, tema y botones Abrir/Guardar proyecto (.atelier)
@@ -178,7 +184,8 @@ atelier-analytics/
     │   ├── Tabs/
     │   │   └── TabBar.tsx        # Barra inferior de pestañas con cambio de hoja, duplicar, renombrar y añadir hojas/dashboards
     │   ├── Dashboard/
-    │   │   └── DashboardGrid.tsx # Lienzo compuesto que combina múltiples hojas en un grid interactivo 1x1 o 2x2
+    │   │   ├── DashboardGrid.tsx # Lienzo compuesto con barra de filtros/parámetros de dashboard, badges de ámbito y grid multi-visual
+    │   │   └── TargetSheetsModal.tsx # Modal Tableau "Aplicar a hojas de trabajo..." (Todas las hojas vs Hojas seleccionadas con checklist)
     │   ├── CalculatedFields/
     │   │   └── CalculatedFieldModal.tsx # Editor de fórmulas con biblioteca de funciones, recetas analíticas, validación reactiva e inferencia de tipo/rol
     │   ├── Parameters/
@@ -204,5 +211,5 @@ atelier-analytics/
 
 ## 6. Estado de la Sesión
 
-- **Estado Actual:** Sistema de Parámetros de Tableau Desktop implementado al 100%. Los parámetros admiten nombres con espacios (`[Top N Clientes]`), formatos de visualización (Moneda, Porcentaje, Estándar), valores permisibles (Todos, Lista con alias "Mostrar como", Rango numérico con paso). Incluye carga instantánea desde columnas de DuckDB ("Añadir valores desde campo..." y "Establecer rango desde campo..."), visibilidad conmutable en hoja/dashboard (`ParameterControlsBar.tsx`), duplicación y reactividad instantánea.
-- **Siguiente Paso:** Listo para continuar con exploraciones analíticas adicionales.
+- **Estado Actual:** Filtros y Parámetros en Dashboards implementados al 100% con selectores de alcance idénticos a Tableau Desktop (*"Aplicar a hojas de trabajo..."*). Los usuarios pueden agregar filtros directamente en cualquier pestaña de Dashboard, ajustar valores interactivos de parámetros, definir si afectan a todas las hojas del dashboard o a un subconjunto específico mediante checklist, ver etiquetas visuales de qué filtros están activos en cada tarjeta visual, y disfrutar de ejecuciones analíticas en DuckDB-WASM aisladas y sin interferencia cruzada.
+- **Siguiente Paso:** Listo para continuar con cualquier nueva funcionalidad, mejoras visuales o exportación avanzada que el usuario requiera.
