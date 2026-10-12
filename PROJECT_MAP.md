@@ -201,5 +201,5 @@ atelier-analytics/
 
 ## 6. Estado de la Sesión
 
-- **Estado Actual:** Modelo Workbook completo y extensivo al estilo Tableau implementado con éxito. Se cuenta con sistema de múltiples pestañas (`TabBar.tsx`) con hojas analíticas independientes y vistas compuestas de Dashboard (`DashboardGrid.tsx`); persistencia automática en `localStorage` y exportación/importación de proyectos en formato `.atelier` (JSON); creación y edición de campos calculados con validación de sintaxis en vivo sobre DuckDB-WASM; y parámetros analíticos dinámicos ajustables en tiempo real mediante sliders e inputs en la barra lateral.
+- **Estado Actual:** Biblioteca interactiva de funciones y recetas analíticas incorporada al modal de Campos Calculados (`CalculatedFieldModal.tsx`). Incluye buscador y filtro por categorías (Lógicas, Numéricas, Texto, Fecha y Conversión), tarjeta de documentación detallada con sintaxis, descripción en español y ejemplos prácticos, botón de inserción a la fórmula, y plantillas rápidas de cálculo analítico común (Margen %, Clasificación IF/CASE, Año de Fecha, Multiplicadores con IVA y Limpieza de Nulos).
 - **Siguiente Paso:** Verificación en el navegador en http://127.0.0.1:5173.
