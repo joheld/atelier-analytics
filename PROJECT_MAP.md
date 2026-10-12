@@ -188,5 +188,5 @@ atelier-analytics/
 
 ## 6. Estado de la Sesión
 
-- **Estado Actual:** Punto de carga unificado exclusivamente en el lienzo central (EmptyWorkspace). Se eliminaron todos los botones y selectores duplicados en el Header y DataSidebar para evitar redundancia en la interfaz.
-- **Siguiente Paso:** Interacción del usuario arrastrando cualquier archivo .parquet o .csv a la zona central para comenzar el análisis.
+- **Estado Actual:** Corrección de fallos visuales en Observable Plot completada: rotación y recorte dinámico de etiquetas largas en el eje X, prevención de corte en la leyenda superior de colores, renderizado explícito de agregación en títulos de eje (SUM(age)), cuadrículas horizontales de precisión y tooltips flotantes reactivos.
+- **Siguiente Paso:** Verificación en vivo por parte del usuario en http://127.0.0.1:5173.

@@ -1,6 +1,6 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import * as Plot from '@observablehq/plot';
-import { WorksheetAST } from '../../core/ast/types';
+import { WorksheetAST, Pill } from '../../core/ast/types';
 import { getPillSqlIdentifier } from '../../core/ast/builder';
 import { QueryExecutionResult } from '../../core/engine/duckdbClient';
 import { EDITORIAL_OKLCH_CATEGORICAL, EDITORIAL_SEQUENTIAL_BLUE } from '../../utils/oklchColors';
@@ -11,8 +11,42 @@ interface PlotRendererProps {
   theme: 'light' | 'dark';
 }
 
+function getPillDisplayLabel(pill?: Pill, defaultVal = ''): string {
+  if (!pill) return defaultVal;
+  if (pill.alias) return pill.alias;
+  if (pill.role === 'measure' && pill.aggregation) {
+    return `${pill.aggregation}(${pill.columnName})`;
+  }
+  if (pill.dateTruncation) {
+    return `${pill.dateTruncation.toUpperCase()}(${pill.columnName})`;
+  }
+  return pill.columnName;
+}
+
 export const PlotRenderer: React.FC<PlotRendererProps> = ({ ast, result, theme }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [dimensions, setDimensions] = useState<{ width: number; height: number }>({
+    width: 800,
+    height: 500,
+  });
+
+  // Track container size reactively
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect;
+        if (width > 0 && height > 0) {
+          setDimensions({
+            width: Math.floor(width),
+            height: Math.floor(height),
+          });
+        }
+      }
+    });
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     if (!containerRef.current || !result || !ast || result.rows.length === 0) {
@@ -23,12 +57,12 @@ export const PlotRenderer: React.FC<PlotRendererProps> = ({ ast, result, theme }
     }
 
     const container = containerRef.current;
-    const width = container.clientWidth || 800;
-    const height = Math.max(container.clientHeight || 500, 420);
+    const { width, height } = dimensions;
 
     const isDark = theme === 'dark';
-    const textColor = isDark ? '#e7e5e4' : '#1c1917';
-    const gridColor = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)';
+    const textColor = isDark ? '#f5f5f4' : '#1c1917';
+    const mutedColor = isDark ? '#a8a29e' : '#78716c';
+    const gridColor = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.07)';
 
     // Resolve column accessors from AST
     const xPill = ast.spatialX[0];
@@ -44,29 +78,43 @@ export const PlotRenderer: React.FC<PlotRendererProps> = ({ ast, result, theme }
 
     const detailPills = ast.detailChannel;
 
-    // Helper to format values in tooltip
+    // Detect if X-axis has long categorical strings that require rotation
+    const hasLongXTicks = result.rows.some((row) => {
+      const val = row[xField || ''];
+      return typeof val === 'string' && val.length > 8;
+    });
+
+    const isXContinuous = xPill?.role === 'measure';
+    const shouldRotateX = !isXContinuous && hasLongXTicks;
+
+    // Margins with dynamic padding for rotated labels and color legend
+    const marginTop = colorPill ? 56 : 32;
+    const marginBottom = shouldRotateX ? 80 : 45;
+    const marginLeft = 65;
+    const marginRight = 35;
+
+    // Rich Tooltip Formatter
     const makeTooltipTitle = (d: Record<string, unknown>) => {
-      const parts: string[] = [];
+      const lines: string[] = [];
       if (xField && d[xField] !== undefined) {
-        parts.push(`${xPill?.columnName || xField}: ${formatVal(d[xField])}`);
+        lines.push(`${getPillDisplayLabel(xPill, xField)}: ${formatVal(d[xField])}`);
       }
       if (yField && d[yField] !== undefined) {
-        parts.push(`${yPill?.columnName || yField}: ${formatVal(d[yField])}`);
+        lines.push(`${getPillDisplayLabel(yPill, yField)}: ${formatVal(d[yField])}`);
       }
       if (colorField && colorField !== xField && colorField !== yField && d[colorField] !== undefined) {
-        parts.push(`${colorPill?.columnName || colorField}: ${formatVal(d[colorField])}`);
+        lines.push(`Color (${colorPill?.columnName}): ${formatVal(d[colorField])}`);
       }
       if (sizeField && sizeField !== xField && sizeField !== yField && d[sizeField] !== undefined) {
-        parts.push(`${sizePill?.columnName || sizeField}: ${formatVal(d[sizeField])}`);
+        lines.push(`Tamaño (${sizePill?.columnName}): ${formatVal(d[sizeField])}`);
       }
-      // CRITICAL: Detail fields included in hover tooltip!
       for (const det of detailPills) {
         const detField = getPillSqlIdentifier(det);
         if (d[detField] !== undefined) {
-          parts.push(`Detail (${det.columnName}): ${formatVal(d[detField])}`);
+          lines.push(`Detalle (${det.columnName}): ${formatVal(d[detField])}`);
         }
       }
-      return parts.join('\n');
+      return lines.join('\n');
     };
 
     const formatVal = (v: unknown): string => {
@@ -79,13 +127,20 @@ export const PlotRenderer: React.FC<PlotRendererProps> = ({ ast, result, theme }
       return String(v);
     };
 
-    // Determine Plot Mark
+    // Format tick label if too long
+    const formatXTick = (d: unknown) => {
+      const s = String(d ?? '');
+      if (s.length > 24) {
+        return `${s.substring(0, 22)}…`;
+      }
+      return s;
+    };
+
     const marks: Plot.Markish[] = [];
 
-    // Subtle background rules
-    if (yField && xField) {
-      marks.push(Plot.gridX({ stroke: gridColor }));
-      marks.push(Plot.gridY({ stroke: gridColor }));
+    // Background horizontal grid lines
+    if (yField) {
+      marks.push(Plot.gridY({ stroke: gridColor, strokeDasharray: '2,2' }));
     }
 
     const markType = ast.markType;
@@ -98,9 +153,9 @@ export const PlotRenderer: React.FC<PlotRendererProps> = ({ ast, result, theme }
           Plot.barX(result.rows, {
             y: yField,
             x: xField,
-            fill: colorField ? colorField : 'oklch(0.55 0.18 245)',
-            tip: false,
+            fill: colorField || 'oklch(0.55 0.18 245)',
             title: makeTooltipTitle,
+            tip: true,
             sort: { y: '-x' },
             insetTop: 2,
             insetBottom: 2,
@@ -113,9 +168,9 @@ export const PlotRenderer: React.FC<PlotRendererProps> = ({ ast, result, theme }
           Plot.barY(result.rows, {
             x: xField,
             y: yField,
-            fill: colorField ? colorField : 'oklch(0.55 0.18 245)',
-            tip: false,
+            fill: colorField || 'oklch(0.55 0.18 245)',
             title: makeTooltipTitle,
+            tip: true,
             insetLeft: 3,
             insetRight: 3,
             rx: 3,
@@ -129,19 +184,21 @@ export const PlotRenderer: React.FC<PlotRendererProps> = ({ ast, result, theme }
         Plot.lineY(result.rows, {
           x: xField,
           y: yField,
-          stroke: colorField ? colorField : 'oklch(0.55 0.18 245)',
+          stroke: colorField || 'oklch(0.55 0.18 245)',
           strokeWidth: 2.2,
           curve: 'monotone-x',
           title: makeTooltipTitle,
+          tip: true,
         })
       );
       marks.push(
         Plot.dot(result.rows, {
           x: xField,
           y: yField,
-          fill: colorField ? colorField : 'oklch(0.55 0.18 245)',
+          fill: colorField || 'oklch(0.55 0.18 245)',
           r: 3.5,
           title: makeTooltipTitle,
+          tip: true,
         })
       );
     }
@@ -151,7 +208,7 @@ export const PlotRenderer: React.FC<PlotRendererProps> = ({ ast, result, theme }
         Plot.areaY(result.rows, {
           x: xField,
           y: yField,
-          fill: colorField ? colorField : 'oklch(0.55 0.18 245)',
+          fill: colorField || 'oklch(0.55 0.18 245)',
           fillOpacity: 0.35,
           curve: 'monotone-x',
         })
@@ -160,10 +217,11 @@ export const PlotRenderer: React.FC<PlotRendererProps> = ({ ast, result, theme }
         Plot.lineY(result.rows, {
           x: xField,
           y: yField,
-          stroke: colorField ? colorField : 'oklch(0.55 0.18 245)',
+          stroke: colorField || 'oklch(0.55 0.18 245)',
           strokeWidth: 2,
           curve: 'monotone-x',
           title: makeTooltipTitle,
+          tip: true,
         })
       );
     }
@@ -173,12 +231,13 @@ export const PlotRenderer: React.FC<PlotRendererProps> = ({ ast, result, theme }
         Plot.dot(result.rows, {
           x: xField,
           y: yField,
-          fill: colorField ? colorField : 'oklch(0.55 0.18 245)',
-          r: sizeField ? sizeField : 6,
-          fillOpacity: 0.82,
+          fill: colorField || 'oklch(0.55 0.18 245)',
+          r: sizeField || 6,
+          fillOpacity: 0.85,
           stroke: isDark ? '#1c1917' : '#ffffff',
           strokeWidth: 1,
           title: makeTooltipTitle,
+          tip: true,
         })
       );
     }
@@ -188,10 +247,11 @@ export const PlotRenderer: React.FC<PlotRendererProps> = ({ ast, result, theme }
         Plot.cell(result.rows, {
           x: xField,
           y: yField,
-          fill: colorField ? colorField : 'oklch(0.55 0.18 245)',
+          fill: colorField || 'oklch(0.55 0.18 245)',
           inset: 1.5,
           rx: 2,
           title: makeTooltipTitle,
+          tip: true,
         })
       );
     }
@@ -201,9 +261,10 @@ export const PlotRenderer: React.FC<PlotRendererProps> = ({ ast, result, theme }
         Plot.tickX(result.rows, {
           x: xField,
           y: yField,
-          stroke: colorField ? colorField : 'oklch(0.55 0.18 245)',
+          stroke: colorField || 'oklch(0.55 0.18 245)',
           strokeWidth: 2,
           title: makeTooltipTitle,
+          tip: true,
         })
       );
     }
@@ -228,30 +289,32 @@ export const PlotRenderer: React.FC<PlotRendererProps> = ({ ast, result, theme }
 
     // Build the Plot specification
     const plot = Plot.plot({
-      width,
-      height,
-      marginTop: 25,
-      marginRight: 40,
-      marginBottom: 45,
-      marginLeft: 65,
+      width: Math.max(width - 20, 400),
+      height: Math.max(height - 20, 360),
+      marginTop,
+      marginRight,
+      marginBottom,
+      marginLeft,
       style: {
         background: 'transparent',
         color: textColor,
         fontFamily: 'Inter, system-ui, sans-serif',
-        fontSize: '11.5px',
+        fontSize: '11px',
         fontVariantNumeric: 'tabular-nums',
       },
       x: {
-        label: xPill?.alias || xPill?.columnName || xField || 'X',
+        label: getPillDisplayLabel(xPill, xField || 'X'),
         grid: false,
         line: true,
-        tickFormat: (d) => (typeof d === 'number' && d >= 1000 ? `${(d / 1000).toFixed(0)}k` : d),
+        tickRotate: shouldRotateX ? -35 : 0,
+        tickFormat: formatXTick,
       },
       y: {
-        label: yPill?.alias || yPill?.columnName || yField || 'Y',
+        label: getPillDisplayLabel(yPill, yField || 'Y'),
         grid: false,
         line: true,
-        tickFormat: (d) => (typeof d === 'number' && d >= 1000 ? `${(d / 1000).toFixed(0)}k` : d),
+        tickFormat: (d) =>
+          typeof d === 'number' && d >= 1000 ? `${(d / 1000).toFixed(0)}k` : d,
       },
       color: colorScaleConfig,
       marks,
@@ -260,14 +323,24 @@ export const PlotRenderer: React.FC<PlotRendererProps> = ({ ast, result, theme }
     container.innerHTML = '';
     container.appendChild(plot);
 
+    // Style the native Plot legend if rendered to match editorial palette
+    const legendEl = container.querySelector('.plot-legend') as HTMLElement | null;
+    if (legendEl) {
+      legendEl.style.fontSize = '11px';
+      legendEl.style.fontFamily = 'Inter, system-ui, sans-serif';
+      legendEl.style.marginBottom = '8px';
+      legendEl.style.color = mutedColor;
+      legendEl.style.overflowX = 'auto';
+    }
+
     return () => {
       container.innerHTML = '';
     };
-  }, [ast, result, theme]);
+  }, [ast, result, theme, dimensions]);
 
   if (!result || result.rows.length === 0) {
     return (
-      <div className="flex h-full flex-col items-center justify-center p-8 text-center text-stone-400 dark:text-stone-500">
+      <div className="flex h-full flex-col items-center justify-center p-8 text-center text-stone-400 dark:text-stone-500 select-none">
         <div className="mb-3 rounded-full border border-dashed border-stone-300 p-4 dark:border-stone-700">
           <svg className="h-8 w-8 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
@@ -286,7 +359,7 @@ export const PlotRenderer: React.FC<PlotRendererProps> = ({ ast, result, theme }
   return (
     <div
       ref={containerRef}
-      className="h-full w-full overflow-hidden flex items-center justify-center"
+      className="h-full w-full overflow-hidden flex flex-col items-center justify-center"
     />
   );
 };
