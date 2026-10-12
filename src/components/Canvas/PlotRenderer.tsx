@@ -269,6 +269,58 @@ export const PlotRenderer: React.FC<PlotRendererProps> = ({ ast, result, theme }
       );
     }
 
+    // 7. Tableau Analytics Lines (Reference Lines, Average, Median, Linear Regression)
+    if (ast.analyticsLines && ast.analyticsLines.length > 0 && yField) {
+      const yValues = result.rows
+        .map((r) => r[yField])
+        .filter((v): v is number => typeof v === 'number' && !isNaN(v));
+
+      if (yValues.length > 0) {
+        for (const line of ast.analyticsLines) {
+          if (line.type === 'average') {
+            const avg = yValues.reduce((a, b) => a + b, 0) / yValues.length;
+            marks.push(
+              Plot.ruleY([avg], {
+                stroke: '#ef4444',
+                strokeWidth: 1.5,
+                strokeDasharray: '4 4',
+                title: () => `Promedio: ${avg.toFixed(2)}`,
+              })
+            );
+          } else if (line.type === 'median') {
+            const sorted = [...yValues].sort((a, b) => a - b);
+            const med = sorted[Math.floor(sorted.length / 2)];
+            marks.push(
+              Plot.ruleY([med], {
+                stroke: '#f59e0b',
+                strokeWidth: 1.5,
+                strokeDasharray: '4 4',
+                title: () => `Mediana: ${med.toFixed(2)}`,
+              })
+            );
+          } else if (line.type === 'constant' && line.value !== undefined) {
+            marks.push(
+              Plot.ruleY([line.value], {
+                stroke: '#06b6d4',
+                strokeWidth: 1.5,
+                strokeDasharray: '4 4',
+                title: () => `Constante: ${line.value}`,
+              })
+            );
+          } else if (line.type === 'trend_line' && xField) {
+            marks.push(
+              Plot.linearRegressionY(result.rows, {
+                x: xField,
+                y: yField,
+                stroke: '#6366f1',
+                strokeWidth: 2,
+              })
+            );
+          }
+        }
+      }
+    }
+
     // Configure Color Scale
     let colorScaleConfig: Plot.PlotOptions['color'] = undefined;
     if (colorPill) {

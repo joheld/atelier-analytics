@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useWorksheetStore } from './core/store/worksheetStore';
 import { Header } from './components/Header/Header';
 import { DataSidebar } from './components/DataSidebar/DataSidebar';
@@ -14,10 +14,12 @@ import { DashboardGrid } from './components/Dashboard/DashboardGrid';
 import { CalculatedFieldModal } from './components/CalculatedFields/CalculatedFieldModal';
 import { ParameterModal } from './components/Parameters/ParameterModal';
 import { ParameterControlsBar } from './components/Parameters/ParameterControlsBar';
-import { Columns, Rows, Loader2 } from 'lucide-react';
+import { ShowMeDrawer } from './components/ShowMe/ShowMeDrawer';
+import { Columns, Rows, Loader2, Sparkles, ArrowUpDown } from 'lucide-react';
 import { buildWorksheetAST } from './core/ast/builder';
 
 export const App: React.FC = () => {
+  const [isShowMeOpen, setIsShowMeOpen] = useState(false);
   const {
     theme,
     toggleTheme,
@@ -42,11 +44,15 @@ export const App: React.FC = () => {
     addPillToShelf,
     removePillFromShelf,
     setPillAggregation,
+    setPillQuickTableCalc,
     setPillSort,
     setPillDateTruncation,
     setMarkType,
     setOpacity,
+    swapShelves,
     clearAllShelves,
+    addAnalyticsLine,
+    removeAnalyticsLine,
     toggleSQLDrawer,
 
     // Multi-Tab Sheets & Dashboards
@@ -63,6 +69,8 @@ export const App: React.FC = () => {
     removeDashboardFilter,
     setFilterTargetSheets,
     setParameterTargetSheets,
+    setSheetUseAsFilter,
+    setDashboardCrossFilter,
     dashboardResults,
 
     // Calculated Fields & Parameters
@@ -105,6 +113,7 @@ export const App: React.FC = () => {
         rows,
         filters,
         marks,
+        analyticsLines: activeSheet?.analyticsLines,
       })
     : null;
 
@@ -134,6 +143,7 @@ export const App: React.FC = () => {
           currentDataset={currentDataset}
           parameters={parameters}
           calculatedFields={calculatedFields}
+          analyticsLines={activeSheet?.analyticsLines}
           onAddPill={(shelf, pill) => addPillToShelf(shelf, pill)}
           onOpenCalculatedFieldModal={openCalculatedFieldModal}
           onDeleteCalculatedField={deleteCalculatedField}
@@ -142,6 +152,8 @@ export const App: React.FC = () => {
           onToggleParameterControl={toggleParameterControl}
           onDuplicateParameter={duplicateParameter}
           onDeleteParameter={deleteParameter}
+          onAddAnalyticsLine={addAnalyticsLine}
+          onRemoveAnalyticsLine={removeAnalyticsLine}
         />
 
         {/* Center Analytical Workbench */}
@@ -181,36 +193,53 @@ export const App: React.FC = () => {
                   onSetParameterTargetSheets={setParameterTargetSheets}
                   onOpenFilterModal={(filter) => setActiveFilterModal(filter)}
                   onOpenParameterModal={openParameterModal}
+                  onToggleUseAsFilter={setSheetUseAsFilter}
+                  onSetCrossFilter={setDashboardCrossFilter}
                 />
               ) : (
                 /* Active Worksheet: Shelves + Marks + Canvas */
                 <>
               {/* Shelves Zone: Columns, Rows & Filters */}
-              <div className="border-b border-stone-200/90 bg-white/70 backdrop-blur-xs dark:border-stone-800 dark:bg-stone-900/70">
-                <ShelfDropZone
-                  shelfId="columns"
-                  label="Columns"
-                  icon={<Columns className="h-3.5 w-3.5 text-stone-500" />}
-                  pills={columns}
-                  onAddPill={addPillToShelf}
-                  onRemovePill={removePillFromShelf}
-                  onSetAggregation={setPillAggregation}
-                  onSetSort={setPillSort}
-                  onSetDateTrunc={setPillDateTruncation}
-                  placeholder="Arrastra dimensiones o métricas para el Eje X..."
-                />
-                <ShelfDropZone
-                  shelfId="rows"
-                  label="Rows"
-                  icon={<Rows className="h-3.5 w-3.5 text-stone-500" />}
-                  pills={rows}
-                  onAddPill={addPillToShelf}
-                  onRemovePill={removePillFromShelf}
-                  onSetAggregation={setPillAggregation}
-                  onSetSort={setPillSort}
-                  onSetDateTrunc={setPillDateTruncation}
-                  placeholder="Arrastra dimensiones o métricas para el Eje Y..."
-                />
+              <div className="relative border-b border-stone-200/90 bg-white/70 backdrop-blur-xs dark:border-stone-800 dark:bg-stone-900/70">
+                <div className="flex items-center">
+                  <div className="flex-1">
+                    <ShelfDropZone
+                      shelfId="columns"
+                      label="Columns"
+                      icon={<Columns className="h-3.5 w-3.5 text-stone-500" />}
+                      pills={columns}
+                      onAddPill={addPillToShelf}
+                      onRemovePill={removePillFromShelf}
+                      onSetAggregation={setPillAggregation}
+                      onSetQuickTableCalc={setPillQuickTableCalc}
+                      onSetSort={setPillSort}
+                      onSetDateTrunc={setPillDateTruncation}
+                      placeholder="Arrastra dimensiones o métricas para el Eje X..."
+                    />
+                    <ShelfDropZone
+                      shelfId="rows"
+                      label="Rows"
+                      icon={<Rows className="h-3.5 w-3.5 text-stone-500" />}
+                      pills={rows}
+                      onAddPill={addPillToShelf}
+                      onRemovePill={removePillFromShelf}
+                      onSetAggregation={setPillAggregation}
+                      onSetQuickTableCalc={setPillQuickTableCalc}
+                      onSetSort={setPillSort}
+                      onSetDateTrunc={setPillDateTruncation}
+                      placeholder="Arrastra dimensiones o métricas para el Eje Y..."
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={swapShelves}
+                    title="Intercambiar Ejes (Swap Rows and Columns - Tableau)"
+                    className="mr-3 flex items-center gap-1 rounded-md border border-stone-200 bg-stone-50 px-2 py-1.5 text-2xs font-medium text-stone-600 transition-colors hover:bg-stone-100 hover:text-stone-900 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-300 dark:hover:bg-stone-700"
+                  >
+                    <ArrowUpDown className="h-3.5 w-3.5 text-stone-500" />
+                    <span className="hidden sm:inline">Swap</span>
+                  </button>
+                </div>
                 <FilterShelf
                   filters={filters}
                   onAddFilterPill={(pill) => addPillToShelf('filters', pill)}
@@ -239,13 +268,42 @@ export const App: React.FC = () => {
 
                 {/* Visualization Canvas */}
                 <div className="relative flex flex-1 flex-col overflow-hidden rounded-xl border border-stone-200/90 bg-white p-4 shadow-editorial dark:border-stone-800 dark:bg-stone-900/90">
-                  {/* Engine Loading Indicator */}
-                  {(!isEngineReady || isExecuting) && (
-                    <div className="absolute right-4 top-4 z-20 flex items-center gap-2 rounded-full border border-stone-200 bg-white/90 px-3 py-1 text-xs font-mono text-stone-600 shadow-sm dark:border-stone-700 dark:bg-stone-800/90 dark:text-stone-300">
-                      <Loader2 className="h-3.5 w-3.5 animate-spin text-sky-600 dark:text-sky-400" />
-                      <span>Procesando consulta OLAP...</span>
-                    </div>
-                  )}
+                  {/* Top Canvas Controls: Loading & Show Me */}
+                  <div className="absolute top-3 right-3 z-30 flex items-center gap-2">
+                    {/* Engine Loading Indicator */}
+                    {(!isEngineReady || isExecuting) && (
+                      <div className="flex items-center gap-2 rounded-full border border-stone-200 bg-white/90 px-3 py-1 text-xs font-mono text-stone-600 shadow-sm dark:border-stone-700 dark:bg-stone-800/90 dark:text-stone-300">
+                        <Loader2 className="h-3.5 w-3.5 animate-spin text-sky-600 dark:text-sky-400" />
+                        <span>Procesando consulta OLAP...</span>
+                      </div>
+                    )}
+
+                    {/* Tableau Show Me Button */}
+                    <button
+                      type="button"
+                      onClick={() => setIsShowMeOpen(!isShowMeOpen)}
+                      className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-mono transition-all shadow-2xs ${
+                        isShowMeOpen
+                          ? 'border-amber-500 bg-amber-50 text-amber-900 dark:bg-amber-950/60 dark:text-amber-200 font-bold'
+                          : 'border-stone-200 bg-white hover:bg-stone-50 text-stone-700 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-300'
+                      }`}
+                      title="Abrir galería inteligente Show Me (Tableau)"
+                    >
+                      <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+                      <span>Show Me</span>
+                    </button>
+                  </div>
+
+                  {/* Tableau Show Me Smart Drawer */}
+                  <ShowMeDrawer
+                    isOpen={isShowMeOpen}
+                    onClose={() => setIsShowMeOpen(false)}
+                    columns={columns}
+                    rows={rows}
+                    currentMarkType={marks.markType}
+                    onSelectMarkType={setMarkType}
+                    onSwapShelves={swapShelves}
+                  />
 
                   {/* Error Notice */}
                   {engineError && (

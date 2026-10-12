@@ -327,4 +327,82 @@ describe('Atelier Analytics Compiler & AST Builder', () => {
     const compiled2 = compileASTtoDuckDB(ast2);
     expect(compiled2.sql).not.toContain('WHERE region');
   });
+
+  it('compiles Quick Table Calculations (Tableau Window Functions)', () => {
+    // 1. Percent of Total
+    const percentState: WorksheetState = {
+      datasetId: 'superstore',
+      tableName: 'superstore',
+      columns: [{ id: 'c1', columnName: 'category', role: 'dimension', dataType: 'string' }],
+      rows: [
+        {
+          id: 'r1',
+          columnName: 'sales',
+          role: 'measure',
+          dataType: 'number',
+          aggregation: 'SUM',
+          quickTableCalc: { type: 'percent_of_total' },
+        },
+      ],
+      filters: [],
+      marks: { markType: 'bar', detail: [], tooltip: [], opacity: 1 },
+    };
+    const ast1 = buildWorksheetAST(percentState);
+    const compiled1 = compileASTtoDuckDB(ast1);
+    expect(compiled1.sql).toContain('ROUND(100.0 * SUM(sales) / NULLIF(SUM(SUM(sales)) OVER (), 0), 2) AS percent_of_total_sum_sales');
+
+    // 2. Running Total
+    const runningState: WorksheetState = {
+      ...percentState,
+      rows: [
+        {
+          id: 'r1',
+          columnName: 'sales',
+          role: 'measure',
+          dataType: 'number',
+          aggregation: 'SUM',
+          quickTableCalc: { type: 'running_total' },
+        },
+      ],
+    };
+    const ast2 = buildWorksheetAST(runningState);
+    const compiled2 = compileASTtoDuckDB(ast2);
+    expect(compiled2.sql).toContain('SUM(SUM(sales)) OVER (ORDER BY category ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_total_sum_sales');
+
+    // 3. Rank
+    const rankState: WorksheetState = {
+      ...percentState,
+      rows: [
+        {
+          id: 'r1',
+          columnName: 'sales',
+          role: 'measure',
+          dataType: 'number',
+          aggregation: 'SUM',
+          quickTableCalc: { type: 'rank' },
+        },
+      ],
+    };
+    const ast3 = buildWorksheetAST(rankState);
+    const compiled3 = compileASTtoDuckDB(ast3);
+    expect(compiled3.sql).toContain('RANK() OVER (ORDER BY SUM(sales) DESC) AS rank_sum_sales');
+
+    // 4. Moving Average
+    const movingState: WorksheetState = {
+      ...percentState,
+      rows: [
+        {
+          id: 'r1',
+          columnName: 'sales',
+          role: 'measure',
+          dataType: 'number',
+          aggregation: 'SUM',
+          quickTableCalc: { type: 'moving_average' },
+        },
+      ],
+    };
+    const ast4 = buildWorksheetAST(movingState);
+    const compiled4 = compileASTtoDuckDB(ast4);
+    expect(compiled4.sql).toContain('ROUND(AVG(SUM(sales)) OVER (ORDER BY category ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 2) AS moving_average_sum_sales');
+  });
 });

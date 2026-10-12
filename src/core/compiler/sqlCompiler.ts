@@ -199,7 +199,32 @@ export function compileASTtoDuckDB(ast: WorksheetAST, parameters?: Parameter[]):
     const aliasRaw = getPillSqlIdentifier(measure);
     const safeAlias = escapeIdentifier(aliasRaw);
 
-    selectParts.push(`${aggExpr} AS ${safeAlias}`);
+    let measureSelectExpr = aggExpr;
+    if (measure.quickTableCalc) {
+      const orderClause = groupByParts.length > 0 ? `ORDER BY ${groupByParts.join(', ')}` : '';
+      switch (measure.quickTableCalc.type) {
+        case 'percent_of_total':
+          measureSelectExpr = `ROUND(100.0 * ${aggExpr} / NULLIF(SUM(${aggExpr}) OVER (), 0), 2)`;
+          break;
+        case 'running_total':
+          measureSelectExpr = `SUM(${aggExpr}) OVER (${orderClause} ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)`;
+          break;
+        case 'difference_from_previous':
+          measureSelectExpr = `(${aggExpr} - LAG(${aggExpr}) OVER (${orderClause}))`;
+          break;
+        case 'percent_difference_from_previous':
+          measureSelectExpr = `ROUND(100.0 * (${aggExpr} - LAG(${aggExpr}) OVER (${orderClause})) / NULLIF(LAG(${aggExpr}) OVER (${orderClause}), 0), 2)`;
+          break;
+        case 'rank':
+          measureSelectExpr = `RANK() OVER (ORDER BY ${aggExpr} DESC)`;
+          break;
+        case 'moving_average':
+          measureSelectExpr = `ROUND(AVG(${aggExpr}) OVER (${orderClause} ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 2)`;
+          break;
+      }
+    }
+
+    selectParts.push(`${measureSelectExpr} AS ${safeAlias}`);
     projections.push({
       columnName: measure.columnName,
       alias: aliasRaw,

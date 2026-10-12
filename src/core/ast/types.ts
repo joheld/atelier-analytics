@@ -45,6 +45,31 @@ export interface DatasetMeta {
   sourceUrl?: string;
 }
 
+export type QuickTableCalcType =
+  | 'percent_of_total'
+  | 'running_total'
+  | 'difference_from_previous'
+  | 'percent_difference_from_previous'
+  | 'rank'
+  | 'moving_average';
+
+export interface QuickTableCalc {
+  type: QuickTableCalcType;
+}
+
+export type AnalyticsLineType =
+  | 'average'
+  | 'median'
+  | 'constant'
+  | 'trend_line';
+
+export interface AnalyticsLine {
+  id: string;
+  type: AnalyticsLineType;
+  label?: string;
+  value?: number;
+}
+
 /**
  * A Pill represents an analytical field placed on a shelf.
  * - Dimension (Blue): Discrete field driving grouping and partitioning.
@@ -57,6 +82,8 @@ export interface Pill {
   dataType: DataType;
   // If measure, the aggregation to apply
   aggregation?: AggregationFunction;
+  // Tableau Quick Table Calculation (e.g. % of total, running total)
+  quickTableCalc?: QuickTableCalc;
   // Custom display alias
   alias?: string;
   // Date truncation if date dimension (e.g., 'year', 'month', 'day')
@@ -114,8 +141,16 @@ export interface WorksheetTab {
   filters: FilterExpression[];
   marks: MarksCardState;
   limit?: number;
+  analyticsLines?: AnalyticsLine[];
+  // Tableau Dashboard features:
+  useAsFilter?: boolean; // Whether clicking on this sheet acts as a dashboard filter
   dashboardSheetIds?: string[];
   dashboardFilters?: FilterExpression[];
+  dashboardCrossFilter?: {
+    sourceSheetId: string;
+    columnName: string;
+    value: string | number | boolean;
+  } | null;
 }
 
 export interface WorkbookProject {
@@ -160,6 +195,7 @@ export interface WorksheetState {
   filters: FilterExpression[];
   marks: MarksCardState;
   limit?: number;
+  analyticsLines?: AnalyticsLine[];
 }
 
 /**
@@ -185,4 +221,5 @@ export interface WorksheetAST {
   colorChannel?: Pill;
   sizeChannel?: Pill;
   detailChannel: Pill[];
+  analyticsLines?: AnalyticsLine[];
 }

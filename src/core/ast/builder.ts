@@ -98,6 +98,7 @@ export function buildWorksheetAST(state: WorksheetState): WorksheetAST {
     colorChannel: marks.color,
     sizeChannel: marks.size,
     detailChannel: marks.detail,
+    analyticsLines: state.analyticsLines || [],
   };
 }
 
@@ -146,7 +147,11 @@ export function inferOptimalMarkType(columns: Pill[], rows: Pill[]): MarkType {
 export function getPillSqlIdentifier(pill: Pill): string {
   if (pill.role === 'measure') {
     const agg = pill.aggregation || 'SUM';
-    return `${agg.toLowerCase()}_${pill.columnName}`;
+    const base = `${agg.toLowerCase()}_${pill.columnName}`;
+    if (pill.quickTableCalc) {
+      return `${pill.quickTableCalc.type}_${base}`;
+    }
+    return base;
   }
   if (pill.dateTruncation) {
     return `${pill.dateTruncation}_${pill.columnName}`;

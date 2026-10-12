@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Pill, ShelfId, AggregationFunction } from '../../core/ast/types';
+import { Pill, ShelfId, AggregationFunction, QuickTableCalcType } from '../../core/ast/types';
 import { PillBadge } from './PillBadge';
 
 interface ShelfDropZoneProps {
@@ -10,6 +10,7 @@ interface ShelfDropZoneProps {
   onAddPill: (shelf: ShelfId, pill: Pill) => void;
   onRemovePill: (shelf: ShelfId, pillId: string) => void;
   onSetAggregation?: (shelf: ShelfId, pillId: string, agg: AggregationFunction) => void;
+  onSetQuickTableCalc?: (shelf: ShelfId, pillId: string, calcType?: QuickTableCalcType) => void;
   onSetSort?: (shelf: ShelfId, pillId: string, sort: 'asc' | 'desc' | 'none') => void;
   onSetDateTrunc?: (shelf: ShelfId, pillId: string, trunc: 'year' | 'quarter' | 'month' | 'day') => void;
   placeholder?: string;
@@ -23,6 +24,7 @@ export const ShelfDropZone: React.FC<ShelfDropZoneProps> = ({
   onAddPill,
   onRemovePill,
   onSetAggregation,
+  onSetQuickTableCalc,
   onSetSort,
   onSetDateTrunc,
   placeholder = 'Arrastra un campo aquí...',
@@ -86,6 +88,9 @@ export const ShelfDropZone: React.FC<ShelfDropZoneProps> = ({
               onRemove={() => onRemovePill(shelfId, p.id)}
               onSetAggregation={
                 onSetAggregation ? (agg) => onSetAggregation(shelfId, p.id, agg) : undefined
+              }
+              onSetQuickTableCalc={
+                onSetQuickTableCalc ? (calc) => onSetQuickTableCalc(shelfId, p.id, calc) : undefined
               }
               onSetSort={onSetSort ? (s) => onSetSort(shelfId, p.id, s) : undefined}
               onSetDateTrunc={

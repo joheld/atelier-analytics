@@ -13,6 +13,8 @@ import {
   Parameter,
   WorkbookProject,
   WorksheetAST,
+  QuickTableCalcType,
+  AnalyticsLine,
 } from '../ast/types';
 import { buildWorksheetAST } from '../ast/builder';
 import { compileASTtoDuckDB, CompiledQuery } from '../compiler/sqlCompiler';
@@ -64,11 +66,17 @@ export interface WorksheetStore extends WorksheetState {
   removePillFromShelf: (shelf: ShelfId, pillId: string) => void;
   reorderShelfPills: (shelf: ShelfId, startIndex: number, endIndex: number) => void;
   setPillAggregation: (shelf: ShelfId, pillId: string, agg: AggregationFunction) => void;
+  setPillQuickTableCalc: (shelf: ShelfId, pillId: string, calcType?: QuickTableCalcType) => void;
   setPillSort: (shelf: ShelfId, pillId: string, sort: 'asc' | 'desc' | 'none') => void;
   setPillDateTruncation: (shelf: ShelfId, pillId: string, trunc: 'year' | 'quarter' | 'month' | 'day') => void;
   setMarkType: (markType: MarkType) => void;
   setOpacity: (opacity: number) => void;
+  swapShelves: () => void;
   clearAllShelves: () => void;
+
+  // Actions - Analytics Pane (Reference Lines, Trend Lines)
+  addAnalyticsLine: (line: AnalyticsLine) => void;
+  removeAnalyticsLine: (lineId: string) => void;
 
   // Actions - Filters
   activeFilterModal: FilterExpression | null;
@@ -90,6 +98,8 @@ export interface WorksheetStore extends WorksheetState {
   removeDashboardFilter: (dashboardId: string, filterId: string) => void;
   setFilterTargetSheets: (dashboardId: string, filterId: string, scope: 'all' | 'selected', targetSheetIds: string[]) => void;
   setParameterTargetSheets: (paramId: string, scope: 'all' | 'selected', targetSheetIds: string[]) => void;
+  setSheetUseAsFilter: (dashboardId: string, sheetId: string, useAsFilter: boolean) => void;
+  setDashboardCrossFilter: (dashboardId: string, crossFilter: { sourceSheetId: string; columnName: string; value: string | number | boolean } | null) => void;
 
   // Actions - Calculated Fields
   openCalculatedFieldModal: (field?: CalculatedField) => void;
@@ -467,6 +477,26 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
     void get().executeCurrentState();
   },
 
+  setPillQuickTableCalc: (shelf: ShelfId, pillId: string, calcType?: QuickTableCalcType) => {
+    const updateList = (list: Pill[]) =>
+      list.map((p) =>
+        p.id === pillId
+          ? { ...p, quickTableCalc: calcType ? { type: calcType } : undefined }
+          : p
+      );
+
+    set((state) => {
+      const nextColumns = shelf === 'columns' ? updateList(state.columns) : state.columns;
+      const nextRows = shelf === 'rows' ? updateList(state.rows) : state.rows;
+      const nextSheets = state.sheets.map((s) =>
+        s.id === state.activeTabId ? { ...s, columns: nextColumns, rows: nextRows } : s
+      );
+      return { columns: nextColumns, rows: nextRows, sheets: nextSheets };
+    });
+
+    void get().executeCurrentState();
+  },
+
   setPillSort: (shelf: ShelfId, pillId: string, sort: 'asc' | 'desc' | 'none') => {
     const updateList = (list: Pill[]) =>
       list.map((p) => (p.id === pillId ? { ...p, sort } : p));
@@ -517,6 +547,22 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
         s.id === state.activeTabId ? { ...s, marks: nextMarks } : s
       );
       return { marks: nextMarks, sheets: nextSheets };
+    });
+    void get().executeCurrentState();
+  },
+
+  swapShelves: () => {
+    set((state) => {
+      const nextColumns = state.rows;
+      const nextRows = state.columns;
+      const nextSheets = state.sheets.map((s) =>
+        s.id === state.activeTabId ? { ...s, columns: nextColumns, rows: nextRows } : s
+      );
+      return {
+        columns: nextColumns,
+        rows: nextRows,
+        sheets: nextSheets,
+      };
     });
     void get().executeCurrentState();
   },
@@ -602,6 +648,35 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
         marks: clearedMarks,
         sheets: nextSheets,
       };
+    });
+    void get().executeCurrentState();
+  },
+
+  addAnalyticsLine: (line: AnalyticsLine) => {
+    set((state) => {
+      const nextSheets = state.sheets.map((s) => {
+        if (s.id !== state.activeTabId) return s;
+        const currentLines = (s.analyticsLines || []).filter((l) => l.type !== line.type);
+        return {
+          ...s,
+          analyticsLines: [...currentLines, line],
+        };
+      });
+      return { sheets: nextSheets };
+    });
+    void get().executeCurrentState();
+  },
+
+  removeAnalyticsLine: (lineId: string) => {
+    set((state) => {
+      const nextSheets = state.sheets.map((s) => {
+        if (s.id !== state.activeTabId) return s;
+        return {
+          ...s,
+          analyticsLines: (s.analyticsLines || []).filter((l) => l.id !== lineId && l.type !== (lineId as any)),
+        };
+      });
+      return { sheets: nextSheets };
     });
     void get().executeCurrentState();
   },
@@ -776,6 +851,26 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
       parameters: state.parameters.map((p) =>
         p.id === paramId ? { ...p, applyScope: scope, targetSheetIds } : p
       ),
+    }));
+    void get().executeCurrentState();
+  },
+
+  setSheetUseAsFilter: (_dashboardId: string, sheetId: string, useAsFilter: boolean) => {
+    set((state) => ({
+      sheets: state.sheets.map((s) => {
+        if (s.id !== sheetId) return s;
+        return { ...s, useAsFilter };
+      }),
+    }));
+    void get().executeCurrentState();
+  },
+
+  setDashboardCrossFilter: (dashboardId: string, crossFilter: { sourceSheetId: string; columnName: string; value: string | number | boolean } | null) => {
+    set((state) => ({
+      sheets: state.sheets.map((s) => {
+        if (s.id !== dashboardId) return s;
+        return { ...s, dashboardCrossFilter: crossFilter };
+      }),
     }));
     void get().executeCurrentState();
   },
@@ -1049,6 +1144,20 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
               };
             });
 
+            // Inject Dashboard Cross-Filter if active and source is not this sheet
+            if (activeSheet.dashboardCrossFilter && s.id !== activeSheet.dashboardCrossFilter.sourceSheetId) {
+              const { columnName, value } = activeSheet.dashboardCrossFilter;
+              effectiveFilters = effectiveFilters.filter((f) => f.columnName !== columnName);
+              effectiveFilters.push({
+                id: `cross_filter_${columnName}`,
+                columnName,
+                role: 'dimension',
+                dataType: 'string',
+                operator: 'in',
+                values: [value],
+              });
+            }
+
             const sheetAST = buildWorksheetAST({
               datasetId: state.datasetId,
               tableName: state.tableName,
@@ -1057,6 +1166,7 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
               filters: effectiveFilters,
               marks: s.marks,
               limit: s.limit || state.limit,
+              analyticsLines: s.analyticsLines,
             });
 
             const compiled = compileASTtoDuckDB(sheetAST, effectiveParameters);
@@ -1093,6 +1203,7 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
         filters: state.filters,
         marks: state.marks,
         limit: state.limit,
+        analyticsLines: activeSheet.analyticsLines,
       });
 
       const compiled = compileASTtoDuckDB(ast, state.parameters);
