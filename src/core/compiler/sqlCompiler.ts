@@ -35,14 +35,22 @@ export function substituteParameters(expression: string, parameters?: Parameter[
   let result = expression;
   for (const param of parameters) {
     const token = `[${param.name}]`;
+    const tokenUnderscore = `[${param.name.replace(/\s+/g, '_')}]`;
+
+    let replacement: string;
+    if (param.dataType === 'string') {
+      replacement = `'${String(param.currentValue).replace(/'/g, "''")}'`;
+    } else if (param.dataType === 'boolean') {
+      replacement = param.currentValue === true || String(param.currentValue).toLowerCase() === 'true' ? 'TRUE' : 'FALSE';
+    } else {
+      replacement = String(param.currentValue);
+    }
+
     if (result.includes(token)) {
-      let replacement: string;
-      if (param.dataType === 'string') {
-        replacement = `'${String(param.currentValue).replace(/'/g, "''")}'`;
-      } else {
-        replacement = String(param.currentValue);
-      }
       result = result.split(token).join(replacement);
+    }
+    if (token !== tokenUnderscore && result.includes(tokenUnderscore)) {
+      result = result.split(tokenUnderscore).join(replacement);
     }
   }
   return result;

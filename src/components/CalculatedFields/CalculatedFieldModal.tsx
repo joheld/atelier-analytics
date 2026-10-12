@@ -927,20 +927,30 @@ CASE WHEN "age" >= 50 THEN 'Senior' ELSE 'Junior' END`}
                     <p className="text-xs text-stone-400 italic">No hay parámetros definidos aún.</p>
                   ) : (
                     <div className="grid grid-cols-2 gap-1.5">
-                      {parameters.map((p) => (
-                        <button
-                          key={p.name}
-                          type="button"
-                          onClick={() => insertSnippet(`[${p.name}]`)}
-                          className="flex items-center justify-between rounded-md border border-amber-200 bg-amber-50/60 px-2 py-1.5 text-left text-xs font-mono text-amber-900 hover:bg-amber-100 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200"
-                          title={`Insertar [${p.name}]`}
-                        >
-                          <span className="truncate">[{p.name}]</span>
-                          <span className="text-[10px] text-amber-600 dark:text-amber-400">
-                            {p.currentValue}
-                          </span>
-                        </button>
-                      ))}
+                      {parameters.map((p) => {
+                        const isNumber = p.dataType === 'number';
+                        const isDate = p.dataType === 'date';
+                        const isBoolean = p.dataType === 'boolean';
+                        return (
+                          <button
+                            key={p.name}
+                            type="button"
+                            onClick={() => insertSnippet(`[${p.name}]`)}
+                            className="flex items-center justify-between rounded-md border border-amber-200 bg-amber-50/60 px-2.5 py-1.5 text-left text-xs font-mono text-amber-900 hover:bg-amber-100 hover:border-amber-300 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200 transition-colors"
+                            title={`Insertar token [${p.name}]`}
+                          >
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <span className="font-bold text-[10px] text-amber-600 dark:text-amber-400">
+                                {isNumber ? '#' : isDate ? '📅' : isBoolean ? 'T/F' : 'Abc'}
+                              </span>
+                              <span className="truncate font-semibold">[{p.name}]</span>
+                            </div>
+                            <span className="text-[10px] text-amber-700/70 dark:text-amber-300/70 shrink-0 ml-1">
+                              = {String(p.currentValue)}
+                            </span>
+                          </button>
+                        );
+                      })}
                     </div>
                   )}
                 </div>

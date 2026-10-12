@@ -76,15 +76,28 @@ export interface CalculatedField {
   formula: string;
 }
 
+export type ParameterAllowableType = 'all' | 'list' | 'range';
+
+export interface ParameterListItem {
+  value: string | number | boolean;
+  label: string; // "Mostrar como" / "Display As"
+}
+
 export interface Parameter {
   id: string;
   name: string;
+  comment?: string;
   dataType: DataType;
+  numberSubtype?: 'float' | 'integer';
+  displayFormat?: 'automatic' | 'currency' | 'percentage' | 'number' | 'date';
   currentValue: string | number | boolean;
+  allowableType?: ParameterAllowableType;
+  listItems?: ParameterListItem[];
   min?: number;
   max?: number;
   step?: number;
-  options?: string[];
+  options?: string[]; // Backward compatibility
+  showControl?: boolean; // Tableau "Mostrar control de parámetro" (default true)
 }
 
 export type SheetType = 'worksheet' | 'dashboard';

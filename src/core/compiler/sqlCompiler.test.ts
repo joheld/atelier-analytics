@@ -219,4 +219,64 @@ describe('Atelier Analytics Compiler & AST Builder', () => {
     expect(compiled.sql).toContain('AVG(("profit" / 1.25)) AS avg_profit_margin');
     expect(compiled.sql).toContain('GROUP BY category');
   });
+
+  it('compiles Tableau parameters with spaces, strings, and allowable types', () => {
+    const calcPill: Pill = {
+      id: 'p_dynamic',
+      columnName: 'dynamic_calc',
+      role: 'dimension',
+      dataType: 'string',
+      isCalculated: true,
+      formula: "CASE WHEN \"sales\" >= [Meta Ventas] AND [Habilitar Flag] THEN [Segmento Seleccionado] ELSE 'Normal' END",
+    };
+
+    const state: WorksheetState = {
+      datasetId: 'superstore',
+      tableName: 'superstore',
+      columns: [calcPill],
+      rows: [],
+      filters: [],
+      marks: {
+        markType: 'auto',
+        detail: [],
+        tooltip: [],
+        opacity: 1,
+      },
+    };
+
+    const ast = buildWorksheetAST(state);
+    const parameters = [
+      {
+        id: 'p1',
+        name: 'Meta Ventas',
+        dataType: 'number' as const,
+        currentValue: 50000,
+        allowableType: 'range' as const,
+        min: 1000,
+        max: 100000,
+      },
+      {
+        id: 'p2',
+        name: 'Habilitar Flag',
+        dataType: 'boolean' as const,
+        currentValue: true,
+        allowableType: 'all' as const,
+      },
+      {
+        id: 'p3',
+        name: 'Segmento Seleccionado',
+        dataType: 'string' as const,
+        currentValue: 'Premium VIP',
+        allowableType: 'list' as const,
+        listItems: [
+          { value: 'Premium VIP', label: 'Clientes VIP' },
+          { value: 'Estándar', label: 'Clientes Comunes' },
+        ],
+      },
+    ];
+
+    const compiled = compileASTtoDuckDB(ast, parameters);
+    expect(compiled.sql).toContain("(CASE WHEN \"sales\" >= 50000 AND TRUE THEN 'Premium VIP' ELSE 'Normal' END) AS dynamic_calc");
+    expect(compiled.sql).toContain("GROUP BY (CASE WHEN \"sales\" >= 50000 AND TRUE THEN 'Premium VIP' ELSE 'Normal' END)");
+  });
 });

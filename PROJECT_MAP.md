@@ -137,6 +137,7 @@ gitGraph
 | **CP-08** | Sistema Interactivo de Filtros: Shelf drag-and-drop, Modal categórico y numérico | **Completado** | `FilterShelf` y `FilterModal` integrados con consultas DuckDB para valores únicos y rangos |
 | **CP-09** | Modelo Workbook Completo: Multi-Tabs, Dashboards Compuestos, Campos Calculados y Parámetros | **Completado** | Pestañas inferiores Tableau, `DashboardGrid` multi-visual, persistencia `.atelier`/localStorage, editor de cálculos y parámetros |
 | **CP-10** | Inferencia Automática (Tableau-Style) y Superpoderes Vectoriales | **Completado** | Detección automática en vivo del rol analítico (Métrica verde vs Dimensión azul) y tipo de dato mediante `typeof()` en DuckDB-WASM, con toggle de anulación manual opcional. Soporte de funciones avanzadas (Pearson `CORR`, Regresión `REGR_SLOPE`/`REGR_R2`, Percentiles exactos `QUANTILE_CONT`, HLL, Regex PCRE y JSON). |
+| **CP-11** | Parámetros Auténticos Estilo Tableau Desktop | **Completado** | Diálogo completo "Crear Parámetro": Tipos de datos (Float, Int, String, Boolean, Date), Formato de visualización, Valores permisibles (Todos, Lista, Rango), importación con 1 clic ("Añadir valores desde campo..." y "Establecer rango desde campo..."), tokens con espacios `[Top N]` y barra interactiva de controles en lienzo (`ParameterControlsBar.tsx`). |
 
 ---
 
@@ -160,28 +161,29 @@ atelier-analytics/
     ├── index.css                 # Variables CSS OKLCH, estilos tabulares y reset
     ├── core/
     │   ├── ast/
-    │   │   ├── types.ts          # Tipos: Pill, Shelf, MarksCardState, WorksheetState, WorksheetAST, FilterExpression, WorksheetTab, CalculatedField, Parameter, WorkbookProject
+    │   │   ├── types.ts          # Tipos: Pill, Shelf, MarksCardState, WorksheetState, WorksheetAST, FilterExpression, WorksheetTab, CalculatedField, Parameter, ParameterListItem, WorkbookProject
     │   │   └── builder.ts        # Conversión declarativa de UI a AST con Show Me auto-mark
     │   ├── compiler/
-    │   │   ├── sqlCompiler.ts    # Compilador optimizado AST -> SQL con soporte para campos calculados y parámetros
-    │   │   └── sqlCompiler.test.ts # Suite de pruebas unitarias (5/5 tests pasados)
+    │   │   ├── sqlCompiler.ts    # Compilador optimizado AST -> SQL con soporte para tokens de parámetros [Nombre Con Espacios] y cálculos
+    │   │   └── sqlCompiler.test.ts # Suite de pruebas unitarias (6/6 tests pasados)
     │   ├── engine/
-    │   │   └── duckdbClient.ts   # Conector DuckDB-WASM, Apache Arrow, loader universal, queries de metadatos y validador de fórmulas con introspección de tipo/rol
+    │   │   └── duckdbClient.ts   # Conector DuckDB-WASM, Apache Arrow, loader universal, queries de metadatos, validador de fórmulas e introspección de tipo/rol
     │   └── store/
-    │       └── worksheetStore.ts # Almacén Zustand reactivo multi-hoja, gestión de cálculos, parámetros y persistencia
+    │       └── worksheetStore.ts # Almacén Zustand reactivo multi-hoja, gestión de cálculos, parámetros (toggle control, duplicar) y persistencia
     ├── components/
     │   ├── Header/
     │   │   └── Header.tsx        # Barra editorial con estado, latencia, tema y botones Abrir/Guardar proyecto (.atelier)
     │   ├── DataSidebar/
-    │   │   └── DataSidebar.tsx   # Panel de dimensiones, métricas, campos calculados y controles de parámetros
+    │   │   └── DataSidebar.tsx   # Panel de dimensiones, métricas, campos calculados y parámetros estilo Tableau
     │   ├── Tabs/
     │   │   └── TabBar.tsx        # Barra inferior de pestañas con cambio de hoja, duplicar, renombrar y añadir hojas/dashboards
     │   ├── Dashboard/
     │   │   └── DashboardGrid.tsx # Lienzo compuesto que combina múltiples hojas en un grid interactivo 1x1 o 2x2
     │   ├── CalculatedFields/
-    │   │   └── CalculatedFieldModal.tsx # Editor de fórmulas con biblioteca de funciones, recetas analíticas, validación reactiva e inferencia automática de tipo/rol
+    │   │   └── CalculatedFieldModal.tsx # Editor de fórmulas con biblioteca de funciones, recetas analíticas, validación reactiva e inferencia de tipo/rol
     │   ├── Parameters/
-    │   │   └── ParameterModal.tsx # Diálogo de creación y edición de parámetros con soporte para rangos y sliders
+    │   │   ├── ParameterModal.tsx # Diálogo completo Tableau: Todos, Lista, Rango, Añadir desde campo y Formato
+    │   │   └── ParameterControlsBar.tsx # Barra de controles interactivos en el lienzo (Dropdowns de lista, Sliders con step, etc.)
     │   ├── Shelves/
     │   │   ├── ShelfDropZone.tsx # Zonas de Drag & Drop para Columns y Rows
     │   │   └── PillBadge.tsx     # Pastillas con menú contextual (agregación, orden, truncamiento)
@@ -202,5 +204,5 @@ atelier-analytics/
 
 ## 6. Estado de la Sesión
 
-- **Estado Actual:** Inferencia automática de tipo de dato y rol analítico 100% implementada y operativa (estilo Tableau con introspección `typeof()` en DuckDB-WASM). El usuario solo escribe la fórmula y la app detecta reactivamente si es Métrica (verde) o Dimensión (azul) junto a su tipo concreto (`DOUBLE`, `VARCHAR`, `TIMESTAMP`, etc.), manteniendo un botón para personalización manual en caso de requerirse.
-- **Siguiente Paso:** Listo para continuar con exploraciones analíticas avanzadas o flujos de usuario adicionales.
+- **Estado Actual:** Sistema de Parámetros de Tableau Desktop implementado al 100%. Los parámetros admiten nombres con espacios (`[Top N Clientes]`), formatos de visualización (Moneda, Porcentaje, Estándar), valores permisibles (Todos, Lista con alias "Mostrar como", Rango numérico con paso). Incluye carga instantánea desde columnas de DuckDB ("Añadir valores desde campo..." y "Establecer rango desde campo..."), visibilidad conmutable en hoja/dashboard (`ParameterControlsBar.tsx`), duplicación y reactividad instantánea.
+- **Siguiente Paso:** Listo para continuar con exploraciones analíticas adicionales.

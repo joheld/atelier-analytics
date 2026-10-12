@@ -13,6 +13,7 @@ import { TabBar } from './components/Tabs/TabBar';
 import { DashboardGrid } from './components/Dashboard/DashboardGrid';
 import { CalculatedFieldModal } from './components/CalculatedFields/CalculatedFieldModal';
 import { ParameterModal } from './components/Parameters/ParameterModal';
+import { ParameterControlsBar } from './components/Parameters/ParameterControlsBar';
 import { Columns, Rows, Loader2 } from 'lucide-react';
 import { buildWorksheetAST } from './core/ast/builder';
 
@@ -75,6 +76,8 @@ export const App: React.FC = () => {
     closeParameterModal,
     saveParameter,
     setParameterValue,
+    toggleParameterControl,
+    duplicateParameter,
     deleteParameter,
 
     // Project Persistence
@@ -131,6 +134,8 @@ export const App: React.FC = () => {
           onDeleteCalculatedField={deleteCalculatedField}
           onOpenParameterModal={openParameterModal}
           onSetParameterValue={setParameterValue}
+          onToggleParameterControl={toggleParameterControl}
+          onDuplicateParameter={duplicateParameter}
           onDeleteParameter={deleteParameter}
         />
 
@@ -142,19 +147,29 @@ export const App: React.FC = () => {
               onFileUpload={(file) => void loadFile(file)}
               isUploading={isExecuting}
             />
-          ) : isDashboardTab ? (
-            /* Multi-Visual Composite Dashboard View */
-            <DashboardGrid
-              sheets={sheets}
-              activeDashboard={activeSheet}
-              dashboardResults={dashboardResults}
-              theme={theme}
-              onSwitchTab={switchTab}
-              onSetDashboardSheets={setDashboardSheets}
-            />
           ) : (
-            /* Active Worksheet: Shelves + Marks + Canvas */
             <>
+              {/* Tableau Interactive Parameter Controls Bar */}
+              <ParameterControlsBar
+                parameters={parameters}
+                onSetParameterValue={setParameterValue}
+                onToggleParameterControl={toggleParameterControl}
+                onOpenParameterModal={openParameterModal}
+              />
+
+              {isDashboardTab ? (
+                /* Multi-Visual Composite Dashboard View */
+                <DashboardGrid
+                  sheets={sheets}
+                  activeDashboard={activeSheet}
+                  dashboardResults={dashboardResults}
+                  theme={theme}
+                  onSwitchTab={switchTab}
+                  onSetDashboardSheets={setDashboardSheets}
+                />
+              ) : (
+                /* Active Worksheet: Shelves + Marks + Canvas */
+                <>
               {/* Shelves Zone: Columns, Rows & Filters */}
               <div className="border-b border-stone-200/90 bg-white/70 backdrop-blur-xs dark:border-stone-800 dark:bg-stone-900/70">
                 <ShelfDropZone
@@ -232,6 +247,8 @@ export const App: React.FC = () => {
               </div>
             </>
           )}
+        </>
+      )}
 
           {/* Tableau-style Bottom Tab Bar */}
           {currentDataset && (
@@ -287,6 +304,8 @@ export const App: React.FC = () => {
       {isParameterModalOpen && (
         <ParameterModal
           initialParam={editingParameter}
+          tableName={currentDataset?.tableName}
+          columns={currentDataset?.columns}
           onSave={saveParameter}
           onClose={closeParameterModal}
         />

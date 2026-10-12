@@ -97,6 +97,8 @@ export interface WorksheetStore extends WorksheetState {
   closeParameterModal: () => void;
   saveParameter: (param: Parameter) => void;
   setParameterValue: (paramId: string, value: string | number | boolean) => void;
+  toggleParameterControl: (paramId: string) => void;
+  duplicateParameter: (paramId: string) => void;
   deleteParameter: (paramId: string) => void;
 
   // Actions - Project Persistence
@@ -815,6 +817,28 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
   setParameterValue: (paramId: string, value: string | number | boolean) => {
     set((state) => ({
       parameters: state.parameters.map((p) => (p.id === paramId ? { ...p, currentValue: value } : p)),
+    }));
+    void get().executeCurrentState();
+  },
+
+  toggleParameterControl: (paramId: string) => {
+    set((state) => ({
+      parameters: state.parameters.map((p) =>
+        p.id === paramId ? { ...p, showControl: p.showControl === false ? true : false } : p
+      ),
+    }));
+  },
+
+  duplicateParameter: (paramId: string) => {
+    const target = get().parameters.find((p) => p.id === paramId);
+    if (!target) return;
+    const duplicated: Parameter = {
+      ...target,
+      id: `param_${Date.now()}`,
+      name: `${target.name}_Copia`,
+    };
+    set((state) => ({
+      parameters: [...state.parameters, duplicated],
     }));
     void get().executeCurrentState();
   },
