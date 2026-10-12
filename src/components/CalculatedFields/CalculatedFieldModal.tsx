@@ -20,7 +20,7 @@ import {
 
 interface FunctionDoc {
   name: string;
-  category: 'logic' | 'numeric' | 'string' | 'date' | 'conversion';
+  category: 'logic' | 'numeric' | 'string' | 'date' | 'conversion' | 'stats' | 'advanced';
   syntax: string;
   description: string;
   example: string;
@@ -221,6 +221,90 @@ const FUNCTION_LIBRARY: FunctionDoc[] = [
     example: 'TRY_CAST("raw_number" AS DOUBLE)',
     snippet: 'TRY_CAST(col AS DOUBLE)',
   },
+
+  // ESTADÍSTICA AVANZADA & MACHINE LEARNING (SUPERPODERES DUCKDB)
+  {
+    name: 'CORR',
+    category: 'stats',
+    syntax: 'CORR(métrica1, métrica2)',
+    description: 'Calcula el coeficiente de correlación de Pearson (-1 a 1) entre dos variables. Tableau requiere complejas fórmulas de ventana o plugins externos.',
+    example: 'ROUND(CORR("sales", "profit"), 4)',
+    snippet: 'CORR(col1, col2)',
+  },
+  {
+    name: 'REGR_SLOPE',
+    category: 'stats',
+    syntax: 'REGR_SLOPE(y, x)',
+    description: 'Calcula la pendiente de la recta de regresión lineal (mínimos cuadrados OLS). Permite modelar tendencias matemáticas directamente en SQL.',
+    example: 'REGR_SLOPE("profit", "sales")',
+    snippet: 'REGR_SLOPE(y, x)',
+  },
+  {
+    name: 'REGR_R2',
+    category: 'stats',
+    syntax: 'REGR_R2(y, x)',
+    description: 'Calcula el coeficiente de determinación R² (0 a 1) de la regresión lineal para evaluar la calidad del ajuste.',
+    example: 'ROUND(REGR_R2("profit", "sales"), 4)',
+    snippet: 'REGR_R2(y, x)',
+  },
+  {
+    name: 'QUANTILE_CONT',
+    category: 'stats',
+    syntax: 'QUANTILE_CONT(métrica, percentil)',
+    description: 'Calcula el percentil continuo exacto (ej. 0.50 para mediana, 0.95 para P95, 0.99 para P99). Clave para SLAs, tiempos de respuesta y análisis salarial.',
+    example: 'QUANTILE_CONT("salary", 0.95)',
+    snippet: 'QUANTILE_CONT(col, 0.95)',
+  },
+  {
+    name: 'APPROX_COUNT_DISTINCT',
+    category: 'stats',
+    syntax: 'APPROX_COUNT_DISTINCT(col)',
+    description: 'Conteo único ultrarrápido basado en HyperLogLog. Procesa millones de filas a velocidad absurda con error <1%.',
+    example: 'APPROX_COUNT_DISTINCT("user_id")',
+    snippet: 'APPROX_COUNT_DISTINCT(col)',
+  },
+
+  // EXPRESIONES REGULARES, JSON & ARRAYS NATIVOS
+  {
+    name: 'REGEXP_EXTRACT',
+    category: 'advanced',
+    syntax: "REGEXP_EXTRACT(col, 'patrón_regex', grupo)",
+    description: 'Extrae texto con expresiones regulares PCRE completas. Tableau carece de soporte nativo completo para regex complejas en muchas fuentes.',
+    example: "REGEXP_EXTRACT(\"email\", '@(.+)$', 1)",
+    snippet: "REGEXP_EXTRACT(col, 'pattern', 1)",
+  },
+  {
+    name: 'REGEXP_MATCHES',
+    category: 'advanced',
+    syntax: "REGEXP_MATCHES(col, 'patrón_regex')",
+    description: 'Verifica si el texto coincide con una expresión regular (devuelve TRUE/FALSE).',
+    example: "REGEXP_MATCHES(\"code\", '^[A-Z]{3}-\\d{4}$')",
+    snippet: "REGEXP_MATCHES(col, 'pattern')",
+  },
+  {
+    name: 'JSON_EXTRACT_TEXT (->>)',
+    category: 'advanced',
+    syntax: "columna->>'$.propiedad'",
+    description: 'Extrae propiedades directamente de datos JSON sin necesidad de esquemas rígidos ni preprocesamiento ETL.',
+    example: "\"raw_metadata\"->>'$.device.model'",
+    snippet: "col->>'$.path'",
+  },
+  {
+    name: 'STRING_SPLIT',
+    category: 'advanced',
+    syntax: "STRING_SPLIT(texto, delimitador)",
+    description: 'Divide una cadena en un array nativo en memoria sin duplicar filas.',
+    example: "STRING_SPLIT(\"tags\", ',')",
+    snippet: "STRING_SPLIT(col, ',')",
+  },
+  {
+    name: 'MD5 / HASH',
+    category: 'advanced',
+    syntax: 'MD5(texto)',
+    description: 'Genera un hash criptográfico para anonimizar datos sensibles o crear claves sintéticas únicas.',
+    example: 'MD5("customer_email")',
+    snippet: 'MD5(col)',
+  },
 ];
 
 const QUICK_RECIPES = [
@@ -230,6 +314,34 @@ const QUICK_RECIPES = [
     formula: 'ROUND(("profit" / NULLIF("sales", 0)) * 100, 2)',
     role: 'measure' as FieldRole,
     type: 'number' as DataType,
+  },
+  {
+    title: 'Correlación de Pearson (ML / Stats)',
+    desc: 'Relación lineal entre 2 variables (-1 a +1) imposible en VizQL simple',
+    formula: 'ROUND(CORR("sales", "profit"), 4)',
+    role: 'measure' as FieldRole,
+    type: 'number' as DataType,
+  },
+  {
+    title: 'Percentil P95 (SLA / Latencia)',
+    desc: 'Calcula el percentil 95 exacto sin agregaciones complejas',
+    formula: 'QUANTILE_CONT("salary", 0.95)',
+    role: 'measure' as FieldRole,
+    type: 'number' as DataType,
+  },
+  {
+    title: 'Extracción Regex de Dominio',
+    desc: 'Extrae partes de texto complejas con expresiones regulares',
+    formula: "REGEXP_EXTRACT(\"email\", '@(.+)$', 1)",
+    role: 'dimension' as FieldRole,
+    type: 'string' as DataType,
+  },
+  {
+    title: 'Extracción de JSON Anidado',
+    desc: 'Accede a propiedades dentro de columnas JSON directamente',
+    formula: "\"payload\"->>'$.user.role'",
+    role: 'dimension' as FieldRole,
+    type: 'string' as DataType,
   },
   {
     title: 'Clasificación Condicional (IF / CASE)',
@@ -565,6 +677,8 @@ CASE WHEN "age" >= 50 THEN 'Senior' ELSE 'Junior' END`}
                     className="w-40 rounded-md border border-stone-200 bg-white px-2 py-1 text-xs text-stone-800 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200"
                   >
                     <option value="all">Todas las categorías</option>
+                    <option value="stats">Estadística & ML (DuckDB)</option>
+                    <option value="advanced">Regex, JSON & Arrays</option>
                     <option value="logic">Lógicas / Condicionales</option>
                     <option value="numeric">Numéricas</option>
                     <option value="string">Texto / Cadenas</option>
