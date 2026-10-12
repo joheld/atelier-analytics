@@ -149,6 +149,7 @@ atelier-analytics/
 ├── tailwind.config.js            # Design system editorial con colores OKLCH para pastillas
 ├── postcss.config.js             # PostCSS y autoprefixer
 ├── run.sh                        # Script portable bare-metal inmunizado contra SIGHUP
+├── launch-desktop.sh             # Script lanzador con verificación de socket y apertura en navegador
 ├── dist/                         # Compilación estática de producción (SPA offline)
 └── src/
     ├── main.tsx                  # Bootstrap React 19
