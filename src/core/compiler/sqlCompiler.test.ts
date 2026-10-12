@@ -172,4 +172,51 @@ describe('Atelier Analytics Compiler & AST Builder', () => {
     expect(compiled.sql).toContain('"Sub-Category" AS "Sub-Category"');
     expect(compiled.sql).toContain('SUM("Unit Price") AS "sum_Unit Price"');
   });
+
+  it('compiles custom calculated fields with formulas and parameter substitution', () => {
+    const marginPill: Pill = {
+      id: 'p_margin',
+      columnName: 'profit_margin',
+      role: 'measure',
+      dataType: 'number',
+      aggregation: 'AVG',
+      isCalculated: true,
+      formula: '"profit" / [Target_Ratio]',
+    };
+
+    const state: WorksheetState = {
+      datasetId: 'superstore',
+      tableName: 'superstore',
+      columns: [
+        {
+          id: 'p_cat',
+          columnName: 'category',
+          role: 'dimension',
+          dataType: 'string',
+        },
+      ],
+      rows: [marginPill],
+      filters: [],
+      marks: {
+        markType: 'auto',
+        detail: [],
+        tooltip: [],
+        opacity: 1,
+      },
+    };
+
+    const ast = buildWorksheetAST(state);
+    const parameters = [
+      {
+        id: 'param_target',
+        name: 'Target_Ratio',
+        dataType: 'number' as const,
+        currentValue: 1.25,
+      },
+    ];
+
+    const compiled = compileASTtoDuckDB(ast, parameters);
+    expect(compiled.sql).toContain('AVG(("profit" / 1.25)) AS avg_profit_margin');
+    expect(compiled.sql).toContain('GROUP BY category');
+  });
 });

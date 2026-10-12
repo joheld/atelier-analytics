@@ -31,6 +31,8 @@ export interface DatasetColumn {
   dataType: DataType;
   role: FieldRole;
   description?: string;
+  isCalculated?: boolean;
+  formula?: string;
 }
 
 export interface DatasetMeta {
@@ -61,6 +63,51 @@ export interface Pill {
   dateTruncation?: 'year' | 'quarter' | 'month' | 'day' | 'week';
   // Sorting preference
   sort?: 'asc' | 'desc' | 'none';
+  // Custom calculated field metadata
+  isCalculated?: boolean;
+  formula?: string;
+}
+
+export interface CalculatedField {
+  id: string;
+  name: string;
+  role: FieldRole;
+  dataType: DataType;
+  formula: string;
+}
+
+export interface Parameter {
+  id: string;
+  name: string;
+  dataType: DataType;
+  currentValue: string | number | boolean;
+  min?: number;
+  max?: number;
+  step?: number;
+  options?: string[];
+}
+
+export type SheetType = 'worksheet' | 'dashboard';
+
+export interface WorksheetTab {
+  id: string;
+  name: string;
+  type: SheetType;
+  columns: Pill[];
+  rows: Pill[];
+  filters: FilterExpression[];
+  marks: MarksCardState;
+  limit?: number;
+  dashboardSheetIds?: string[];
+}
+
+export interface WorkbookProject {
+  version: string;
+  datasetMeta: DatasetMeta | null;
+  activeTabId: string;
+  sheets: WorksheetTab[];
+  calculatedFields: CalculatedField[];
+  parameters: Parameter[];
 }
 
 export type ShelfId = 'columns' | 'rows' | 'color' | 'size' | 'detail' | 'tooltip' | 'filters';

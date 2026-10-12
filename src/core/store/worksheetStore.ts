@@ -7,10 +7,23 @@ import {
   FilterExpression,
   AggregationFunction,
   DatasetMeta,
+  WorksheetTab,
+  SheetType,
+  CalculatedField,
+  Parameter,
+  WorkbookProject,
+  WorksheetAST,
 } from '../ast/types';
 import { buildWorksheetAST } from '../ast/builder';
 import { compileASTtoDuckDB, CompiledQuery } from '../compiler/sqlCompiler';
 import { duckdbEngine, QueryExecutionResult } from '../engine/duckdbClient';
+
+export interface DashboardSheetExecution {
+  queryResult: QueryExecutionResult | null;
+  compiledQuery: CompiledQuery | null;
+  ast: WorksheetAST | null;
+  error?: string | null;
+}
 
 export interface WorksheetStore extends WorksheetState {
   // Analytical Engine State
@@ -25,11 +38,28 @@ export interface WorksheetStore extends WorksheetState {
   showSQLDrawer: boolean;
   theme: 'light' | 'dark';
 
-  // Actions
+  // Multi-Tab Workbook State
+  sheets: WorksheetTab[];
+  activeTabId: string;
+
+  // Calculated Fields & Parameters
+  calculatedFields: CalculatedField[];
+  parameters: Parameter[];
+  isCalculatedFieldModalOpen: boolean;
+  editingCalculatedField: CalculatedField | null;
+  isParameterModalOpen: boolean;
+  editingParameter: Parameter | null;
+
+  // Multi-Visual Dashboard Execution Cache
+  dashboardResults: Record<string, DashboardSheetExecution>;
+
+  // Actions - Core Engine & Datasets
   initEngine: () => Promise<void>;
   loadFile: (file: File) => Promise<void>;
   closeDataset: () => void;
   selectDataset: (datasetId: string) => Promise<void>;
+
+  // Actions - Shelves & Pills (apply to active worksheet)
   addPillToShelf: (shelf: ShelfId, pill: Pill) => void;
   removePillFromShelf: (shelf: ShelfId, pillId: string) => void;
   reorderShelfPills: (shelf: ShelfId, startIndex: number, endIndex: number) => void;
@@ -38,17 +68,63 @@ export interface WorksheetStore extends WorksheetState {
   setPillDateTruncation: (shelf: ShelfId, pillId: string, trunc: 'year' | 'quarter' | 'month' | 'day') => void;
   setMarkType: (markType: MarkType) => void;
   setOpacity: (opacity: number) => void;
+  clearAllShelves: () => void;
+
+  // Actions - Filters
   activeFilterModal: FilterExpression | null;
   setActiveFilterModal: (filter: FilterExpression | null) => void;
   upsertFilter: (filter: FilterExpression) => void;
   addFilter: (filter: FilterExpression) => void;
   removeFilter: (filterId: string) => void;
   updateFilterValues: (filterId: string, values: (string | number | boolean)[]) => void;
-  clearAllShelves: () => void;
+
+  // Actions - Multi-Tab Workbook
+  addSheet: (type?: SheetType) => void;
+  switchTab: (tabId: string) => void;
+  renameTab: (tabId: string, name: string) => void;
+  duplicateTab: (tabId: string) => void;
+  deleteTab: (tabId: string) => void;
+  setDashboardSheets: (dashboardId: string, sheetIds: string[]) => void;
+
+  // Actions - Calculated Fields
+  openCalculatedFieldModal: (field?: CalculatedField) => void;
+  closeCalculatedFieldModal: () => void;
+  saveCalculatedField: (field: CalculatedField) => Promise<void>;
+  deleteCalculatedField: (fieldId: string) => Promise<void>;
+
+  // Actions - Parameters
+  openParameterModal: (param?: Parameter) => void;
+  closeParameterModal: () => void;
+  saveParameter: (param: Parameter) => void;
+  setParameterValue: (paramId: string, value: string | number | boolean) => void;
+  deleteParameter: (paramId: string) => void;
+
+  // Actions - Project Persistence
+  exportProjectFile: () => void;
+  importProjectFile: (file: File) => Promise<void>;
+
+  // Actions - UI State & Execution
   toggleSQLDrawer: () => void;
   toggleTheme: () => void;
   executeCurrentState: () => Promise<void>;
 }
+
+const LOCAL_STORAGE_KEY = 'atelier_saved_workbook_v1';
+
+const defaultSheet: WorksheetTab = {
+  id: 'sheet_1',
+  name: 'Hoja 1',
+  type: 'worksheet',
+  columns: [],
+  rows: [],
+  filters: [],
+  marks: {
+    markType: 'auto',
+    detail: [],
+    tooltip: [],
+    opacity: 0.85,
+  },
+};
 
 export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
   datasetId: '',
@@ -76,6 +152,19 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
   theme: 'light',
   activeFilterModal: null,
 
+  // Multi-Tab Workbook State
+  sheets: [defaultSheet],
+  activeTabId: 'sheet_1',
+
+  // Calculated Fields & Parameters State
+  calculatedFields: [],
+  parameters: [],
+  isCalculatedFieldModalOpen: false,
+  editingCalculatedField: null,
+  isParameterModalOpen: false,
+  editingParameter: null,
+  dashboardResults: {},
+
   initEngine: async () => {
     try {
       set({ isExecuting: true, engineError: null });
@@ -84,6 +173,18 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
         isEngineReady: true,
         isExecuting: false,
       });
+
+      // Attempt to load cached settings from localStorage
+      try {
+        const savedJson = localStorage.getItem(LOCAL_STORAGE_KEY);
+        if (savedJson) {
+          const parsed = JSON.parse(savedJson) as Partial<WorkbookProject>;
+          if (parsed.calculatedFields) set({ calculatedFields: parsed.calculatedFields });
+          if (parsed.parameters) set({ parameters: parsed.parameters });
+        }
+      } catch (e) {
+        console.warn('No se pudo restaurar estado previo desde localStorage:', e);
+      }
     } catch (err: unknown) {
       set({
         engineError: err instanceof Error ? err.message : 'Error al inicializar DuckDB-WASM',
@@ -98,20 +199,30 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
       const meta = await duckdbEngine.loadUserFile(file);
       const allDatasets = duckdbEngine.getAvailableDatasets();
 
+      // Incorporate any existing calculated fields into dataset metadata
+      const { calculatedFields } = get();
+      if (calculatedFields.length > 0) {
+        const extraCols = calculatedFields.map((cf) => ({
+          name: cf.name,
+          dataType: cf.dataType,
+          role: cf.role,
+          isCalculated: true,
+          formula: cf.formula,
+        }));
+        meta.columns = [...meta.columns, ...extraCols];
+      }
+
+      const activeSheet = get().sheets.find((s) => s.id === get().activeTabId) || get().sheets[0];
+
       set({
         availableDatasets: allDatasets,
         currentDataset: meta,
         datasetId: meta.id,
         tableName: meta.tableName,
-        columns: [],
-        rows: [],
-        filters: [],
-        marks: {
-          markType: 'auto',
-          detail: [],
-          tooltip: [],
-          opacity: 0.85,
-        },
+        columns: activeSheet.columns,
+        rows: activeSheet.rows,
+        filters: activeSheet.filters,
+        marks: activeSheet.marks,
       });
 
       await get().executeCurrentState();
@@ -146,24 +257,22 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
     const ds = get().availableDatasets.find((d) => d.id === datasetId);
     if (!ds) return;
 
+    const activeSheet = get().sheets.find((s) => s.id === get().activeTabId) || get().sheets[0];
+
     set({
       datasetId: ds.id,
       tableName: ds.tableName,
       currentDataset: ds,
-      columns: [],
-      rows: [],
-      filters: [],
-      marks: {
-        markType: 'auto',
-        detail: [],
-        tooltip: [],
-        opacity: 0.85,
-      },
+      columns: activeSheet.columns,
+      rows: activeSheet.rows,
+      filters: activeSheet.filters,
+      marks: activeSheet.marks,
     });
 
     await get().executeCurrentState();
   },
 
+  // Helper to sync changes to active sheet and localStorage
   addPillToShelf: (shelf: ShelfId, pill: Pill) => {
     if (shelf === 'filters') {
       const existing = get().filters.find((f) => f.columnName === pill.columnName);
@@ -179,10 +288,17 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
         operator: pill.role === 'measure' ? 'range' : 'in',
         values: [],
       };
-      set((state) => ({
-        filters: [...state.filters, newFilter],
-        activeFilterModal: newFilter,
-      }));
+      set((state) => {
+        const nextFilters = [...state.filters, newFilter];
+        const nextSheets = state.sheets.map((s) =>
+          s.id === state.activeTabId ? { ...s, filters: nextFilters } : s
+        );
+        return {
+          filters: nextFilters,
+          sheets: nextSheets,
+          activeFilterModal: newFilter,
+        };
+      });
       return;
     }
 
@@ -193,22 +309,48 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
     };
 
     set((state) => {
+      let nextColumns = state.columns;
+      let nextRows = state.rows;
+      let nextMarks = state.marks;
+
       switch (shelf) {
         case 'columns':
-          return { columns: [...state.columns, pillWithAgg] };
+          nextColumns = [...state.columns, pillWithAgg];
+          break;
         case 'rows':
-          return { rows: [...state.rows, pillWithAgg] };
+          nextRows = [...state.rows, pillWithAgg];
+          break;
         case 'color':
-          return { marks: { ...state.marks, color: pillWithAgg } };
+          nextMarks = { ...state.marks, color: pillWithAgg };
+          break;
         case 'size':
-          return { marks: { ...state.marks, size: pillWithAgg } };
+          nextMarks = { ...state.marks, size: pillWithAgg };
+          break;
         case 'detail':
-          return { marks: { ...state.marks, detail: [...state.marks.detail, pillWithAgg] } };
+          nextMarks = { ...state.marks, detail: [...state.marks.detail, pillWithAgg] };
+          break;
         case 'tooltip':
-          return { marks: { ...state.marks, tooltip: [...state.marks.tooltip, pillWithAgg] } };
-        default:
-          return state;
+          nextMarks = { ...state.marks, tooltip: [...state.marks.tooltip, pillWithAgg] };
+          break;
       }
+
+      const nextSheets = state.sheets.map((s) =>
+        s.id === state.activeTabId
+          ? {
+              ...s,
+              columns: nextColumns,
+              rows: nextRows,
+              marks: nextMarks,
+            }
+          : s
+      );
+
+      return {
+        columns: nextColumns,
+        rows: nextRows,
+        marks: nextMarks,
+        sheets: nextSheets,
+      };
     });
 
     void get().executeCurrentState();
@@ -216,22 +358,48 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
 
   removePillFromShelf: (shelf: ShelfId, pillId: string) => {
     set((state) => {
+      let nextColumns = state.columns;
+      let nextRows = state.rows;
+      let nextMarks = state.marks;
+
       switch (shelf) {
         case 'columns':
-          return { columns: state.columns.filter((p) => p.id !== pillId) };
+          nextColumns = state.columns.filter((p) => p.id !== pillId);
+          break;
         case 'rows':
-          return { rows: state.rows.filter((p) => p.id !== pillId) };
+          nextRows = state.rows.filter((p) => p.id !== pillId);
+          break;
         case 'color':
-          return { marks: { ...state.marks, color: undefined } };
+          nextMarks = { ...state.marks, color: undefined };
+          break;
         case 'size':
-          return { marks: { ...state.marks, size: undefined } };
+          nextMarks = { ...state.marks, size: undefined };
+          break;
         case 'detail':
-          return { marks: { ...state.marks, detail: state.marks.detail.filter((p) => p.id !== pillId) } };
+          nextMarks = { ...state.marks, detail: state.marks.detail.filter((p) => p.id !== pillId) };
+          break;
         case 'tooltip':
-          return { marks: { ...state.marks, tooltip: state.marks.tooltip.filter((p) => p.id !== pillId) } };
-        default:
-          return state;
+          nextMarks = { ...state.marks, tooltip: state.marks.tooltip.filter((p) => p.id !== pillId) };
+          break;
       }
+
+      const nextSheets = state.sheets.map((s) =>
+        s.id === state.activeTabId
+          ? {
+              ...s,
+              columns: nextColumns,
+              rows: nextRows,
+              marks: nextMarks,
+            }
+          : s
+      );
+
+      return {
+        columns: nextColumns,
+        rows: nextRows,
+        marks: nextMarks,
+        sheets: nextSheets,
+      };
     });
 
     void get().executeCurrentState();
@@ -246,10 +414,31 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
         return result;
       };
 
-      if (shelf === 'columns') return { columns: reorderList(state.columns) };
-      if (shelf === 'rows') return { rows: reorderList(state.rows) };
-      if (shelf === 'detail') return { marks: { ...state.marks, detail: reorderList(state.marks.detail) } };
-      return state;
+      let nextColumns = state.columns;
+      let nextRows = state.rows;
+      let nextMarks = state.marks;
+
+      if (shelf === 'columns') nextColumns = reorderList(state.columns);
+      if (shelf === 'rows') nextRows = reorderList(state.rows);
+      if (shelf === 'detail') nextMarks = { ...state.marks, detail: reorderList(state.marks.detail) };
+
+      const nextSheets = state.sheets.map((s) =>
+        s.id === state.activeTabId
+          ? {
+              ...s,
+              columns: nextColumns,
+              rows: nextRows,
+              marks: nextMarks,
+            }
+          : s
+      );
+
+      return {
+        columns: nextColumns,
+        rows: nextRows,
+        marks: nextMarks,
+        sheets: nextSheets,
+      };
     });
 
     void get().executeCurrentState();
@@ -260,15 +449,12 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
       list.map((p) => (p.id === pillId ? { ...p, aggregation: agg } : p));
 
     set((state) => {
-      if (shelf === 'columns') return { columns: updateList(state.columns) };
-      if (shelf === 'rows') return { rows: updateList(state.rows) };
-      if (shelf === 'color' && state.marks.color?.id === pillId) {
-        return { marks: { ...state.marks, color: { ...state.marks.color, aggregation: agg } } };
-      }
-      if (shelf === 'size' && state.marks.size?.id === pillId) {
-        return { marks: { ...state.marks, size: { ...state.marks.size, aggregation: agg } } };
-      }
-      return state;
+      const nextColumns = shelf === 'columns' ? updateList(state.columns) : state.columns;
+      const nextRows = shelf === 'rows' ? updateList(state.rows) : state.rows;
+      const nextSheets = state.sheets.map((s) =>
+        s.id === state.activeTabId ? { ...s, columns: nextColumns, rows: nextRows } : s
+      );
+      return { columns: nextColumns, rows: nextRows, sheets: nextSheets };
     });
 
     void get().executeCurrentState();
@@ -279,9 +465,12 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
       list.map((p) => (p.id === pillId ? { ...p, sort } : p));
 
     set((state) => {
-      if (shelf === 'columns') return { columns: updateList(state.columns) };
-      if (shelf === 'rows') return { rows: updateList(state.rows) };
-      return state;
+      const nextColumns = shelf === 'columns' ? updateList(state.columns) : state.columns;
+      const nextRows = shelf === 'rows' ? updateList(state.rows) : state.rows;
+      const nextSheets = state.sheets.map((s) =>
+        s.id === state.activeTabId ? { ...s, columns: nextColumns, rows: nextRows } : s
+      );
+      return { columns: nextColumns, rows: nextRows, sheets: nextSheets };
     });
 
     void get().executeCurrentState();
@@ -292,21 +481,36 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
       list.map((p) => (p.id === pillId ? { ...p, dateTruncation: trunc } : p));
 
     set((state) => {
-      if (shelf === 'columns') return { columns: updateList(state.columns) };
-      if (shelf === 'rows') return { rows: updateList(state.rows) };
-      return state;
+      const nextColumns = shelf === 'columns' ? updateList(state.columns) : state.columns;
+      const nextRows = shelf === 'rows' ? updateList(state.rows) : state.rows;
+      const nextSheets = state.sheets.map((s) =>
+        s.id === state.activeTabId ? { ...s, columns: nextColumns, rows: nextRows } : s
+      );
+      return { columns: nextColumns, rows: nextRows, sheets: nextSheets };
     });
 
     void get().executeCurrentState();
   },
 
   setMarkType: (markType: MarkType) => {
-    set((state) => ({ marks: { ...state.marks, markType } }));
+    set((state) => {
+      const nextMarks = { ...state.marks, markType };
+      const nextSheets = state.sheets.map((s) =>
+        s.id === state.activeTabId ? { ...s, marks: nextMarks } : s
+      );
+      return { marks: nextMarks, sheets: nextSheets };
+    });
     void get().executeCurrentState();
   },
 
   setOpacity: (opacity: number) => {
-    set((state) => ({ marks: { ...state.marks, opacity } }));
+    set((state) => {
+      const nextMarks = { ...state.marks, opacity };
+      const nextSheets = state.sheets.map((s) =>
+        s.id === state.activeTabId ? { ...s, marks: nextMarks } : s
+      );
+      return { marks: nextMarks, sheets: nextSheets };
+    });
     void get().executeCurrentState();
   },
 
@@ -320,8 +524,12 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
       const nextFilters = exists
         ? state.filters.map((f) => (f.id === filter.id ? filter : f))
         : [...state.filters, filter];
+      const nextSheets = state.sheets.map((s) =>
+        s.id === state.activeTabId ? { ...s, filters: nextFilters } : s
+      );
       return {
         filters: nextFilters,
+        sheets: nextSheets,
         activeFilterModal: null,
       };
     });
@@ -329,24 +537,79 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
   },
 
   addFilter: (filter: FilterExpression) => {
-    set((state) => ({ filters: [...state.filters, filter] }));
+    set((state) => {
+      const nextFilters = [...state.filters, filter];
+      const nextSheets = state.sheets.map((s) =>
+        s.id === state.activeTabId ? { ...s, filters: nextFilters } : s
+      );
+      return { filters: nextFilters, sheets: nextSheets };
+    });
     void get().executeCurrentState();
   },
 
   removeFilter: (filterId: string) => {
-    set((state) => ({ filters: state.filters.filter((f) => f.id !== filterId) }));
+    set((state) => {
+      const nextFilters = state.filters.filter((f) => f.id !== filterId);
+      const nextSheets = state.sheets.map((s) =>
+        s.id === state.activeTabId ? { ...s, filters: nextFilters } : s
+      );
+      return { filters: nextFilters, sheets: nextSheets };
+    });
     void get().executeCurrentState();
   },
 
   updateFilterValues: (filterId: string, values: (string | number | boolean)[]) => {
-    set((state) => ({
-      filters: state.filters.map((f) => (f.id === filterId ? { ...f, values } : f)),
-    }));
+    set((state) => {
+      const nextFilters = state.filters.map((f) => (f.id === filterId ? { ...f, values } : f));
+      const nextSheets = state.sheets.map((s) =>
+        s.id === state.activeTabId ? { ...s, filters: nextFilters } : s
+      );
+      return { filters: nextFilters, sheets: nextSheets };
+    });
     void get().executeCurrentState();
   },
 
   clearAllShelves: () => {
-    set({
+    set((state) => {
+      const clearedMarks = {
+        markType: 'auto' as MarkType,
+        detail: [],
+        tooltip: [],
+        opacity: 0.85,
+      };
+      const nextSheets = state.sheets.map((s) =>
+        s.id === state.activeTabId
+          ? {
+              ...s,
+              columns: [],
+              rows: [],
+              filters: [],
+              marks: clearedMarks,
+            }
+          : s
+      );
+      return {
+        columns: [],
+        rows: [],
+        filters: [],
+        marks: clearedMarks,
+        sheets: nextSheets,
+      };
+    });
+    void get().executeCurrentState();
+  },
+
+  // MULTI-TAB WORKBOOK ACTIONS
+  addSheet: (type: SheetType = 'worksheet') => {
+    const { sheets } = get();
+    const count = sheets.filter((s) => s.type === type).length + 1;
+    const newName = type === 'worksheet' ? `Hoja ${count}` : `Dashboard ${count}`;
+    const newId = `${type}_${Date.now()}`;
+
+    const newTab: WorksheetTab = {
+      id: newId,
+      name: newName,
+      type,
       columns: [],
       rows: [],
       filters: [],
@@ -356,8 +619,262 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
         tooltip: [],
         opacity: 0.85,
       },
+      dashboardSheetIds: type === 'dashboard' ? sheets.filter((s) => s.type === 'worksheet').map((s) => s.id) : undefined,
+    };
+
+    set((state) => ({
+      sheets: [...state.sheets, newTab],
+      activeTabId: newId,
+      columns: newTab.columns,
+      rows: newTab.rows,
+      filters: newTab.filters,
+      marks: newTab.marks,
+    }));
+
+    void get().executeCurrentState();
+  },
+
+  switchTab: (tabId: string) => {
+    const target = get().sheets.find((s) => s.id === tabId);
+    if (!target) return;
+
+    set({
+      activeTabId: tabId,
+      columns: target.columns,
+      rows: target.rows,
+      filters: target.filters,
+      marks: target.marks,
+    });
+
+    void get().executeCurrentState();
+  },
+
+  renameTab: (tabId: string, name: string) => {
+    set((state) => ({
+      sheets: state.sheets.map((s) => (s.id === tabId ? { ...s, name } : s)),
+    }));
+  },
+
+  duplicateTab: (tabId: string) => {
+    const target = get().sheets.find((s) => s.id === tabId);
+    if (!target) return;
+
+    const newId = `${target.type}_${Date.now()}`;
+    const newTab: WorksheetTab = {
+      ...target,
+      id: newId,
+      name: `${target.name} (Copia)`,
+      columns: [...target.columns],
+      rows: [...target.rows],
+      filters: [...target.filters],
+      marks: { ...target.marks, detail: [...target.marks.detail], tooltip: [...target.marks.tooltip] },
+    };
+
+    set((state) => ({
+      sheets: [...state.sheets, newTab],
+      activeTabId: newId,
+      columns: newTab.columns,
+      rows: newTab.rows,
+      filters: newTab.filters,
+      marks: newTab.marks,
+    }));
+
+    void get().executeCurrentState();
+  },
+
+  deleteTab: (tabId: string) => {
+    const { sheets, activeTabId } = get();
+    if (sheets.length <= 1) return; // Prevent deleting the last remaining sheet
+
+    const remaining = sheets.filter((s) => s.id !== tabId);
+    const nextActive = activeTabId === tabId ? remaining[0] : sheets.find((s) => s.id === activeTabId) || remaining[0];
+
+    set({
+      sheets: remaining,
+      activeTabId: nextActive.id,
+      columns: nextActive.columns,
+      rows: nextActive.rows,
+      filters: nextActive.filters,
+      marks: nextActive.marks,
+    });
+
+    void get().executeCurrentState();
+  },
+
+  setDashboardSheets: (dashboardId: string, sheetIds: string[]) => {
+    set((state) => ({
+      sheets: state.sheets.map((s) => (s.id === dashboardId ? { ...s, dashboardSheetIds: sheetIds } : s)),
+    }));
+    void get().executeCurrentState();
+  },
+
+  // CALCULATED FIELDS ACTIONS
+  openCalculatedFieldModal: (field?: CalculatedField) => {
+    set({
+      isCalculatedFieldModalOpen: true,
+      editingCalculatedField: field || null,
+    });
+  },
+
+  closeCalculatedFieldModal: () => {
+    set({
+      isCalculatedFieldModalOpen: false,
+      editingCalculatedField: null,
+    });
+  },
+
+  saveCalculatedField: async (field: CalculatedField) => {
+    set((state) => {
+      const exists = state.calculatedFields.some((cf) => cf.id === field.id);
+      const nextFields = exists
+        ? state.calculatedFields.map((cf) => (cf.id === field.id ? field : cf))
+        : [...state.calculatedFields, field];
+
+      // Update currentDataset columns if loaded
+      let updatedDataset = state.currentDataset;
+      if (updatedDataset) {
+        const otherCols = updatedDataset.columns.filter((c) => c.name !== field.name);
+        updatedDataset = {
+          ...updatedDataset,
+          columns: [
+            ...otherCols,
+            {
+              name: field.name,
+              dataType: field.dataType,
+              role: field.role,
+              isCalculated: true,
+              formula: field.formula,
+            },
+          ],
+        };
+      }
+
+      return {
+        calculatedFields: nextFields,
+        currentDataset: updatedDataset,
+        isCalculatedFieldModalOpen: false,
+        editingCalculatedField: null,
+      };
+    });
+
+    void get().executeCurrentState();
+  },
+
+  deleteCalculatedField: async (fieldId: string) => {
+    set((state) => {
+      const target = state.calculatedFields.find((cf) => cf.id === fieldId);
+      const nextFields = state.calculatedFields.filter((cf) => cf.id !== fieldId);
+
+      let updatedDataset = state.currentDataset;
+      if (updatedDataset && target) {
+        updatedDataset = {
+          ...updatedDataset,
+          columns: updatedDataset.columns.filter((c) => c.name !== target.name),
+        };
+      }
+
+      return {
+        calculatedFields: nextFields,
+        currentDataset: updatedDataset,
+      };
+    });
+
+    void get().executeCurrentState();
+  },
+
+  // PARAMETERS ACTIONS
+  openParameterModal: (param?: Parameter) => {
+    set({
+      isParameterModalOpen: true,
+      editingParameter: param || null,
+    });
+  },
+
+  closeParameterModal: () => {
+    set({
+      isParameterModalOpen: false,
+      editingParameter: null,
+    });
+  },
+
+  saveParameter: (param: Parameter) => {
+    set((state) => {
+      const exists = state.parameters.some((p) => p.id === param.id);
+      const nextParams = exists
+        ? state.parameters.map((p) => (p.id === param.id ? param : p))
+        : [...state.parameters, param];
+      return {
+        parameters: nextParams,
+        isParameterModalOpen: false,
+        editingParameter: null,
+      };
     });
     void get().executeCurrentState();
+  },
+
+  setParameterValue: (paramId: string, value: string | number | boolean) => {
+    set((state) => ({
+      parameters: state.parameters.map((p) => (p.id === paramId ? { ...p, currentValue: value } : p)),
+    }));
+    void get().executeCurrentState();
+  },
+
+  deleteParameter: (paramId: string) => {
+    set((state) => ({
+      parameters: state.parameters.filter((p) => p.id !== paramId),
+    }));
+    void get().executeCurrentState();
+  },
+
+  // PROJECT EXPORT & IMPORT
+  exportProjectFile: () => {
+    const state = get();
+    const project: WorkbookProject = {
+      version: '1.0.0',
+      datasetMeta: state.currentDataset,
+      activeTabId: state.activeTabId,
+      sheets: state.sheets,
+      calculatedFields: state.calculatedFields,
+      parameters: state.parameters,
+    };
+
+    const blob = new Blob([JSON.stringify(project, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${state.currentDataset?.name || 'atelier_analytics'}_dashboard.atelier`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  },
+
+  importProjectFile: async (file: File) => {
+    try {
+      const text = await file.text();
+      const project = JSON.parse(text) as WorkbookProject;
+
+      if (!project.sheets || project.sheets.length === 0) {
+        throw new Error('El archivo no contiene hojas válidas.');
+      }
+
+      const activeSheet = project.sheets.find((s) => s.id === project.activeTabId) || project.sheets[0];
+
+      set({
+        sheets: project.sheets,
+        activeTabId: activeSheet.id,
+        columns: activeSheet.columns,
+        rows: activeSheet.rows,
+        filters: activeSheet.filters,
+        marks: activeSheet.marks,
+        calculatedFields: project.calculatedFields || [],
+        parameters: project.parameters || [],
+      });
+
+      await get().executeCurrentState();
+    } catch (err: unknown) {
+      alert(`Error al importar proyecto: ${err instanceof Error ? err.message : String(err)}`);
+    }
   },
 
   toggleSQLDrawer: () => {
@@ -380,9 +897,61 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
     const state = get();
     if (!state.isEngineReady || !state.tableName) return;
 
+    // Check if active sheet is a dashboard
+    const activeSheet = state.sheets.find((s) => s.id === state.activeTabId) || state.sheets[0];
+
     try {
       set({ isExecuting: true, engineError: null });
 
+      if (activeSheet.type === 'dashboard') {
+        // Execute queries for all sheets referenced in this dashboard
+        const sheetIdsToRun = activeSheet.dashboardSheetIds && activeSheet.dashboardSheetIds.length > 0
+          ? activeSheet.dashboardSheetIds
+          : state.sheets.filter((s) => s.type === 'worksheet').map((s) => s.id);
+
+        const newDashboardResults: Record<string, DashboardSheetExecution> = {};
+
+        for (const sId of sheetIdsToRun) {
+          const s = state.sheets.find((item) => item.id === sId);
+          if (!s) continue;
+
+          try {
+            const sheetAST = buildWorksheetAST({
+              datasetId: state.datasetId,
+              tableName: state.tableName,
+              columns: s.columns,
+              rows: s.rows,
+              filters: s.filters,
+              marks: s.marks,
+              limit: s.limit || state.limit,
+            });
+
+            const compiled = compileASTtoDuckDB(sheetAST, state.parameters);
+            const queryRes = await duckdbEngine.executeQuery(compiled.sql);
+
+            newDashboardResults[sId] = {
+              ast: sheetAST,
+              compiledQuery: compiled,
+              queryResult: queryRes,
+            };
+          } catch (sheetErr) {
+            newDashboardResults[sId] = {
+              ast: null,
+              compiledQuery: null,
+              queryResult: null,
+              error: sheetErr instanceof Error ? sheetErr.message : String(sheetErr),
+            };
+          }
+        }
+
+        set({
+          isExecuting: false,
+          dashboardResults: newDashboardResults,
+        });
+        return;
+      }
+
+      // Worksheet execution
       const ast = buildWorksheetAST({
         datasetId: state.datasetId,
         tableName: state.tableName,
@@ -393,7 +962,7 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
         limit: state.limit,
       });
 
-      const compiled = compileASTtoDuckDB(ast);
+      const compiled = compileASTtoDuckDB(ast, state.parameters);
       const result = await duckdbEngine.executeQuery(compiled.sql);
 
       set((prev) => ({
@@ -409,6 +978,21 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
           ...prev.executionHistory.slice(0, 9),
         ],
       }));
+
+      // Auto-save to localStorage
+      try {
+        localStorage.setItem(
+          LOCAL_STORAGE_KEY,
+          JSON.stringify({
+            activeTabId: state.activeTabId,
+            sheets: state.sheets,
+            calculatedFields: state.calculatedFields,
+            parameters: state.parameters,
+          })
+        );
+      } catch (err) {
+        // Ignore quota limits
+      }
     } catch (err: unknown) {
       set({
         isExecuting: false,

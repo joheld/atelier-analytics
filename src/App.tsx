@@ -9,6 +9,10 @@ import { MarksCard } from './components/Marks/MarksCard';
 import { PlotRenderer } from './components/Canvas/PlotRenderer';
 import { EmptyWorkspace } from './components/Canvas/EmptyWorkspace';
 import { SQLInspectorDrawer } from './components/Canvas/SQLInspectorDrawer';
+import { TabBar } from './components/Tabs/TabBar';
+import { DashboardGrid } from './components/Dashboard/DashboardGrid';
+import { CalculatedFieldModal } from './components/CalculatedFields/CalculatedFieldModal';
+import { ParameterModal } from './components/Parameters/ParameterModal';
 import { Columns, Rows, Loader2 } from 'lucide-react';
 import { buildWorksheetAST } from './core/ast/builder';
 
@@ -43,13 +47,49 @@ export const App: React.FC = () => {
     setOpacity,
     clearAllShelves,
     toggleSQLDrawer,
+
+    // Multi-Tab Sheets & Dashboards
+    sheets,
+    activeTabId,
+    addSheet,
+    switchTab,
+    renameTab,
+    duplicateTab,
+    deleteTab,
+    setDashboardSheets,
+    dashboardResults,
+
+    // Calculated Fields & Parameters
+    calculatedFields,
+    parameters,
+    isCalculatedFieldModalOpen,
+    editingCalculatedField,
+    openCalculatedFieldModal,
+    closeCalculatedFieldModal,
+    saveCalculatedField,
+    deleteCalculatedField,
+
+    isParameterModalOpen,
+    editingParameter,
+    openParameterModal,
+    closeParameterModal,
+    saveParameter,
+    setParameterValue,
+    deleteParameter,
+
+    // Project Persistence
+    exportProjectFile,
+    importProjectFile,
   } = useWorksheetStore();
 
   useEffect(() => {
     void initEngine();
   }, [initEngine]);
 
-  const ast = currentDataset
+  const activeSheet = sheets.find((s) => s.id === activeTabId) || sheets[0];
+  const isDashboardTab = activeSheet?.type === 'dashboard';
+
+  const ast = currentDataset && !isDashboardTab
     ? buildWorksheetAST({
         datasetId: currentDataset.id,
         tableName: currentDataset.tableName,
@@ -72,6 +112,8 @@ export const App: React.FC = () => {
         onToggleSQLDrawer={toggleSQLDrawer}
         onClearShelves={clearAllShelves}
         onCloseDataset={closeDataset}
+        onExportProject={exportProjectFile}
+        onImportProject={importProjectFile}
         latencyMs={queryResult?.durationMs}
         rowCount={queryResult?.rowCount}
         hasPillsOnShelves={hasPillsOnShelves}
@@ -82,7 +124,14 @@ export const App: React.FC = () => {
         {/* Left Data Sidebar */}
         <DataSidebar
           currentDataset={currentDataset}
+          parameters={parameters}
+          calculatedFields={calculatedFields}
           onAddPill={(shelf, pill) => addPillToShelf(shelf, pill)}
+          onOpenCalculatedFieldModal={openCalculatedFieldModal}
+          onDeleteCalculatedField={deleteCalculatedField}
+          onOpenParameterModal={openParameterModal}
+          onSetParameterValue={setParameterValue}
+          onDeleteParameter={deleteParameter}
         />
 
         {/* Center Analytical Workbench */}
@@ -93,8 +142,18 @@ export const App: React.FC = () => {
               onFileUpload={(file) => void loadFile(file)}
               isUploading={isExecuting}
             />
+          ) : isDashboardTab ? (
+            /* Multi-Visual Composite Dashboard View */
+            <DashboardGrid
+              sheets={sheets}
+              activeDashboard={activeSheet}
+              dashboardResults={dashboardResults}
+              theme={theme}
+              onSwitchTab={switchTab}
+              onSetDashboardSheets={setDashboardSheets}
+            />
           ) : (
-            /* Active Workbench: Shelves + Marks + Canvas */
+            /* Active Worksheet: Shelves + Marks + Canvas */
             <>
               {/* Shelves Zone: Columns, Rows & Filters */}
               <div className="border-b border-stone-200/90 bg-white/70 backdrop-blur-xs dark:border-stone-800 dark:bg-stone-900/70">
@@ -173,6 +232,19 @@ export const App: React.FC = () => {
               </div>
             </>
           )}
+
+          {/* Tableau-style Bottom Tab Bar */}
+          {currentDataset && (
+            <TabBar
+              sheets={sheets}
+              activeTabId={activeTabId}
+              onSwitchTab={switchTab}
+              onAddSheet={addSheet}
+              onRenameTab={renameTab}
+              onDuplicateTab={duplicateTab}
+              onDeleteTab={deleteTab}
+            />
+          )}
         </main>
       </div>
 
@@ -196,6 +268,27 @@ export const App: React.FC = () => {
             removeFilter(activeFilterModal.id);
             setActiveFilterModal(null);
           }}
+        />
+      )}
+
+      {/* Calculated Field Creation & Editing Modal */}
+      {isCalculatedFieldModalOpen && currentDataset && (
+        <CalculatedFieldModal
+          tableName={currentDataset.tableName}
+          columns={currentDataset.columns}
+          parameters={parameters}
+          initialField={editingCalculatedField}
+          onSave={saveCalculatedField}
+          onClose={closeCalculatedFieldModal}
+        />
+      )}
+
+      {/* Parameter Creation & Editing Modal */}
+      {isParameterModalOpen && (
+        <ParameterModal
+          initialParam={editingParameter}
+          onSave={saveParameter}
+          onClose={closeParameterModal}
         />
       )}
     </div>

@@ -135,6 +135,7 @@ gitGraph
 | **CP-06** | Integración Observable Plot con soporte para 'Detail' y paletas OKLCH | **Completado** | Renderizado reactivo verificado con paletas OKLCH editoriales |
 | **CP-07** | Batería Zero-Defect: Typecheck, Tests, Build estático y Liveness HTTP | **Completado** | `tsc --noEmit` limpio, build en 2.11s, HTTP 200 en puerto 5173 |
 | **CP-08** | Sistema Interactivo de Filtros: Shelf drag-and-drop, Modal categórico y numérico | **Completado** | `FilterShelf` y `FilterModal` integrados con consultas DuckDB para valores únicos y rangos |
+| **CP-09** | Modelo Workbook Completo: Multi-Tabs, Dashboards Compuestos, Campos Calculados y Parámetros | **Completado** | Pestañas inferiores Tableau, `DashboardGrid` multi-visual, persistencia `.atelier`/localStorage, editor de cálculos y parámetros |
 
 ---
 
@@ -154,24 +155,32 @@ atelier-analytics/
 ├── dist/                         # Compilación estática de producción (SPA offline)
 └── src/
     ├── main.tsx                  # Bootstrap React 19
-    ├── App.tsx                   # Layout editorial tipo Studio (Header, Sidebar, Shelves, Canvas)
+    ├── App.tsx                   # Layout editorial tipo Studio (Header, Sidebar, Shelves, Canvas, TabBar)
     ├── index.css                 # Variables CSS OKLCH, estilos tabulares y reset
     ├── core/
     │   ├── ast/
-    │   │   ├── types.ts          # Tipos: Pill, Shelf, MarksCardState, WorksheetState, WorksheetAST, FilterExpression
+    │   │   ├── types.ts          # Tipos: Pill, Shelf, MarksCardState, WorksheetState, WorksheetAST, FilterExpression, WorksheetTab, CalculatedField, Parameter, WorkbookProject
     │   │   └── builder.ts        # Conversión declarativa de UI a AST con Show Me auto-mark
     │   ├── compiler/
-    │   │   ├── sqlCompiler.ts    # Compilador optimizado AST -> SQL para DuckDB
-    │   │   └── sqlCompiler.test.ts # Suite de pruebas unitarias (4/4 tests pasados)
+    │   │   ├── sqlCompiler.ts    # Compilador optimizado AST -> SQL con soporte para campos calculados y parámetros
+    │   │   └── sqlCompiler.test.ts # Suite de pruebas unitarias (5/5 tests pasados)
     │   ├── engine/
-    │   │   └── duckdbClient.ts   # Conector DuckDB-WASM, Apache Arrow, loader universal y queries de metadatos
+    │   │   └── duckdbClient.ts   # Conector DuckDB-WASM, Apache Arrow, loader universal, queries de metadatos y validador de fórmulas
     │   └── store/
-    │       └── worksheetStore.ts # Almacén Zustand reactivo con gestión de filtros, shelves y ejecución OLAP
+    │       └── worksheetStore.ts # Almacén Zustand reactivo multi-hoja, gestión de cálculos, parámetros y persistencia
     ├── components/
     │   ├── Header/
-    │   │   └── Header.tsx        # Barra editorial minimalista con estado del dataset, latencia y tema
+    │   │   └── Header.tsx        # Barra editorial con estado, latencia, tema y botones Abrir/Guardar proyecto (.atelier)
     │   ├── DataSidebar/
-    │   │   └── DataSidebar.tsx   # Panel de dimensiones y métricas dinámicas del archivo cargado
+    │   │   └── DataSidebar.tsx   # Panel de dimensiones, métricas, campos calculados y controles de parámetros
+    │   ├── Tabs/
+    │   │   └── TabBar.tsx        # Barra inferior de pestañas con cambio de hoja, duplicar, renombrar y añadir hojas/dashboards
+    │   ├── Dashboard/
+    │   │   └── DashboardGrid.tsx # Lienzo compuesto que combina múltiples hojas en un grid interactivo 1x1 o 2x2
+    │   ├── CalculatedFields/
+    │   │   └── CalculatedFieldModal.tsx # Editor de fórmulas con inserción de columnas, funciones y validación en vivo con DuckDB
+    │   ├── Parameters/
+    │   │   └── ParameterModal.tsx # Diálogo de creación y edición de parámetros con soporte para rangos y sliders
     │   ├── Shelves/
     │   │   ├── ShelfDropZone.tsx # Zonas de Drag & Drop para Columns y Rows
     │   │   └── PillBadge.tsx     # Pastillas con menú contextual (agregación, orden, truncamiento)
@@ -192,5 +201,5 @@ atelier-analytics/
 
 ## 6. Estado de la Sesión
 
-- **Estado Actual:** Sistema completo de filtros interactivos integrado y verificado al 100%. Los usuarios pueden arrastrar cualquier dimensión o métrica al estante de Filtros; para dimensiones se abre el diálogo con búsqueda, selección múltiple de valores reales obtenidos al vuelo con DuckDB (`DISTINCT`) e inclusión/exclusión; para métricas se calculan los límites reales (`MIN`/`MAX`) y se permite ajustar el rango continuo (`BETWEEN`). Los filtros compilan inmediatamente a predicados SQL vectorizados `WHERE` en el AST de DuckDB.
+- **Estado Actual:** Modelo Workbook completo y extensivo al estilo Tableau implementado con éxito. Se cuenta con sistema de múltiples pestañas (`TabBar.tsx`) con hojas analíticas independientes y vistas compuestas de Dashboard (`DashboardGrid.tsx`); persistencia automática en `localStorage` y exportación/importación de proyectos en formato `.atelier` (JSON); creación y edición de campos calculados con validación de sintaxis en vivo sobre DuckDB-WASM; y parámetros analíticos dinámicos ajustables en tiempo real mediante sliders e inputs en la barra lateral.
 - **Siguiente Paso:** Verificación en el navegador en http://127.0.0.1:5173.

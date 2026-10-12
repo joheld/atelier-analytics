@@ -6,7 +6,10 @@ import {
   Zap,
   Table,
   X,
+  Download,
+  Upload,
 } from 'lucide-react';
+import React, { useRef } from 'react';
 import { DatasetMeta } from '../../core/ast/types';
 
 interface HeaderProps {
@@ -16,6 +19,8 @@ interface HeaderProps {
   onToggleSQLDrawer: () => void;
   onClearShelves: () => void;
   onCloseDataset?: () => void;
+  onExportProject?: () => void;
+  onImportProject?: (file: File) => void;
   latencyMs?: number;
   rowCount?: number;
   hasPillsOnShelves: boolean;
@@ -28,10 +33,13 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleSQLDrawer,
   onClearShelves,
   onCloseDataset,
+  onExportProject,
+  onImportProject,
   latencyMs,
   rowCount,
   hasPillsOnShelves,
 }) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
   return (
     <header className="flex h-14 w-full items-center justify-between border-b border-stone-200/90 bg-white px-4 dark:border-stone-800 dark:bg-stone-900 select-none">
       {/* Brand & Editorial Title */}
@@ -99,6 +107,44 @@ export const Header: React.FC<HeaderProps> = ({
               </span>
             )}
           </div>
+        )}
+
+        {/* Hidden File Input for .atelier Project */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".atelier,.json"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file && onImportProject) {
+              onImportProject(file);
+            }
+            if (fileInputRef.current) fileInputRef.current.value = '';
+          }}
+        />
+
+        {/* Project Persistence Buttons */}
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          className="flex items-center gap-1 rounded-md border border-stone-200/80 bg-white px-2 py-1 text-xs font-mono text-stone-700 shadow-xs hover:bg-stone-50 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-300 dark:hover:bg-stone-800"
+          title="Abrir archivo de proyecto (.atelier)"
+        >
+          <Upload className="h-3 w-3 text-stone-500" />
+          <span>Abrir</span>
+        </button>
+
+        {onExportProject && (
+          <button
+            type="button"
+            onClick={onExportProject}
+            className="flex items-center gap-1 rounded-md border border-stone-200/80 bg-white px-2 py-1 text-xs font-mono text-stone-700 shadow-xs hover:bg-stone-50 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-300 dark:hover:bg-stone-800"
+            title="Guardar / Exportar proyecto a archivo (.atelier)"
+          >
+            <Download className="h-3 w-3 text-stone-500" />
+            <span>Guardar</span>
+          </button>
         )}
 
         <button

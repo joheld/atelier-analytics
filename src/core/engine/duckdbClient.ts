@@ -214,6 +214,29 @@ class DuckDBManager {
       max: Number(row?.max_val ?? 100),
     };
   }
+
+  /**
+   * Validates a calculated field formula expression against DuckDB
+   */
+  public async validateCalculatedFormula(
+    tableName: string,
+    formula: string
+  ): Promise<{ valid: boolean; error?: string; returnType?: string }> {
+    try {
+      const conn = await this.getConnection();
+      const safeTable = `"${tableName.replace(/"/g, '""')}"`;
+      const testQuery = `SELECT (${formula}) AS __test_calc__ FROM ${safeTable} LIMIT 1;`;
+      const result = await conn.query(testQuery);
+      const fields = result.schema.fields;
+      const returnType = fields[0]?.type?.toString() || 'unknown';
+      return { valid: true, returnType };
+    } catch (err: unknown) {
+      return {
+        valid: false,
+        error: err instanceof Error ? err.message : String(err),
+      };
+    }
+  }
 }
 
 export const duckdbEngine = new DuckDBManager();

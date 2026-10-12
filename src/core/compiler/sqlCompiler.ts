@@ -1,4 +1,4 @@
-import { WorksheetAST, Pill, FilterExpression, AggregationFunction } from '../ast/types';
+import { WorksheetAST, Pill, FilterExpression, AggregationFunction, Parameter } from '../ast/types';
 import { getPillSqlIdentifier } from '../ast/builder';
 
 export interface CompiledQuery {
@@ -28,44 +28,73 @@ export function escapeIdentifier(ident: string): string {
 }
 
 /**
+ * Substitutes [ParameterName] tokens with their current values
+ */
+export function substituteParameters(expression: string, parameters?: Parameter[]): string {
+  if (!parameters || parameters.length === 0) return expression;
+  let result = expression;
+  for (const param of parameters) {
+    const token = `[${param.name}]`;
+    if (result.includes(token)) {
+      let replacement: string;
+      if (param.dataType === 'string') {
+        replacement = `'${String(param.currentValue).replace(/'/g, "''")}'`;
+      } else {
+        replacement = String(param.currentValue);
+      }
+      result = result.split(token).join(replacement);
+    }
+  }
+  return result;
+}
+
+/**
  * Compiles an aggregation function to DuckDB SQL syntax
  */
-function compileAggregation(func: AggregationFunction, columnName: string): string {
-  const safeCol = escapeIdentifier(columnName);
+function compileAggregation(func: AggregationFunction, columnName: string, formula?: string, parameters?: Parameter[]): string {
+  const target = formula
+    ? `(${substituteParameters(formula, parameters)})`
+    : escapeIdentifier(columnName);
+
   switch (func) {
     case 'SUM':
-      return `SUM(${safeCol})`;
+      return `SUM(${target})`;
     case 'AVG':
-      return `AVG(${safeCol})`;
+      return `AVG(${target})`;
     case 'MIN':
-      return `MIN(${safeCol})`;
+      return `MIN(${target})`;
     case 'MAX':
-      return `MAX(${safeCol})`;
+      return `MAX(${target})`;
     case 'COUNT':
-      return `COUNT(${safeCol})`;
+      return `COUNT(${target})`;
     case 'COUNT_DISTINCT':
-      return `COUNT(DISTINCT ${safeCol})`;
+      return `COUNT(DISTINCT ${target})`;
     case 'MEDIAN':
-      return `MEDIAN(${safeCol})`;
+      return `MEDIAN(${target})`;
     default:
-      return `SUM(${safeCol})`;
+      return `SUM(${target})`;
   }
 }
 
 /**
- * Compiles a dimension expression (handles date truncation)
+ * Compiles a dimension expression (handles date truncation and calculated formulas)
  */
-function compileDimensionExpr(pill: Pill): { expr: string; alias: string } {
+function compileDimensionExpr(pill: Pill, parameters?: Parameter[]): { expr: string; alias: string } {
+  const target = pill.formula
+    ? `(${substituteParameters(pill.formula, parameters)})`
+    : escapeIdentifier(pill.columnName);
+
   const safeCol = escapeIdentifier(pill.columnName);
+
   if (pill.dateTruncation) {
     const alias = `${pill.dateTruncation}_${pill.columnName}`;
     return {
-      expr: `DATE_TRUNC('${pill.dateTruncation}', ${safeCol})`,
+      expr: `DATE_TRUNC('${pill.dateTruncation}', ${target})`,
       alias: escapeIdentifier(alias),
     };
   }
   return {
-    expr: safeCol,
+    expr: target,
     alias: safeCol,
   };
 }
@@ -125,7 +154,7 @@ function compileFilter(f: FilterExpression): string {
  * Translates a WorksheetAST into an ultra-fast, vectorized DuckDB SQL query.
  * Eliminates redundant subqueries and leverages native DuckDB functions.
  */
-export function compileASTtoDuckDB(ast: WorksheetAST): CompiledQuery {
+export function compileASTtoDuckDB(ast: WorksheetAST, parameters?: Parameter[]): CompiledQuery {
   const safeTable = escapeIdentifier(ast.tableName);
   const projections: CompiledQuery['projections'] = [];
 
@@ -143,7 +172,7 @@ export function compileASTtoDuckDB(ast: WorksheetAST): CompiledQuery {
 
   // 1. Process Dimensions
   for (const dim of ast.groupByDimensions) {
-    const { expr, alias } = compileDimensionExpr(dim);
+    const { expr, alias } = compileDimensionExpr(dim, parameters);
     selectParts.push(`${expr} AS ${alias}`);
     groupByParts.push(expr);
     projections.push({
@@ -158,7 +187,7 @@ export function compileASTtoDuckDB(ast: WorksheetAST): CompiledQuery {
   const isAggregated = ast.aggregatedMeasures.length > 0 || ast.groupByDimensions.length > 0;
   for (const measure of ast.aggregatedMeasures) {
     const aggFunc = measure.aggregation || 'SUM';
-    const aggExpr = compileAggregation(aggFunc, measure.columnName);
+    const aggExpr = compileAggregation(aggFunc, measure.columnName, measure.formula, parameters);
     const aliasRaw = getPillSqlIdentifier(measure);
     const safeAlias = escapeIdentifier(aliasRaw);
 
