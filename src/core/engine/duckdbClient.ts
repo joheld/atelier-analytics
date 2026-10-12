@@ -178,6 +178,42 @@ class DuckDBManager {
   public removeDataset(id: string): void {
     this.activeDatasets.delete(id);
   }
+
+  /**
+   * Retrieves unique discrete values of a column for filter selector
+   */
+  public async getDistinctColumnValues(tableName: string, columnName: string, limit = 100): Promise<string[]> {
+    const conn = await this.getConnection();
+    const safeCol = `"${columnName.replace(/"/g, '""')}"`;
+    const safeTable = `"${tableName.replace(/"/g, '""')}"`;
+    const result = await conn.query(`
+      SELECT DISTINCT ${safeCol} AS val
+      FROM ${safeTable}
+      WHERE ${safeCol} IS NOT NULL
+      ORDER BY 1
+      LIMIT ${limit};
+    `);
+    return result.toArray().map((r) => String(r.toJSON().val));
+  }
+
+  /**
+   * Retrieves min and max numeric values of a column for range filter
+   */
+  public async getColumnMinMax(tableName: string, columnName: string): Promise<{ min: number; max: number }> {
+    const conn = await this.getConnection();
+    const safeCol = `"${columnName.replace(/"/g, '""')}"`;
+    const safeTable = `"${tableName.replace(/"/g, '""')}"`;
+    const result = await conn.query(`
+      SELECT MIN(${safeCol}) AS min_val, MAX(${safeCol}) AS max_val
+      FROM ${safeTable}
+      WHERE ${safeCol} IS NOT NULL;
+    `);
+    const row = result.toArray()[0]?.toJSON();
+    return {
+      min: Number(row?.min_val ?? 0),
+      max: Number(row?.max_val ?? 100),
+    };
+  }
 }
 
 export const duckdbEngine = new DuckDBManager();

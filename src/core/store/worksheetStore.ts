@@ -38,6 +38,9 @@ export interface WorksheetStore extends WorksheetState {
   setPillDateTruncation: (shelf: ShelfId, pillId: string, trunc: 'year' | 'quarter' | 'month' | 'day') => void;
   setMarkType: (markType: MarkType) => void;
   setOpacity: (opacity: number) => void;
+  activeFilterModal: FilterExpression | null;
+  setActiveFilterModal: (filter: FilterExpression | null) => void;
+  upsertFilter: (filter: FilterExpression) => void;
   addFilter: (filter: FilterExpression) => void;
   removeFilter: (filterId: string) => void;
   updateFilterValues: (filterId: string, values: (string | number | boolean)[]) => void;
@@ -71,6 +74,7 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
   executionHistory: [],
   showSQLDrawer: false,
   theme: 'light',
+  activeFilterModal: null,
 
   initEngine: async () => {
     try {
@@ -161,6 +165,27 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
   },
 
   addPillToShelf: (shelf: ShelfId, pill: Pill) => {
+    if (shelf === 'filters') {
+      const existing = get().filters.find((f) => f.columnName === pill.columnName);
+      if (existing) {
+        set({ activeFilterModal: existing });
+        return;
+      }
+      const newFilter: FilterExpression = {
+        id: `filter_${pill.columnName}_${Date.now()}`,
+        columnName: pill.columnName,
+        role: pill.role,
+        dataType: pill.dataType,
+        operator: pill.role === 'measure' ? 'range' : 'in',
+        values: [],
+      };
+      set((state) => ({
+        filters: [...state.filters, newFilter],
+        activeFilterModal: newFilter,
+      }));
+      return;
+    }
+
     const pillWithAgg: Pill = {
       ...pill,
       id: `${pill.columnName}_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
@@ -282,6 +307,25 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
 
   setOpacity: (opacity: number) => {
     set((state) => ({ marks: { ...state.marks, opacity } }));
+    void get().executeCurrentState();
+  },
+
+  setActiveFilterModal: (filter: FilterExpression | null) => {
+    set({ activeFilterModal: filter });
+  },
+
+  upsertFilter: (filter: FilterExpression) => {
+    set((state) => {
+      const exists = state.filters.some((f) => f.id === filter.id);
+      const nextFilters = exists
+        ? state.filters.map((f) => (f.id === filter.id ? filter : f))
+        : [...state.filters, filter];
+      return {
+        filters: nextFilters,
+        activeFilterModal: null,
+      };
+    });
+    void get().executeCurrentState();
   },
 
   addFilter: (filter: FilterExpression) => {

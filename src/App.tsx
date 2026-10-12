@@ -3,11 +3,13 @@ import { useWorksheetStore } from './core/store/worksheetStore';
 import { Header } from './components/Header/Header';
 import { DataSidebar } from './components/DataSidebar/DataSidebar';
 import { ShelfDropZone } from './components/Shelves/ShelfDropZone';
+import { FilterShelf } from './components/Filters/FilterShelf';
+import { FilterModal } from './components/Filters/FilterModal';
 import { MarksCard } from './components/Marks/MarksCard';
 import { PlotRenderer } from './components/Canvas/PlotRenderer';
 import { EmptyWorkspace } from './components/Canvas/EmptyWorkspace';
 import { SQLInspectorDrawer } from './components/Canvas/SQLInspectorDrawer';
-import { Columns, Rows, Filter as FilterIcon, Loader2 } from 'lucide-react';
+import { Columns, Rows, Loader2 } from 'lucide-react';
 import { buildWorksheetAST } from './core/ast/builder';
 
 export const App: React.FC = () => {
@@ -22,6 +24,10 @@ export const App: React.FC = () => {
     rows,
     marks,
     filters,
+    activeFilterModal,
+    setActiveFilterModal,
+    upsertFilter,
+    removeFilter,
     compiledQuery,
     queryResult,
     showSQLDrawer,
@@ -116,19 +122,11 @@ export const App: React.FC = () => {
                   onSetDateTrunc={setPillDateTruncation}
                   placeholder="Arrastra dimensiones o métricas para el Eje Y..."
                 />
-                <ShelfDropZone
-                  shelfId="tooltip"
-                  label="Filtros"
-                  icon={<FilterIcon className="h-3.5 w-3.5 text-stone-500" />}
-                  pills={filters.map((f) => ({
-                    id: f.id,
-                    columnName: f.columnName,
-                    role: f.role,
-                    dataType: f.dataType,
-                  }))}
-                  onAddPill={() => {}}
-                  onRemovePill={() => {}}
-                  placeholder="Filtros de la vista analítica..."
+                <FilterShelf
+                  filters={filters}
+                  onAddFilterPill={(pill) => addPillToShelf('filters', pill)}
+                  onEditFilter={(f) => setActiveFilterModal(f)}
+                  onRemoveFilter={(id) => removeFilter(id)}
                 />
               </div>
 
@@ -186,6 +184,20 @@ export const App: React.FC = () => {
         queryResult={queryResult}
         ast={ast}
       />
+
+      {/* Interactive Filter Configuration Modal */}
+      {activeFilterModal && currentDataset && (
+        <FilterModal
+          filter={activeFilterModal}
+          tableName={currentDataset.tableName}
+          onSave={(updated) => upsertFilter(updated)}
+          onClose={() => setActiveFilterModal(null)}
+          onRemove={() => {
+            removeFilter(activeFilterModal.id);
+            setActiveFilterModal(null);
+          }}
+        />
+      )}
     </div>
   );
 };

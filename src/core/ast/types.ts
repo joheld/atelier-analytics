@@ -63,7 +63,7 @@ export interface Pill {
   sort?: 'asc' | 'desc' | 'none';
 }
 
-export type ShelfId = 'columns' | 'rows' | 'color' | 'size' | 'detail' | 'tooltip';
+export type ShelfId = 'columns' | 'rows' | 'color' | 'size' | 'detail' | 'tooltip' | 'filters';
 
 export interface FilterExpression {
   id: string;

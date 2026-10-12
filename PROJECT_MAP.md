@@ -134,6 +134,7 @@ gitGraph
 | **CP-05** | UI & UX: Pastillas (Azul/Verde), Estantes Drag & Drop, Marks Card | **Completado** | Drag & drop, menús contextuales y agregaciones en vivo |
 | **CP-06** | Integración Observable Plot con soporte para 'Detail' y paletas OKLCH | **Completado** | Renderizado reactivo verificado con paletas OKLCH editoriales |
 | **CP-07** | Batería Zero-Defect: Typecheck, Tests, Build estático y Liveness HTTP | **Completado** | `tsc --noEmit` limpio, build en 2.11s, HTTP 200 en puerto 5173 |
+| **CP-08** | Sistema Interactivo de Filtros: Shelf drag-and-drop, Modal categórico y numérico | **Completado** | `FilterShelf` y `FilterModal` integrados con consultas DuckDB para valores únicos y rangos |
 
 ---
 
@@ -157,23 +158,26 @@ atelier-analytics/
     ├── index.css                 # Variables CSS OKLCH, estilos tabulares y reset
     ├── core/
     │   ├── ast/
-    │   │   ├── types.ts          # Tipos: Pill, Shelf, MarksCardState, WorksheetState, WorksheetAST
+    │   │   ├── types.ts          # Tipos: Pill, Shelf, MarksCardState, WorksheetState, WorksheetAST, FilterExpression
     │   │   └── builder.ts        # Conversión declarativa de UI a AST con Show Me auto-mark
     │   ├── compiler/
     │   │   ├── sqlCompiler.ts    # Compilador optimizado AST -> SQL para DuckDB
     │   │   └── sqlCompiler.test.ts # Suite de pruebas unitarias (4/4 tests pasados)
     │   ├── engine/
-    │   │   └── duckdbClient.ts   # Conector DuckDB-WASM, Apache Arrow y seeder de 100k filas
+    │   │   └── duckdbClient.ts   # Conector DuckDB-WASM, Apache Arrow, loader universal y queries de metadatos
     │   └── store/
-    │       └── worksheetStore.ts # Almacén Zustand reactivo con presets y ejecución OLAP
+    │       └── worksheetStore.ts # Almacén Zustand reactivo con gestión de filtros, shelves y ejecución OLAP
     ├── components/
     │   ├── Header/
     │   │   └── Header.tsx        # Barra editorial minimalista con estado del dataset, latencia y tema
     │   ├── DataSidebar/
     │   │   └── DataSidebar.tsx   # Panel de dimensiones y métricas dinámicas del archivo cargado
     │   ├── Shelves/
-    │   │   ├── ShelfDropZone.tsx # Zonas de Drag & Drop para Columns, Rows y Filtros
+    │   │   ├── ShelfDropZone.tsx # Zonas de Drag & Drop para Columns y Rows
     │   │   └── PillBadge.tsx     # Pastillas con menú contextual (agregación, orden, truncamiento)
+    │   ├── Filters/
+    │   │   ├── FilterShelf.tsx   # Estante interactivo de filtros con badges informativos y drag-and-drop
+    │   │   └── FilterModal.tsx   # Diálogo interactivo para filtros categóricos (multiselección) y rangos continuos
     │   ├── Marks/
     │   │   └── MarksCard.tsx     # Tarjeta de marcas con Color, Size, Detail, Tooltip y Opacity
     │   └── Canvas/
@@ -188,5 +192,5 @@ atelier-analytics/
 
 ## 6. Estado de la Sesión
 
-- **Estado Actual:** Corrección de fallos visuales en Observable Plot completada: rotación y recorte dinámico de etiquetas largas en el eje X, prevención de corte en la leyenda superior de colores, renderizado explícito de agregación en títulos de eje (SUM(age)), cuadrículas horizontales de precisión y tooltips flotantes reactivos.
-- **Siguiente Paso:** Verificación en vivo por parte del usuario en http://127.0.0.1:5173.
+- **Estado Actual:** Sistema completo de filtros interactivos integrado y verificado al 100%. Los usuarios pueden arrastrar cualquier dimensión o métrica al estante de Filtros; para dimensiones se abre el diálogo con búsqueda, selección múltiple de valores reales obtenidos al vuelo con DuckDB (`DISTINCT`) e inclusión/exclusión; para métricas se calculan los límites reales (`MIN`/`MAX`) y se permite ajustar el rango continuo (`BETWEEN`). Los filtros compilan inmediatamente a predicados SQL vectorizados `WHERE` en el AST de DuckDB.
+- **Siguiente Paso:** Verificación en el navegador en http://127.0.0.1:5173.
