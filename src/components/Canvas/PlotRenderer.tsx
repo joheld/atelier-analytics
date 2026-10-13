@@ -31,11 +31,6 @@ export const PlotRenderer: React.FC<PlotRendererProps> = ({ ast, result, theme }
     height: 500,
   });
 
-  // If user selected 'text' (Text Table / Cross-Tab), render rich interactive table
-  if (ast && result && result.rows.length > 0 && ast.markType === 'text') {
-    return <TextTableRenderer ast={ast} result={result} theme={theme} />;
-  }
-
   // Track container size reactively
   useEffect(() => {
     if (!containerRef.current) return;
@@ -55,6 +50,14 @@ export const PlotRenderer: React.FC<PlotRendererProps> = ({ ast, result, theme }
   }, []);
 
   useEffect(() => {
+    // If Text Table mark is active, TextTableRenderer renders in JSX
+    if (ast?.markType === 'text') {
+      if (containerRef.current) {
+        containerRef.current.innerHTML = '';
+      }
+      return;
+    }
+
     if (!containerRef.current || !result || !ast || result.rows.length === 0) {
       if (containerRef.current) {
         containerRef.current.innerHTML = '';
@@ -577,21 +580,6 @@ export const PlotRenderer: React.FC<PlotRendererProps> = ({ ast, result, theme }
         );
       }
     }
-    // 14. TEXT / METRIC TABLE
-    else if (markType === 'text') {
-      marks.push(
-        Plot.text(result.rows, {
-          x: xField,
-          y: yField,
-          text: (d: Record<string, unknown>) => formatVal(d[colorField || yField || xField || '']),
-          fill: isDark ? '#e7e5e4' : '#1c1917',
-          fontSize: 11,
-          fontFamily: 'JetBrains Mono, monospace',
-          tip: true,
-          title: makeTooltipTitle,
-        })
-      );
-    }
 
     // 7. Tableau Analytics Lines (Reference Lines, Average, Median, Linear Regression)
     if (ast.analyticsLines && ast.analyticsLines.length > 0 && yField && !isMultiMeasure) {
@@ -770,6 +758,11 @@ export const PlotRenderer: React.FC<PlotRendererProps> = ({ ast, result, theme }
         </p>
       </div>
     );
+  }
+
+  // If markType === 'text', render rich interactive HTML table
+  if (ast?.markType === 'text') {
+    return <TextTableRenderer ast={ast} result={result} theme={theme} />;
   }
 
   return (

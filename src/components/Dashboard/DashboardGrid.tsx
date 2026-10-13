@@ -7,6 +7,7 @@ import {
 } from '../../core/ast/types';
 import { DashboardSheetExecution } from '../../core/store/worksheetStore';
 import { PlotRenderer } from '../Canvas/PlotRenderer';
+import { CanvasErrorBoundary } from '../Canvas/CanvasErrorBoundary';
 import { TargetSheetsModal } from './TargetSheetsModal';
 import {
   LayoutGrid,
@@ -582,11 +583,13 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
                       </div>
                     ) : (
                       <div className="h-full w-full min-h-[300px] flex-1 flex flex-col">
-                        <PlotRenderer
-                          ast={exec?.ast || null}
-                          result={exec?.queryResult || null}
-                          theme={theme}
-                        />
+                        <CanvasErrorBoundary fallbackTitle={`Error en ${sheet.name}`}>
+                          <PlotRenderer
+                            ast={exec?.ast || null}
+                            result={exec?.queryResult || null}
+                            theme={theme}
+                          />
+                        </CanvasErrorBoundary>
 
                         {/* Interactive Cross-Filter Chips when Use As Filter is active */}
                         {sheet.useAsFilter && exec?.queryResult?.rows && exec.queryResult.rows.length > 0 && (

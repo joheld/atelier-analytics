@@ -7,6 +7,7 @@ import { FilterShelf } from './components/Filters/FilterShelf';
 import { FilterModal } from './components/Filters/FilterModal';
 import { MarksCard } from './components/Marks/MarksCard';
 import { PlotRenderer } from './components/Canvas/PlotRenderer';
+import { CanvasErrorBoundary } from './components/Canvas/CanvasErrorBoundary';
 import { EmptyWorkspace } from './components/Canvas/EmptyWorkspace';
 import { SQLInspectorDrawer } from './components/Canvas/SQLInspectorDrawer';
 import { TabBar } from './components/Tabs/TabBar';
@@ -314,7 +315,9 @@ export const App: React.FC = () => {
 
                   {/* Observable Plot Graphic Container */}
                   <div className="flex-1 w-full h-full min-h-[400px]">
-                    <PlotRenderer ast={ast} result={queryResult} theme={theme} />
+                    <CanvasErrorBoundary fallbackTitle="Error al renderizar el lienzo de la hoja">
+                      <PlotRenderer ast={ast} result={queryResult} theme={theme} />
+                    </CanvasErrorBoundary>
                   </div>
                 </div>
               </div>

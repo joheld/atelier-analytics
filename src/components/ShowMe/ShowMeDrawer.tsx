@@ -66,9 +66,9 @@ export const ShowMeDrawer: React.FC<ShowMeDrawerProps> = ({
       name: 'Tabla de Texto',
       markType: 'text',
       icon: <Table className="h-5 w-5" />,
-      reqText: '1+ dimensiones, 1+ métricas',
-      checkEnabled: (d, m) => d >= 1 && m >= 1,
-      recommended: (d, m) => d >= 2 && m >= 1,
+      reqText: '1+ dimensiones o métricas',
+      checkEnabled: (d, m) => d >= 1 || m >= 1,
+      recommended: (d, m) => (d >= 1 && m >= 1) || d >= 2,
     },
     {
       id: 'heatmap',

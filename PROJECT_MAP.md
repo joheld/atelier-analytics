@@ -127,6 +127,7 @@ gitGraph
     commit id: "tableau-desktop-full-power" tag: "v1.6.0"
     commit id: "observable-plot-expanded-catalog" tag: "v1.7.0"
     commit id: "cross-tab-and-multi-measure-clustered-charts" tag: "v1.8.0"
+    commit id: "fix-text-table-hooks-and-error-boundary" tag: "v1.8.1"
 ```
 
 ---
@@ -150,6 +151,7 @@ gitGraph
 | **CP-13** | Experiencia Tableau Desktop Completa: Cálculos Rápidos (`Δ`), Analytics Pane, Filtro Cruzado y Show Me | **Completado** | Implementación de las 5 capacidades maestras de Tableau: 1) Cálculos de tabla rápidos con funciones de ventana DuckDB (% del Total, Total Acumulado, Diferencia, % Diferencia, Rango, Media móvil) con distintivo dorado `Δ`; 2) Pestaña 'Análisis' en la barra lateral con Líneas de Promedio, Mediana y Tendencia en Observable Plot; 3) Acciones de Dashboard / Filtro Cruzado ("Usar como filtro") con chips interactivos y banner de filtro; 4) Panel inteligente *Show Me* con evaluación de requisitos dimensionales/métricos y cambio en 1 clic; 5) Botón Swap para intercambio instantáneo de estantes Rows & Columns. Batería Zero-Defect (8/8 tests, 0 errores tsc, build limpio). |
 | **CP-14** | Desbloqueo del Catálogo Completo de Observable Plot (15 Arquetipos Analíticos) | **Completado** | Integración nativa de la gramática visual avanzada de Observable Plot: Boxplot (`Plot.boxY`/`boxX`), Histograma continuo (`Plot.rectY` con `Plot.binX`), Densidad 2D / Contornos (`Plot.density`), Hexbin (`Plot.hexagon`/`hexbin`), Gráfico de Picos (`Plot.spike`), Gráfico de Diferencia (`Plot.differenceY`), Waffle de unidades (`Plot.waffleY`), y Tabla de Texto. Consultas unaggregated en DuckDB para distribuciones estadísticas, inferencia automática ampliada y galería Show Me con 15 arquetipos. Batería Zero-Defect (9/9 tests, 0 errores tsc, build limpio). |
 | **CP-15** | Tabla de Texto Auténtica (Cross-Tab) y Gráficos Multimétrica Agrupados (Clustered Charts) | **Completado** | 1) `TextTableRenderer.tsx` interactivo con ordenación por columnas, búsqueda en vivo, fila de Total General (`tfoot`), indicadores de rol de pastilla (azul/verde), copia a TSV para Excel/Sheets y exportación a CSV; 2) Soporte multimétrica completo en `PlotRenderer.tsx` para barras agrupadas verticales y horizontales (`isMultiMeasureVertical` y `isMultiMeasureHorizontal` con faceteado `fx`/`fy`), líneas multi-métrica y áreas continuas desnormalizadas en tiempo de renderizado con leyenda automática OKLCH; 3) 11/11 tests unitarios pasando, 0 errores tsc, build limpio y liveness HTTP 200 en puerto 5173. |
+| **CP-16** | Corrección de React Hooks en Tabla de Texto y Canvas Error Boundary | **Completado** | 1) Corrección de orden de React Hooks en `PlotRenderer.tsx`: eliminado retorno anticipado condicional antes de hooks (`Rendered fewer hooks than expected`) y movido al retorno JSX final; 2) Creado `CanvasErrorBoundary.tsx` para aislar cualquier excepción de renderizado y prevenir pantallas en blanco; 3) Blindado `TextTableRenderer.tsx` con soporte para BigInt, descubrimiento universal de pastillas y portapapeles seguro; 4) 13/13 tests pasando en Vitest (con suite para TextTableRenderer), 0 errores `tsc`, build en 2.36s y HTTP 200 en http://127.0.0.1:5173. |
 
 ---
 
@@ -169,14 +171,14 @@ atelier-analytics/
 ├── dist/                         # Compilación estática de producción (SPA offline)
 └── src/
     ├── main.tsx                  # Bootstrap React 19
-    ├── App.tsx                   # Layout editorial tipo Studio (Header, Sidebar con Datos/Análisis, Shelves con Swap, Canvas con Show Me, TabBar)
+    ├── App.tsx                   # Layout editorial tipo Studio con CanvasErrorBoundary
     ├── index.css                 # Variables CSS OKLCH, estilos tabulares y reset
     ├── core/
     │   ├── ast/
     │   │   ├── types.ts          # Tipos: Pill, MarkType (15 geometrías), AnalyticsLine, ShowMe, Filters, WorkbookProject
     │   │   └── builder.ts        # Conversión declarativa de UI a AST con heurística de inferencia (incluye histograma)
     │   ├── compiler/
-    │   │   ├── sqlCompiler.ts    # Compilador optimizado AST -> SQL con soporte para queries de distribución no agregada (Boxplot, Histograma) y window functions
+    │   │   ├── sqlCompiler.ts    # Compilador optimizado AST -> SQL con soporte para queries de distribución no agregada y window functions
     │   │   └── sqlCompiler.test.ts # Suite de pruebas unitarias (11/11 tests pasados, 100% verde)
     │   ├── engine/
     │   │   └── duckdbClient.ts   # Conector DuckDB-WASM, Apache Arrow, loader universal, introspección automática
@@ -209,8 +211,10 @@ atelier-analytics/
     │   │   └── MarksCard.tsx     # Tarjeta de marcas con 15 tipos de geometrías (Barras, Líneas, Boxplot, Histograma, Densidad, Hexbin, etc.)
     │   └── Canvas/
     │       ├── EmptyWorkspace.tsx # Zona de bienvenida y drag & drop para archivos locales
+    │       ├── CanvasErrorBoundary.tsx # Error boundary que previene pantallas en blanco ante excepciones de renderizado
     │       ├── PlotRenderer.tsx  # Renderizador reactivo Observable Plot con todas las marcas avanzadas y marcas de análisis
     │       ├── TextTableRenderer.tsx # Tabla de texto / Cross-Tab profesional con sorting, filtro en vivo, totales y exportación TSV/CSV
+    │       ├── TextTableRenderer.test.tsx # Suite de pruebas de renderizado HTML y resistencia a BigInt
     │       └── SQLInspectorDrawer.tsx # Drawer para auditar el SQL DuckDB y memoria Arrow
     └── utils/
         └── oklchColors.ts        # Paletas categóricas y secuenciales en espacio OKLCH
@@ -220,7 +224,8 @@ atelier-analytics/
 
 ## 6. Estado de la Sesión
 
-- **Estado Actual:** Resueltas las dos carencias clave de la experiencia analítica:
-  1. **Tabla de Texto (Cross-Tab)**: Reemplazado el renderizado en SVG (`Plot.text`) por una auténtica tabla HTML/React (`TextTableRenderer.tsx`) con cabeceras fijas (*sticky*), ordenación interactiva por columnas, búsqueda de celdas en vivo, fila de Total General (*Grand Totals*), formato numérico de alta fidelidad, copia directa a TSV para Excel/Google Sheets y exportación CSV.
-  2. **Multimétrica en Barras y Gráficos (Clustered / Grouped Charts)**: Soporte completo cuando el usuario coloca múltiples métricas en Rows o Columns. El motor genera automáticamente barras agrupadas verticales (`fx`) y horizontales (`fy`), líneas comparativas y áreas multi-serie con desnormalización dinámica en tiempo de renderizado y leyenda categórica OKLCH.
-- **Siguiente Paso:** Batería Zero-Defect verificada al 100% (11/11 tests, 0 errores tsc, build limpio y liveness HTTP 200 en puerto 5173). Listo para nuevas directivas del usuario.
+- **Estado Actual:** Corregido el problema de la pantalla en blanco en la **Tabla de Texto (Cross-Tab)**:
+  1. **React Hooks Rule Violation Resuelto:** Se eliminó el retorno condicional prematuro antes de `useEffect` en `PlotRenderer.tsx` que causaba la excepción `Rendered fewer hooks than expected`. Todos los hooks se ejecutan incondicionalmente en cada render, y `TextTableRenderer` se entrega en el retorno JSX limpio.
+  2. **Inmunización contra Caídas de Interfaz (`CanvasErrorBoundary.tsx`):** Añadido un Error Boundary en `App.tsx` y `DashboardGrid.tsx` que atrapa cualquier error en tiempo de ejecución gráfica y presenta una tarjeta de recuperación sin desmontar la aplicación.
+  3. **Robustez Multitipo:** `TextTableRenderer` ahora tolera tipos `BigInt` de DuckDB, calcula de forma segura los totales generales, soporta datos sin dimensiones espaciales o con pastillas en marcas, y maneja el portapapeles sin errores en cualquier contexto de navegador.
+- **Siguiente Paso:** Sistema 100% verificado y operativo (13/13 tests pasando en Vitest, 0 errores tsc, build limpio y liveness HTTP 200 en http://127.0.0.1:5173). Listo para nuevas directivas del usuario.

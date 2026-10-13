@@ -41,9 +41,15 @@ export const TextTableRenderer: React.FC<TextTableRendererProps> = ({
     const cols: TableColumnDef[] = [];
     const seen = new Set<string>();
 
-    const allSpatialPills = [...ast.spatialX, ...ast.spatialY];
-    const dimensions = allSpatialPills.filter((p) => p.role === 'dimension');
-    const measures = allSpatialPills.filter((p) => p.role === 'measure');
+    const allSpatialPills = [...(ast.spatialX || []), ...(ast.spatialY || [])];
+    const dimensions = [
+      ...allSpatialPills.filter((p) => p.role === 'dimension'),
+      ...(ast.groupByDimensions || []).filter((p) => !allSpatialPills.some((sp) => sp.id === p.id)),
+    ];
+    const measures = [
+      ...allSpatialPills.filter((p) => p.role === 'measure'),
+      ...(ast.aggregatedMeasures || []).filter((p) => !allSpatialPills.some((sp) => sp.id === p.id)),
+    ];
 
     // 1. Add all dimensions first (Row / Column headers)
     for (const d of dimensions) {
@@ -80,7 +86,7 @@ export const TextTableRenderer: React.FC<TextTableRendererProps> = ({
     if (cols.length === 0 && result.columnNames && result.columnNames.length > 0) {
       for (const colName of result.columnNames) {
         const sampleVal = result.rows[0]?.[colName];
-        const isNum = typeof sampleVal === 'number';
+        const isNum = typeof sampleVal === 'number' || typeof sampleVal === 'bigint';
         cols.push({
           key: colName,
           label: colName,
@@ -113,8 +119,10 @@ export const TextTableRenderer: React.FC<TextTableRendererProps> = ({
         if (va === vb) return 0;
         if (va === null || va === undefined) return 1;
         if (vb === null || vb === undefined) return -1;
-        if (typeof va === 'number' && typeof vb === 'number') {
-          return sortDir === 'asc' ? va - vb : vb - va;
+        const numA = typeof va === 'bigint' ? Number(va) : typeof va === 'number' ? va : NaN;
+        const numB = typeof vb === 'bigint' ? Number(vb) : typeof vb === 'number' ? vb : NaN;
+        if (!isNaN(numA) && !isNaN(numB)) {
+          return sortDir === 'asc' ? numA - numB : numB - numA;
         }
         return sortDir === 'asc'
           ? String(va).localeCompare(String(vb))
@@ -133,8 +141,9 @@ export const TextTableRenderer: React.FC<TextTableRendererProps> = ({
         let sum = 0;
         for (const row of processedRows) {
           const v = row[col.key];
-          if (typeof v === 'number' && !isNaN(v)) {
-            sum += v;
+          const num = typeof v === 'bigint' ? Number(v) : typeof v === 'number' ? v : Number(v);
+          if (!isNaN(num)) {
+            sum += num;
           }
         }
         res[col.key] = sum;
@@ -158,7 +167,11 @@ export const TextTableRenderer: React.FC<TextTableRendererProps> = ({
 
   const formatCell = (val: unknown, _role?: 'dimension' | 'measure'): string => {
     if (val === null || val === undefined) return '—';
+    if (typeof val === 'bigint') {
+      return Number(val).toLocaleString();
+    }
     if (typeof val === 'number') {
+      if (isNaN(val)) return '—';
       return val.toLocaleString(undefined, {
         minimumFractionDigits: Number.isInteger(val) ? 0 : 2,
         maximumFractionDigits: 2,
@@ -171,14 +184,20 @@ export const TextTableRenderer: React.FC<TextTableRendererProps> = ({
   };
 
   const handleCopyTSV = () => {
-    const header = columns.map((c) => c.label).join('\t');
-    const body = processedRows
-      .map((r) => columns.map((c) => String(r[c.key] ?? '')).join('\t'))
-      .join('\n');
-    const full = `${header}\n${body}`;
-    void navigator.clipboard.writeText(full);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      const header = columns.map((c) => c.label).join('\t');
+      const body = processedRows
+        .map((r) => columns.map((c) => String(r[c.key] ?? '')).join('\t'))
+        .join('\n');
+      const full = `${header}\n${body}`;
+      if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(full).catch(() => {});
+      }
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Ignore
+    }
   };
 
   const handleDownloadCSV = () => {
