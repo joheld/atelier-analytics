@@ -83,11 +83,19 @@ export const MarksCard: React.FC<MarksCardProps> = ({
         >
           <option value="auto">Automático (Show Me)</option>
           <option value="bar">Barras (Bar)</option>
-          <option value="line">Líneas (Line)</option>
-          <option value="area">Área (Area)</option>
+          <option value="line">Líneas Continuas (Line)</option>
+          <option value="area">Área Continua (Area)</option>
           <option value="dot">Puntos / Dispersión (Dot)</option>
-          <option value="rect">Mapa de Calor (Cell)</option>
+          <option value="box">Diagrama de Caja (Boxplot)</option>
+          <option value="histogram">Histograma Continuo (Histogram)</option>
+          <option value="rect">Mapa de Calor / Matriz (Cell)</option>
+          <option value="density">Densidad 2D / Contornos (Density)</option>
+          <option value="hexbin">Agrupamiento Hexagonal (Hexbin)</option>
+          <option value="spike">Gráfico de Picos (Spike)</option>
+          <option value="difference">Gráfico de Diferencia (Difference)</option>
           <option value="tick">Líneas de Marca (Tick)</option>
+          <option value="waffle">Gráfico Waffle (Waffle)</option>
+          <option value="text">Texto / Métrica (Text)</option>
         </select>
       </div>
 

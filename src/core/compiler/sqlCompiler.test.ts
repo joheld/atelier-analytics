@@ -405,4 +405,34 @@ describe('Atelier Analytics Compiler & AST Builder', () => {
     const compiled4 = compileASTtoDuckDB(ast4);
     expect(compiled4.sql).toContain('ROUND(AVG(SUM(sales)) OVER (ORDER BY category ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 2) AS moving_average_sum_sales');
   });
+
+  it('compiles unaggregated distribution queries for Histogram and Boxplot marks', () => {
+    // Histogram with single continuous measure
+    const histState: WorksheetState = {
+      datasetId: 'superstore',
+      tableName: 'superstore',
+      columns: [{ id: 'c1', columnName: 'profit', role: 'measure', dataType: 'number', aggregation: 'SUM' }],
+      rows: [],
+      filters: [],
+      marks: { markType: 'histogram', detail: [], tooltip: [], opacity: 1 },
+    };
+    const histAst = buildWorksheetAST(histState);
+    const histCompiled = compileASTtoDuckDB(histAst);
+    expect(histCompiled.sql).toContain('SELECT\n  profit AS sum_profit\nFROM superstore');
+    expect(histCompiled.sql).not.toContain('GROUP BY');
+
+    // Boxplot with dimension on X and measure on Y
+    const boxState: WorksheetState = {
+      datasetId: 'superstore',
+      tableName: 'superstore',
+      columns: [{ id: 'c1', columnName: 'region', role: 'dimension', dataType: 'string' }],
+      rows: [{ id: 'r1', columnName: 'sales', role: 'measure', dataType: 'number', aggregation: 'SUM' }],
+      filters: [],
+      marks: { markType: 'box', detail: [], tooltip: [], opacity: 1 },
+    };
+    const boxAst = buildWorksheetAST(boxState);
+    const boxCompiled = compileASTtoDuckDB(boxAst);
+    expect(boxCompiled.sql).toContain('SELECT\n  region AS region,\n  sales AS sum_sales\nFROM superstore');
+    expect(boxCompiled.sql).not.toContain('GROUP BY');
+  });
 });

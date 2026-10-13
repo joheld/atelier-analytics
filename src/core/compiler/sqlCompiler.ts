@@ -192,15 +192,24 @@ export function compileASTtoDuckDB(ast: WorksheetAST, parameters?: Parameter[]):
   }
 
   // 2. Process Measures
-  const isAggregated = ast.aggregatedMeasures.length > 0 || ast.groupByDimensions.length > 0;
+  const isDistributionMark =
+    (ast.markType === 'histogram' || ast.markType === 'box') &&
+    !ast.aggregatedMeasures.some((m) => m.quickTableCalc);
+  const isAggregated =
+    !isDistributionMark &&
+    (ast.aggregatedMeasures.length > 0 || ast.groupByDimensions.length > 0);
+
   for (const measure of ast.aggregatedMeasures) {
     const aggFunc = measure.aggregation || 'SUM';
     const aggExpr = compileAggregation(aggFunc, measure.columnName, measure.formula, parameters);
+    const rawTarget = measure.formula
+      ? `(${substituteParameters(measure.formula, parameters)})`
+      : escapeIdentifier(measure.columnName);
     const aliasRaw = getPillSqlIdentifier(measure);
     const safeAlias = escapeIdentifier(aliasRaw);
 
-    let measureSelectExpr = aggExpr;
-    if (measure.quickTableCalc) {
+    let measureSelectExpr = isDistributionMark ? rawTarget : aggExpr;
+    if (!isDistributionMark && measure.quickTableCalc) {
       const orderClause = groupByParts.length > 0 ? `ORDER BY ${groupByParts.join(', ')}` : '';
       switch (measure.quickTableCalc.type) {
         case 'percent_of_total':
@@ -246,7 +255,7 @@ export function compileASTtoDuckDB(ast: WorksheetAST, parameters?: Parameter[]):
   }
 
   // GROUP BY clause (only needed if there are dimensions AND either measures exist or multiple dims)
-  if (groupByParts.length > 0 && ast.aggregatedMeasures.length > 0) {
+  if (!isDistributionMark && groupByParts.length > 0 && ast.aggregatedMeasures.length > 0) {
     sql += `\nGROUP BY ${groupByParts.join(', ')}`;
   } else if (groupByParts.length > 0 && ast.aggregatedMeasures.length === 0) {
     // If only dimensions, group by them to get distinct rows

@@ -116,6 +116,11 @@ export function inferOptimalMarkType(columns: Pill[], rows: Pill[]): MarkType {
     return 'dot';
   }
 
+  // Single measure without dimensions -> Histogram
+  if (!xDim && !yDim && (xMeasure || yMeasure)) {
+    return 'histogram';
+  }
+
   // Date dimension on X + Measure on Y -> Line plot
   const xDate = columns.some((p) => p.role === 'dimension' && p.dataType === 'date');
   if (xDate && yMeasure) {

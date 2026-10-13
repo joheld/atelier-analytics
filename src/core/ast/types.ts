@@ -24,7 +24,14 @@ export type MarkType =
   | 'dot'
   | 'tick'
   | 'rect'
-  | 'text';
+  | 'text'
+  | 'box'
+  | 'histogram'
+  | 'density'
+  | 'hexbin'
+  | 'spike'
+  | 'difference'
+  | 'waffle';
 
 export interface DatasetColumn {
   name: string;

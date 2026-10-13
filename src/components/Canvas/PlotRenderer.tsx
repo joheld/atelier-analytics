@@ -268,6 +268,175 @@ export const PlotRenderer: React.FC<PlotRendererProps> = ({ ast, result, theme }
         })
       );
     }
+    // 7. BOXPLOT (CAJA Y BIGOTES)
+    else if (markType === 'box') {
+      if (xPill?.role === 'measure' && yPill?.role === 'dimension') {
+        marks.push(
+          Plot.boxX(result.rows, {
+            x: xField,
+            y: yField,
+            fill: colorField || 'oklch(0.55 0.18 245)',
+            title: makeTooltipTitle,
+            tip: true,
+          })
+        );
+      } else if (xPill?.role === 'dimension' && yPill?.role === 'measure') {
+        marks.push(
+          Plot.boxY(result.rows, {
+            x: xField,
+            y: yField,
+            fill: colorField || 'oklch(0.55 0.18 245)',
+            title: makeTooltipTitle,
+            tip: true,
+          })
+        );
+      } else if (yField) {
+        marks.push(
+          Plot.boxY(result.rows, {
+            y: yField,
+            fill: colorField || 'oklch(0.55 0.18 245)',
+            title: makeTooltipTitle,
+            tip: true,
+          })
+        );
+      } else if (xField) {
+        marks.push(
+          Plot.boxX(result.rows, {
+            x: xField,
+            fill: colorField || 'oklch(0.55 0.18 245)',
+            title: makeTooltipTitle,
+            tip: true,
+          })
+        );
+      }
+    }
+    // 8. CONTINUOUS HISTOGRAM
+    else if (markType === 'histogram') {
+      const histField = (xPill?.role === 'measure' ? xField : yField) || xField || yField;
+      if (histField) {
+        marks.push(
+          Plot.rectY(result.rows, {
+            ...Plot.binX({ y: 'count' }, { x: histField, insetLeft: 1, insetRight: 1 }),
+            fill: colorField || 'oklch(0.55 0.18 245)',
+            rx: 2,
+            tip: true,
+          } as Plot.RectYOptions)
+        );
+      }
+    }
+    // 9. 2D DENSITY / CONTOUR PLOT
+    else if (markType === 'density') {
+      if (xField && yField) {
+        marks.push(
+          Plot.density(result.rows, {
+            x: xField,
+            y: yField,
+            stroke: colorField || 'oklch(0.55 0.18 245)',
+            strokeWidth: 1.5,
+            bandwidth: 12,
+          })
+        );
+        marks.push(
+          Plot.dot(result.rows, {
+            x: xField,
+            y: yField,
+            fill: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)',
+            r: 1.8,
+            tip: true,
+            title: makeTooltipTitle,
+          })
+        );
+      }
+    }
+    // 10. HEXBIN (HEXAGONAL AGGREGATION)
+    else if (markType === 'hexbin') {
+      if (xField && yField) {
+        marks.push(
+          Plot.hexagon(
+            result.rows,
+            Plot.hexbin(
+              { fill: 'count' },
+              {
+                x: xField,
+                y: yField,
+                stroke: isDark ? '#292524' : '#f5f5f4',
+                strokeWidth: 0.5,
+                tip: true,
+              }
+            )
+          )
+        );
+      }
+    }
+    // 11. SPIKE PLOT
+    else if (markType === 'spike') {
+      if (xField && yField) {
+        marks.push(
+          Plot.spike(result.rows, {
+            x: xField,
+            length: yField,
+            stroke: colorField || 'oklch(0.55 0.18 245)',
+            fill: colorField || 'oklch(0.55 0.18 245)',
+            fillOpacity: 0.35,
+            strokeWidth: 1.5,
+            tip: true,
+            title: makeTooltipTitle,
+          })
+        );
+      }
+    }
+    // 12. DIFFERENCE CHART (SURPLUS / DEFICIT)
+    else if (markType === 'difference') {
+      if (xField && yField) {
+        marks.push(
+          Plot.differenceY(result.rows, {
+            x: xField,
+            y: yField,
+            positiveFill: 'oklch(0.65 0.18 145)',
+            negativeFill: 'oklch(0.60 0.20 25)',
+            tip: true,
+            title: makeTooltipTitle,
+          })
+        );
+        marks.push(
+          Plot.lineY(result.rows, {
+            x: xField,
+            y: yField,
+            stroke: isDark ? '#a8a29e' : '#57534e',
+            strokeWidth: 1.5,
+          })
+        );
+      }
+    }
+    // 13. WAFFLE CHART
+    else if (markType === 'waffle') {
+      if (xField) {
+        marks.push(
+          Plot.waffleY(result.rows, {
+            x: xField,
+            fill: colorField || xField,
+            rx: 2,
+            gap: 1.5,
+            tip: true,
+          })
+        );
+      }
+    }
+    // 14. TEXT / METRIC TABLE
+    else if (markType === 'text') {
+      marks.push(
+        Plot.text(result.rows, {
+          x: xField,
+          y: yField,
+          text: (d: Record<string, unknown>) => formatVal(d[colorField || yField || xField || '']),
+          fill: isDark ? '#e7e5e4' : '#1c1917',
+          fontSize: 11,
+          fontFamily: 'JetBrains Mono, monospace',
+          tip: true,
+          title: makeTooltipTitle,
+        })
+      );
+    }
 
     // 7. Tableau Analytics Lines (Reference Lines, Average, Median, Linear Regression)
     if (ast.analyticsLines && ast.analyticsLines.length > 0 && yField) {
@@ -362,7 +531,7 @@ export const PlotRenderer: React.FC<PlotRendererProps> = ({ ast, result, theme }
         tickFormat: formatXTick,
       },
       y: {
-        label: getPillDisplayLabel(yPill, yField || 'Y'),
+        label: markType === 'histogram' ? 'Frecuencia (Count)' : getPillDisplayLabel(yPill, yField || 'Y'),
         grid: false,
         line: true,
         tickFormat: (d) =>

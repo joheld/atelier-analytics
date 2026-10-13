@@ -125,6 +125,7 @@ gitGraph
     commit id: "tableau-parameter-dialog-controls" tag: "v1.4.0"
     commit id: "dashboard-filters-and-scoping" tag: "v1.5.0"
     commit id: "tableau-desktop-full-power" tag: "v1.6.0"
+    commit id: "observable-plot-expanded-catalog" tag: "v1.7.0"
 ```
 
 ---
@@ -146,6 +147,7 @@ gitGraph
 | **CP-11** | Parámetros Auténticos Estilo Tableau Desktop | **Completado** | Diálogo completo "Crear Parámetro": Tipos de datos (Float, Int, String, Boolean, Date), Formato de visualización, Valores permisibles (Todos, Lista, Rango), importación con 1 clic ("Añadir valores desde campo..." y "Establecer rango desde campo..."), tokens con espacios `[Top N]` y barra interactiva de controles en lienzo (`ParameterControlsBar.tsx`). |
 | **CP-12** | Filtros y Parámetros en Dashboards con Scoping "Aplicar a hojas de trabajo..." | **Completado** | Adición y edición de filtros directamente en Dashboards (`+ Añadir Filtro`). Menú de alcance de impacto idéntico a Tableau Desktop (*"Todas las hojas del dashboard"* vs *"Hojas seleccionadas..."* con checklist). Bucle de ejecución DuckDB-WASM aislado por visual, indicadores visuales de impacto en cada tarjeta y 7/7 tests unitarios pasando. |
 | **CP-13** | Experiencia Tableau Desktop Completa: Cálculos Rápidos (`Δ`), Analytics Pane, Filtro Cruzado y Show Me | **Completado** | Implementación de las 5 capacidades maestras de Tableau: 1) Cálculos de tabla rápidos con funciones de ventana DuckDB (% del Total, Total Acumulado, Diferencia, % Diferencia, Rango, Media móvil) con distintivo dorado `Δ`; 2) Pestaña 'Análisis' en la barra lateral con Líneas de Promedio, Mediana y Tendencia en Observable Plot; 3) Acciones de Dashboard / Filtro Cruzado ("Usar como filtro") con chips interactivos y banner de filtro; 4) Panel inteligente *Show Me* con evaluación de requisitos dimensionales/métricos y cambio en 1 clic; 5) Botón Swap para intercambio instantáneo de estantes Rows & Columns. Batería Zero-Defect (8/8 tests, 0 errores tsc, build limpio). |
+| **CP-14** | Desbloqueo del Catálogo Completo de Observable Plot (15 Arquetipos Analíticos) | **Completado** | Integración nativa de la gramática visual avanzada de Observable Plot: Boxplot (`Plot.boxY`/`boxX`), Histograma continuo (`Plot.rectY` con `Plot.binX`), Densidad 2D / Contornos (`Plot.density`), Hexbin (`Plot.hexagon`/`hexbin`), Gráfico de Picos (`Plot.spike`), Gráfico de Diferencia (`Plot.differenceY`), Waffle de unidades (`Plot.waffleY`), y Tabla de Texto. Consultas unaggregated en DuckDB para distribuciones estadísticas, inferencia automática ampliada y galería Show Me con 15 arquetipos. Batería Zero-Defect (9/9 tests, 0 errores tsc, build limpio). |
 
 ---
 
@@ -169,11 +171,11 @@ atelier-analytics/
     ├── index.css                 # Variables CSS OKLCH, estilos tabulares y reset
     ├── core/
     │   ├── ast/
-    │   │   ├── types.ts          # Tipos: Pill (con quickTableCalc), AnalyticsLine, ShowMe, Filters, WorkbookProject
-    │   │   └── builder.ts        # Conversión declarativa de UI a AST con soporte de Quick Table Calcs y Analytics Lines
+    │   │   ├── types.ts          # Tipos: Pill, MarkType (15 geometrías), AnalyticsLine, ShowMe, Filters, WorkbookProject
+    │   │   └── builder.ts        # Conversión declarativa de UI a AST con heurística de inferencia (incluye histograma)
     │   ├── compiler/
-    │   │   ├── sqlCompiler.ts    # Compilador optimizado AST -> SQL con funciones de ventana DuckDB (% of Total, Running Total, Rank, etc.)
-    │   │   └── sqlCompiler.test.ts # Suite de pruebas unitarias (8/8 tests pasados, 100% verde)
+    │   │   ├── sqlCompiler.ts    # Compilador optimizado AST -> SQL con soporte para queries de distribución no agregada (Boxplot, Histograma) y window functions
+    │   │   └── sqlCompiler.test.ts # Suite de pruebas unitarias (9/9 tests pasados, 100% verde)
     │   ├── engine/
     │   │   └── duckdbClient.ts   # Conector DuckDB-WASM, Apache Arrow, loader universal, introspección automática
     │   └── store/
@@ -186,7 +188,7 @@ atelier-analytics/
     │   ├── Tabs/
     │   │   └── TabBar.tsx        # Barra inferior de pestañas con cambio de hoja, duplicar, renombrar y añadir hojas/dashboards
     │   ├── ShowMe/
-    │   │   └── ShowMeDrawer.tsx  # Galería inteligente Show Me (8 arquetipos, evaluación de requisitos de pastillas y recomendados)
+    │   │   └── ShowMeDrawer.tsx  # Galería inteligente Show Me (15 arquetipos visuales, evaluación de requisitos y recomendados)
     │   ├── Dashboard/
     │   │   ├── DashboardGrid.tsx # Lienzo de Dashboard con 'Usar como filtro' (Filtro Cruzado), chips interactivos, filtros y parámetros
     │   │   └── TargetSheetsModal.tsx # Modal Tableau "Aplicar a hojas de trabajo..."
@@ -202,10 +204,10 @@ atelier-analytics/
     │   │   ├── FilterShelf.tsx   # Estante interactivo de filtros con badges informativos y drag-and-drop
     │   │   └── FilterModal.tsx   # Diálogo interactivo para filtros categóricos y rangos
     │   ├── Marks/
-    │   │   └── MarksCard.tsx     # Tarjeta de marcas con Color, Size, Detail, Tooltip y Opacity
+    │   │   └── MarksCard.tsx     # Tarjeta de marcas con 15 tipos de geometrías (Barras, Líneas, Boxplot, Histograma, Densidad, Hexbin, etc.)
     │   └── Canvas/
     │       ├── EmptyWorkspace.tsx # Zona de bienvenida y drag & drop para archivos locales
-    │       ├── PlotRenderer.tsx  # Renderizador reactivo Observable Plot con marcas de análisis (Líneas de referencia y regresión lineal)
+    │       ├── PlotRenderer.tsx  # Renderizador reactivo Observable Plot con todas las marcas avanzadas y marcas de análisis
     │       └── SQLInspectorDrawer.tsx # Drawer para auditar el SQL DuckDB y memoria Arrow
     └── utils/
         └── oklchColors.ts        # Paletas categóricas y secuenciales en espacio OKLCH
@@ -215,10 +217,13 @@ atelier-analytics/
 
 ## 6. Estado de la Sesión
 
-- **Estado Actual:** Experiencia completa de Tableau Desktop finalizada con éxito con las 5 funcionalidades más deseadas por analistas de Tableau:
-  1. **Cálculos de Tabla Rápidos (*Quick Table Calculations*)**: Selector con indicador `Δ` para `% del Total`, `Total Acumulado`, `Diferencia`, `% Diferencia`, `Rango` y `Media Móvil` compilados nativamente a funciones de ventana OLAP en DuckDB-WASM.
-  2. **Pestaña de Análisis (*Analytics Pane*)**: Pestaña dedicada 'Análisis' en la barra lateral con botones directos para superponer Línea de Promedio, Mediana y Línea de Tendencia (Regresión lineal) sobre el gráfico de Observable Plot.
-  3. **Acciones de Filtro en Dashboards (*Dashboard Actions / Cross-Filtering*)**: Botón *"Usar como filtro"* por tarjeta en el dashboard, permitiendo hacer clic en cualquier categoría para filtrar dinámicamente las demás visualizaciones de forma instantánea.
-  4. **Panel Inteligente *Show Me* (*Muestre*)**: Galería de 8 tipos de gráficos que analiza las pastillas activas en Columns/Rows, resalta gráficos compatibles y recomendados, y reconfigura los estantes en un solo clic.
-  5. **Intercambio Rápido de Ejes (*Swap Rows and Columns*)**: Botón `Swap` en los estantes para alternar orientación de ejes de forma instantánea.
-- **Siguiente Paso:** Sistema 100% verificado y operativo en el navegador en http://127.0.0.1:5173. Listo para nuevas directivas del usuario.
+- **Estado Actual:** Catálogo completo de Observable Plot implementado al 100%. Ahora Atelier cuenta con **15 arquetipos analíticos** accesibles tanto desde la Tarjeta de Marcas como desde el menú inteligente *Show Me*:
+  1. **Diagrama de Caja y Bigotes (*Boxplot*)**: Detección de cuartiles (IQR), mediana y valores atípicos (*outliers*) por categoría o general.
+  2. **Histograma Continuo**: Agrupamiento en cubos (*binning*) automático con `Plot.binX` y conteo de frecuencias.
+  3. **Densidad 2D / Contornos**: Mapas topográficos de concentración para scatter plots densos.
+  4. **Agrupamiento Hexagonal (*Hexbin*)**: Agregación en panal para eliminar el *overplotting*.
+  5. **Gráfico de Diferencia (*Difference Chart*)**: Visualización de superávit (verde) vs déficit (rojo) entre series o frente a referencia.
+  6. **Gráfico de Picos (*Spike*)**: Proyecciones esbeltas para variables continuas.
+  7. **Gráfico Waffle**: Matriz de unidades proporcionales.
+  8. **Arquetipos clásicos**: Barras verticales/horizontales, Líneas, Áreas, Dispersión, Mapa de Calor (Cell), Tick marks y Tabla de Texto.
+- **Siguiente Paso:** Sistema 100% verificado y operativo en http://127.0.0.1:5173. Listo para nuevas directivas del usuario.
