@@ -16,6 +16,7 @@ import { CalculatedFieldModal } from './components/CalculatedFields/CalculatedFi
 import { ParameterModal } from './components/Parameters/ParameterModal';
 import { ParameterControlsBar } from './components/Parameters/ParameterControlsBar';
 import { ShowMeDrawer } from './components/ShowMe/ShowMeDrawer';
+import { DataModelModal } from './components/DataModel/DataModelModal';
 import { Columns, Rows, Loader2, Sparkles, ArrowUpDown } from 'lucide-react';
 import { buildWorksheetAST } from './core/ast/builder';
 
@@ -28,6 +29,13 @@ export const App: React.FC = () => {
     isExecuting,
     engineError,
     currentDataset,
+    availableDatasets,
+    selectDataset,
+    isDataModelModalOpen,
+    openDataModelModal,
+    closeDataModelModal,
+    createJoinModel,
+    createUnionModel,
     columns,
     rows,
     marks,
@@ -159,6 +167,10 @@ export const App: React.FC = () => {
         {/* Left Data Sidebar */}
         <DataSidebar
           currentDataset={currentDataset}
+          availableDatasets={availableDatasets}
+          onSelectDataset={selectDataset}
+          onLoadAdditionalFile={(file) => void loadFile(file)}
+          onOpenDataModelModal={openDataModelModal}
           parameters={parameters}
           calculatedFields={calculatedFields}
           analyticsLines={activeSheet?.analyticsLines}
@@ -412,6 +424,17 @@ export const App: React.FC = () => {
           columns={currentDataset?.columns}
           onSave={saveParameter}
           onClose={closeParameterModal}
+        />
+      )}
+
+      {/* Relational Data Model Modal (JOIN & UNION) */}
+      {isDataModelModalOpen && (
+        <DataModelModal
+          isOpen={isDataModelModalOpen}
+          availableDatasets={availableDatasets}
+          onClose={closeDataModelModal}
+          onCreateJoin={createJoinModel}
+          onCreateUnion={createUnionModel}
         />
       )}
     </div>

@@ -129,6 +129,7 @@ gitGraph
     commit id: "cross-tab-and-multi-measure-clustered-charts" tag: "v1.8.0"
     commit id: "fix-text-table-hooks-and-error-boundary" tag: "v1.8.1"
     commit id: "indexeddb-persistence-and-session-autosave" tag: "v1.9.0"
+    commit id: "multi-source-and-visual-data-modeling" tag: "v2.0.0"
 ```
 
 ---
@@ -154,6 +155,7 @@ gitGraph
 | **CP-15** | Tabla de Texto Auténtica (Cross-Tab) y Gráficos Multimétrica Agrupados (Clustered Charts) | **Completado** | 1) `TextTableRenderer.tsx` interactivo con ordenación por columnas, búsqueda en vivo, fila de Total General (`tfoot`), indicadores de rol de pastilla (azul/verde), copia a TSV para Excel/Sheets y exportación a CSV; 2) Soporte multimétrica completo en `PlotRenderer.tsx` para barras agrupadas verticales y horizontales (`isMultiMeasureVertical` y `isMultiMeasureHorizontal` con faceteado `fx`/`fy`), líneas multi-métrica y áreas continuas desnormalizadas en tiempo de renderizado con leyenda automática OKLCH; 3) 11/11 tests unitarios pasando, 0 errores tsc, build limpio y liveness HTTP 200 en puerto 5173. |
 | **CP-16** | Corrección de React Hooks en Tabla de Texto y Canvas Error Boundary | **Completado** | 1) Corrección de orden de React Hooks en `PlotRenderer.tsx`: eliminado retorno anticipado condicional antes de hooks (`Rendered fewer hooks than expected`) y movido al retorno JSX final; 2) Creado `CanvasErrorBoundary.tsx` para aislar cualquier excepción de renderizado y prevenir pantallas en blanco; 3) Blindado `TextTableRenderer.tsx` con soporte para BigInt, descubrimiento universal de pastillas y portapapeles seguro; 4) 13/13 tests pasando en Vitest (con suite para TextTableRenderer), 0 errores `tsc`, build en 2.36s y HTTP 200 en http://127.0.0.1:5173. |
 | **CP-17** | Persistencia Completa In-Browser: IndexedDB Datasets, Auto-Save Reactivo y Protección BeforeUnload | **Completado** | 1) Almacenamiento binario del dataset (`File`/`Blob`) en IndexedDB para supervivencia a recargas y F5; 2) Auto-guardado en segundo plano con debounce (250ms) del AST, estantes, hojas, campos calculados y parámetros; 3) Rehidratación automática transparente en `initEngine` montando el dataset en DuckDB-WASM y re-ejecutando queries; 4) Protección nativa `beforeunload` para advertir antes de recargas accidentales; 5) Badge visual "Auto-guardado activo" en Header; 6) 15/15 tests pasando en Vitest, 0 errores tsc, build limpio y HTTP 200 en puerto 5173. |
+| **CP-18** | Multi-Fuente y Modelado Relacional de Datos: Joins, Unions y Dashboards Compuestos | **Completado** | 1) Soporte multi-tabla simultáneo en DuckDB-WASM (cada archivo se monta como tabla independiente); 2) Selector multi-fuente en la barra lateral con botón `+ Fuente` y badge de tablas cargadas; 3) Vinculación por hoja (`sheet.tableName`/`sheet.datasetId`), permitiendo que cada hoja analice un archivo diferente y convivan en el mismo Dashboard con badge de origen; 4) Asistente visual de modelado de datos (`DataModelModal.tsx`) con soporte para 4 tipos de JOIN (`LEFT`, `INNER`, `FULL`, `RIGHT`), desambiguación automática de nombres de columnas y apilado vertical `UNION ALL BY NAME`; 5) Previsualización en vivo en 5 filas con DuckDB-WASM; 6) 18/18 tests unitarios pasando, 0 errores tsc, build limpio en 2.40s y HTTP 200 en puerto 5173. |
 
 ---
 
@@ -173,38 +175,41 @@ atelier-analytics/
 ├── dist/                         # Compilación estática de producción (SPA offline)
 └── src/
     ├── main.tsx                  # Bootstrap React 19
-    ├── App.tsx                   # Layout editorial tipo Studio con CanvasErrorBoundary y beforeunload guard
+    ├── App.tsx                   # Layout editorial tipo Studio con DataModelModal, CanvasErrorBoundary y beforeunload guard
     ├── index.css                 # Variables CSS OKLCH, estilos tabulares y reset
     ├── core/
     │   ├── ast/
-    │   │   ├── types.ts          # Tipos: Pill, MarkType (15 geometrías), AnalyticsLine, ShowMe, Filters, WorkbookProject
-    │   │   └── builder.ts        # Conversión declarativa de UI a AST con heurística de inferencia (incluye histograma)
+    │   │   ├── types.ts          # Tipos: Pill, MarkType, JoinRelationConfig, UnionConfig, WorksheetTab multi-dataset
+    │   │   └── builder.ts        # Conversión declarativa de UI a AST con heurística de inferencia
     │   ├── compiler/
-    │   │   ├── sqlCompiler.ts    # Compilador optimizado AST -> SQL con soporte para queries de distribución no agregada y window functions
+    │   │   ├── sqlCompiler.ts    # Compilador optimizado AST -> SQL con soporte para distribution queries y window functions
     │   │   └── sqlCompiler.test.ts # Suite de pruebas unitarias (11/11 tests pasados, 100% verde)
     │   ├── engine/
-    │   │   └── duckdbClient.ts   # Conector DuckDB-WASM, Apache Arrow, loader universal, introspección automática
+    │   │   ├── duckdbClient.ts   # Conector DuckDB-WASM con creación de vistas relacionales (JOIN con desambiguación y UNION ALL BY NAME)
+    │   │   └── dataModeling.test.ts # Suite de pruebas unitarias de modelado relacional y validación de esquemas (3/3 pasados)
     │   ├── storage/
-    │   │   ├── indexedDBStorage.ts # Motor de persistencia binaria IndexedDB para datasets y snapshots de sesión con fallback seguro
+    │   │   ├── indexedDBStorage.ts # Motor de persistencia binaria IndexedDB con getAllDatasetBlobs para multi-tablas
     │   │   └── indexedDBStorage.test.ts # Pruebas unitarias de serialización, recuperación multi-pestaña y borrado de sesión
     │   └── store/
-    │       └── worksheetStore.ts # Almacén Zustand reactivo con auto-guardado debounced (250ms), rehidratación al inicio y gestión integral
+    │       └── worksheetStore.ts # Almacén Zustand reactivo con vinculación dataset por hoja, createJoinModel y createUnionModel
     ├── components/
     │   ├── Header/
-    │   │   └── Header.tsx        # Barra editorial con estado, latencia, badge "Auto-guardado activo", tema y botones Abrir/Guardar
+    │   │   └── Header.tsx        # Barra editorial con estado, latencia, badge "Guardado" minimalista, tema y botones Abrir/Guardar
     │   ├── DataSidebar/
-    │   │   └── DataSidebar.tsx   # Panel Tableau con pestañas 'Datos' y 'Análisis' (Línea promedio, mediana, tendencia)
+    │   │   └── DataSidebar.tsx   # Panel Tableau con selector de fuente activa, botón '+ Fuente', botón 'Modelar' y pestañas Datos/Análisis
+    │   ├── DataModel/
+    │   │   └── DataModelModal.tsx # Asistente visual de modelado de datos: Relaciones (JOIN), Apilado (UNION) y previsualización interactiva
     │   ├── Tabs/
     │   │   └── TabBar.tsx        # Barra inferior de pestañas con cambio de hoja, duplicar, renombrar y añadir hojas/dashboards
     │   ├── ShowMe/
     │   │   └── ShowMeDrawer.tsx  # Galería inteligente Show Me (15 arquetipos visuales, evaluación de requisitos y recomendados)
     │   ├── Dashboard/
-    │   │   ├── DashboardGrid.tsx # Lienzo de Dashboard con 'Usar como filtro' (Filtro Cruzado), chips interactivos, filtros y parámetros
+    │   │   ├── DashboardGrid.tsx # Lienzo de Dashboard multi-fuente con badge de tabla de origen por tarjeta, filtros y parámetros
     │   │   └── TargetSheetsModal.tsx # Modal Tableau "Aplicar a hojas de trabajo..."
     │   ├── CalculatedFields/
     │   │   └── CalculatedFieldModal.tsx # Editor de fórmulas con biblioteca de funciones y recetas analíticas
     │   ├── Parameters/
-    │   │   └── ParameterModal.tsx # Diálogo completo Tableau: Todos, Lista, Rango, Añadir desde campo y Formato
+    │   │   ├── ParameterModal.tsx # Diálogo completo Tableau: Todos, Lista, Rango, Añadir desde campo y Formato
     │   │   └── ParameterControlsBar.tsx # Barra de controles interactivos en el lienzo
     │   ├── Shelves/
     │   │   ├── ShelfDropZone.tsx # Zonas de Drag & Drop para Columns y Rows con botón Swap
@@ -229,10 +234,11 @@ atelier-analytics/
 
 ## 6. Estado de la Sesión
 
-- **Estado Actual:** Implementado el sistema completo de **Persistencia y Resiliencia In-Browser (Zero Data-Loss)**:
-  1. **Persistencia Binaria en IndexedDB (`indexedDBStorage.ts`):** Los archivos de datos cargados (CSV, Parquet) se almacenan de forma asíncrona como `Blob` en IndexedDB. Al recargar la página (F5, Cmd+R o cierre accidental), el motor recupera instantáneamente el archivo en memoria y lo re-monta en el sistema de archivos virtual de DuckDB-WASM sin requerir que el usuario vuelva a arrastrar el archivo.
-  2. **Auto-Guardado Continuo y Reactivo de Sesión (Zustand Debounce 250ms):** Cualquier acción de usuario (añadir pastillas, cambiar orden, modificar filtros, crear campos calculados, ajustar parámetros, añadir pestañas o cambiar de tema) se serializa en milisegundos en el almacenamiento local.
-  3. **Rehidratación Transparente en `initEngine`:** Al iniciar la app, si existe una sesión previa con dataset en caché, se restaura el libro de trabajo exacto (todas las hojas de trabajo, dashboards y estantes) y se re-ejecutan las consultas automáticamente. Al hacer clic en "Cerrar Dataset", se limpia limpiamente la caché.
-  4. **Protección contra Recargas Accidentales (`beforeunload`):** `App.tsx` registra un escuchador que alerta al usuario mediante el diálogo estándar del navegador si intenta cerrar o recargar la pestaña mientras tiene un proyecto activo.
-  5. **Indicador Visual Minimalista en Header:** Se refinó el indicador en `Header.tsx` a un elemento discreto y compacto (`Guardado` con icono `Check` esmeralda y tipografía 11px) que no satura la barra superior.
-- **Siguiente Paso:** Sistema 100% verificado y validado bajo la batería Zero-Defect (15/15 tests pasando en Vitest, 0 errores tsc, build de producción en 2.43s y servidor respondiendo HTTP 200 en http://127.0.0.1:5173). Listo para interactuar con el usuario.
+- **Estado Actual:** Implementada la arquitectura completa de **Multi-Fuente de Datos y Modelado Relacional (Tableau Data Model)**:
+  1. **Multi-Fuente por Hoja y Dashboard Compuesto:** El usuario puede cargar múltiples archivos (CSV, Parquet, TSV, JSON) en DuckDB-WASM con el botón `+ Fuente`. Cada hoja de trabajo puede analizar una fuente independiente seleccionable mediante el dropdown de la barra lateral. En el **Dashboard**, conviven hojas alimentadas por diferentes archivos, mostrando en cada tarjeta una etiqueta con su tabla de origen.
+  2. **Asistente Visual de Modelado de Datos (`DataModelModal.tsx`):**
+     - **Relaciones / JOIN:** Permite vincular dos tablas mediante una clave en común (`pedidos.cliente_id = clientes.id`), seleccionando entre 4 tipos de unión (`LEFT`, `INNER`, `FULL`, `RIGHT`). DuckDB-WASM resuelve automáticamente colisiones de nombres de columnas (prefijando columnas repetidas con el nombre de la tabla).
+     - **Apilado / UNION:** Permite apilar verticalmente dos o más tablas con `UNION ALL BY NAME`, completando automáticamente con `NULL` las columnas dispares.
+     - **Previsualización en Vivo:** Botón "Previsualizar 5 filas" que valida la consulta y muestra el esquema resultante en milisegundos antes de confirmar.
+  3. **Persistencia Multi-Tabla:** `getAllDatasetBlobs` en IndexedDB rehidrata todos los archivos cargados al recargar la página.
+- **Siguiente Paso:** Sistema 100% verificado y validado bajo la batería Zero-Defect (18/18 tests unitarios pasando en Vitest, 0 errores tsc, build de producción en 2.40s y servidor respondiendo HTTP 200 en http://127.0.0.1:5173). Listo para interactuar con el usuario.

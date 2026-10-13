@@ -108,6 +108,14 @@ export async function getDatasetBlob(id: string): Promise<PersistedDatasetRecord
  * Retrieves the most recently saved dataset record from IndexedDB
  */
 export async function getLatestDatasetBlob(): Promise<PersistedDatasetRecord | null> {
+  const all = await getAllDatasetBlobs();
+  return all.length > 0 ? all[0] : null;
+}
+
+/**
+ * Retrieves all saved dataset records from IndexedDB
+ */
+export async function getAllDatasetBlobs(): Promise<PersistedDatasetRecord[]> {
   try {
     const db = await openDB();
     return new Promise((resolve, reject) => {
@@ -117,18 +125,14 @@ export async function getLatestDatasetBlob(): Promise<PersistedDatasetRecord | n
 
       request.onsuccess = () => {
         const records = (request.result as PersistedDatasetRecord[]) || [];
-        if (records.length === 0) {
-          resolve(null);
-          return;
-        }
         records.sort((a, b) => b.updatedAt - a.updatedAt);
-        resolve(records[0]);
+        resolve(records);
       };
       request.onerror = () => reject(request.error);
     });
   } catch (err) {
-    console.warn('[Storage] Error al buscar el último dataset en IndexedDB:', err);
-    return null;
+    console.warn('[Storage] Error al buscar datasets en IndexedDB:', err);
+    return [];
   }
 }
 

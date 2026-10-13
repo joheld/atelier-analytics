@@ -24,6 +24,7 @@ import {
   Minus,
   Layers,
   ChevronDown,
+  Database,
 } from 'lucide-react';
 
 interface DashboardGridProps {
@@ -516,6 +517,15 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
                       <span className="font-editorial text-xs font-bold text-stone-800 dark:text-stone-200 truncate">
                         {sheet.name}
                       </span>
+                      {sheet.tableName && (
+                        <span
+                          className="inline-flex items-center gap-1 rounded bg-stone-100/90 px-1.5 py-0.5 text-[9.5px] font-mono text-stone-600 dark:bg-stone-800 dark:text-stone-300 border border-stone-200/80 dark:border-stone-700"
+                          title={`Fuente de datos: tabla "${sheet.tableName}"`}
+                        >
+                          <Database className="h-2 w-2 text-sky-500" />
+                          <span>{sheet.tableName}</span>
+                        </span>
+                      )}
 
                       {/* Applied Filters Badge (Tableau Transparency) */}
                       {appliedDashboardFilters.length > 0 ? (

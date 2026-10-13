@@ -15,14 +15,15 @@ import {
   WorksheetAST,
   QuickTableCalcType,
   AnalyticsLine,
+  JoinRelationConfig,
+  UnionConfig,
 } from '../ast/types';
 import { buildWorksheetAST } from '../ast/builder';
 import { compileASTtoDuckDB, CompiledQuery } from '../compiler/sqlCompiler';
 import { duckdbEngine, QueryExecutionResult } from '../engine/duckdbClient';
 import {
   saveDatasetBlob,
-  getDatasetBlob,
-  getLatestDatasetBlob,
+  getAllDatasetBlobs,
   clearAllDatasets,
   saveActiveSession,
   getActiveSession,
@@ -63,6 +64,13 @@ export interface WorksheetStore extends WorksheetState {
 
   // Multi-Visual Dashboard Execution Cache
   dashboardResults: Record<string, DashboardSheetExecution>;
+
+  // Data Modeling Modal (Tableau Relationships & Joins)
+  isDataModelModalOpen: boolean;
+  openDataModelModal: () => void;
+  closeDataModelModal: () => void;
+  createJoinModel: (config: JoinRelationConfig) => Promise<DatasetMeta>;
+  createUnionModel: (config: UnionConfig) => Promise<DatasetMeta>;
 
   // Actions - Core Engine & Datasets
   initEngine: () => Promise<void>;
@@ -188,6 +196,15 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
   isParameterModalOpen: false,
   editingParameter: null,
   dashboardResults: {},
+  isDataModelModalOpen: false,
+
+  openDataModelModal: () => {
+    set({ isDataModelModalOpen: true });
+  },
+
+  closeDataModelModal: () => {
+    set({ isDataModelModalOpen: false });
+  },
 
   initEngine: async () => {
     try {
@@ -198,24 +215,32 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
       // 1. Attempt to retrieve active session snapshot from localStorage
       const session = getActiveSession();
 
-      // 2. Attempt to retrieve dataset Blob from IndexedDB
-      const cachedRecord = session?.currentDatasetId
-        ? await getDatasetBlob(session.currentDatasetId)
-        : await getLatestDatasetBlob();
+      // 2. Retrieve ALL dataset Blobs from IndexedDB
+      const allCachedRecords = await getAllDatasetBlobs();
 
-      if (cachedRecord) {
+      if (allCachedRecords.length > 0) {
         try {
-          // Reconstruct File instance from persisted Blob
-          const file = new File([cachedRecord.blob], cachedRecord.fileName, {
-            type: cachedRecord.fileType,
-            lastModified: cachedRecord.updatedAt,
-          });
+          let activeMeta: DatasetMeta | null = null;
 
-          // Re-load dataset into DuckDB-WASM in-memory virtual filesystem
-          const meta = await duckdbEngine.loadUserFile(file);
+          for (const record of allCachedRecords) {
+            try {
+              const file = new File([record.blob], record.fileName, {
+                type: record.fileType,
+                lastModified: record.updatedAt,
+              });
+              const loaded = await duckdbEngine.loadUserFile(file);
+              if (!activeMeta || (session?.currentDatasetId && session.currentDatasetId === loaded.id)) {
+                activeMeta = loaded;
+              }
+            } catch (err) {
+              console.warn('[Storage] Error al rehidratar archivo:', record.fileName, err);
+            }
+          }
+
           const allDatasets = duckdbEngine.getAvailableDatasets();
+          const primaryMeta = activeMeta || allDatasets[0];
 
-          if (session) {
+          if (session && primaryMeta) {
             // Re-merge calculated fields into dataset columns if present
             if (session.calculatedFields && session.calculatedFields.length > 0) {
               const extraCols = session.calculatedFields.map((cf) => ({
@@ -225,7 +250,7 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
                 isCalculated: true,
                 formula: cf.formula,
               }));
-              meta.columns = [...meta.columns, ...extraCols];
+              primaryMeta.columns = [...primaryMeta.columns, ...extraCols];
             }
 
             const activeSheet =
@@ -233,11 +258,15 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
               session.sheets?.[0] ||
               defaultSheet;
 
+            const sheetMeta = activeSheet.datasetId
+              ? allDatasets.find((d) => d.id === activeSheet.datasetId) || primaryMeta
+              : primaryMeta;
+
             set({
               availableDatasets: allDatasets,
-              currentDataset: meta,
-              datasetId: meta.id,
-              tableName: meta.tableName,
+              currentDataset: sheetMeta,
+              datasetId: sheetMeta.id,
+              tableName: sheetMeta.tableName,
               sheets: session.sheets && session.sheets.length > 0 ? session.sheets : [defaultSheet],
               activeTabId: session.activeTabId || 'sheet_1',
               calculatedFields: session.calculatedFields || [],
@@ -252,18 +281,18 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
 
             // Re-execute query for restored active sheet or dashboard
             await get().executeCurrentState();
-          } else {
+          } else if (primaryMeta) {
             set({
               availableDatasets: allDatasets,
-              currentDataset: meta,
-              datasetId: meta.id,
-              tableName: meta.tableName,
+              currentDataset: primaryMeta,
+              datasetId: primaryMeta.id,
+              tableName: primaryMeta.tableName,
               isExecuting: false,
             });
             await get().executeCurrentState();
           }
         } catch (rehydrateErr) {
-          console.warn('[Storage] Error al rehidratar dataset desde IndexedDB:', rehydrateErr);
+          console.warn('[Storage] Error al rehidratar datasets desde IndexedDB:', rehydrateErr);
           set({ isExecuting: false });
         }
       } else {
@@ -293,7 +322,7 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
       await saveDatasetBlob(meta.id, file.name, file, meta);
 
       // Incorporate any existing calculated fields into dataset metadata
-      const { calculatedFields } = get();
+      const { calculatedFields, sheets, activeTabId } = get();
       if (calculatedFields.length > 0) {
         const extraCols = calculatedFields.map((cf) => ({
           name: cf.name,
@@ -305,13 +334,17 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
         meta.columns = [...meta.columns, ...extraCols];
       }
 
-      const activeSheet = get().sheets.find((s) => s.id === get().activeTabId) || get().sheets[0];
+      const updatedSheets = sheets.map((s) =>
+        s.id === activeTabId ? { ...s, datasetId: meta.id, tableName: meta.tableName } : s
+      );
+      const activeSheet = updatedSheets.find((s) => s.id === activeTabId) || updatedSheets[0];
 
       set({
         availableDatasets: allDatasets,
         currentDataset: meta,
         datasetId: meta.id,
         tableName: meta.tableName,
+        sheets: updatedSheets,
         columns: activeSheet.columns,
         rows: activeSheet.rows,
         filters: activeSheet.filters,
@@ -334,6 +367,7 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
       currentDataset: null,
       datasetId: '',
       tableName: '',
+      availableDatasets: [],
       columns: [],
       rows: [],
       filters: [],
@@ -355,12 +389,17 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
     const ds = get().availableDatasets.find((d) => d.id === datasetId);
     if (!ds) return;
 
-    const activeSheet = get().sheets.find((s) => s.id === get().activeTabId) || get().sheets[0];
+    const { sheets, activeTabId } = get();
+    const updatedSheets = sheets.map((s) =>
+      s.id === activeTabId ? { ...s, datasetId: ds.id, tableName: ds.tableName } : s
+    );
+    const activeSheet = updatedSheets.find((s) => s.id === activeTabId) || updatedSheets[0];
 
     set({
       datasetId: ds.id,
       tableName: ds.tableName,
       currentDataset: ds,
+      sheets: updatedSheets,
       columns: activeSheet.columns,
       rows: activeSheet.rows,
       filters: activeSheet.filters,
@@ -368,6 +407,90 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
     });
 
     await get().executeCurrentState();
+  },
+
+  createJoinModel: async (config: JoinRelationConfig) => {
+    try {
+      set({ isExecuting: true, engineError: null });
+      const meta = await duckdbEngine.createRelationalJoinView(
+        config.name,
+        config.leftTableName,
+        config.rightTableName,
+        config.joinType,
+        config.leftKey,
+        config.rightKey
+      );
+
+      const allDatasets = duckdbEngine.getAvailableDatasets();
+      const { sheets, activeTabId } = get();
+      const updatedSheets = sheets.map((s) =>
+        s.id === activeTabId ? { ...s, datasetId: meta.id, tableName: meta.tableName } : s
+      );
+      const activeSheet = updatedSheets.find((s) => s.id === activeTabId) || updatedSheets[0];
+
+      set({
+        availableDatasets: allDatasets,
+        currentDataset: meta,
+        datasetId: meta.id,
+        tableName: meta.tableName,
+        sheets: updatedSheets,
+        columns: activeSheet.columns,
+        rows: activeSheet.rows,
+        filters: activeSheet.filters,
+        marks: activeSheet.marks,
+        isDataModelModalOpen: false,
+        isExecuting: false,
+      });
+
+      await get().executeCurrentState();
+      return meta;
+    } catch (err: unknown) {
+      set({
+        isExecuting: false,
+        engineError: err instanceof Error ? err.message : 'Error al crear relación (JOIN)',
+      });
+      throw err;
+    }
+  },
+
+  createUnionModel: async (config: UnionConfig) => {
+    try {
+      set({ isExecuting: true, engineError: null });
+      const meta = await duckdbEngine.createUnionView(
+        config.name,
+        config.tableNames
+      );
+
+      const allDatasets = duckdbEngine.getAvailableDatasets();
+      const { sheets, activeTabId } = get();
+      const updatedSheets = sheets.map((s) =>
+        s.id === activeTabId ? { ...s, datasetId: meta.id, tableName: meta.tableName } : s
+      );
+      const activeSheet = updatedSheets.find((s) => s.id === activeTabId) || updatedSheets[0];
+
+      set({
+        availableDatasets: allDatasets,
+        currentDataset: meta,
+        datasetId: meta.id,
+        tableName: meta.tableName,
+        sheets: updatedSheets,
+        columns: activeSheet.columns,
+        rows: activeSheet.rows,
+        filters: activeSheet.filters,
+        marks: activeSheet.marks,
+        isDataModelModalOpen: false,
+        isExecuting: false,
+      });
+
+      await get().executeCurrentState();
+      return meta;
+    } catch (err: unknown) {
+      set({
+        isExecuting: false,
+        engineError: err instanceof Error ? err.message : 'Error al crear unión (UNION)',
+      });
+      throw err;
+    }
   },
 
   // Helper to sync changes to active sheet and localStorage
@@ -773,6 +896,8 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
       id: newId,
       name: newName,
       type,
+      datasetId: get().datasetId || undefined,
+      tableName: get().tableName || undefined,
       columns: [],
       rows: [],
       filters: [],
@@ -801,8 +926,16 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
     const target = get().sheets.find((s) => s.id === tabId);
     if (!target) return;
 
+    // Switch dataset to the tab's bound dataset if set
+    const targetDataset = target.datasetId
+      ? get().availableDatasets.find((d) => d.id === target.datasetId)
+      : get().currentDataset;
+
     set({
       activeTabId: tabId,
+      currentDataset: targetDataset || get().currentDataset,
+      datasetId: targetDataset ? targetDataset.id : get().datasetId,
+      tableName: targetDataset ? targetDataset.tableName : get().tableName,
       columns: target.columns,
       rows: target.rows,
       filters: target.filters,
@@ -1102,6 +1235,7 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
     const project: WorkbookProject = {
       version: '1.0.0',
       datasetMeta: state.currentDataset,
+      availableDatasets: state.availableDatasets,
       activeTabId: state.activeTabId,
       sheets: state.sheets,
       calculatedFields: state.calculatedFields,
@@ -1133,6 +1267,10 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
       set({
         sheets: project.sheets,
         activeTabId: activeSheet.id,
+        availableDatasets: project.availableDatasets || (project.datasetMeta ? [project.datasetMeta] : []),
+        currentDataset: project.datasetMeta,
+        datasetId: project.datasetMeta?.id || '',
+        tableName: project.datasetMeta?.tableName || '',
         columns: activeSheet.columns,
         rows: activeSheet.rows,
         filters: activeSheet.filters,
@@ -1239,9 +1377,11 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
               });
             }
 
+            const sheetTableName = s.tableName || state.tableName;
+            const sheetDatasetId = s.datasetId || state.datasetId;
             const sheetAST = buildWorksheetAST({
-              datasetId: state.datasetId,
-              tableName: state.tableName,
+              datasetId: sheetDatasetId,
+              tableName: sheetTableName,
               columns: s.columns,
               rows: s.rows,
               filters: effectiveFilters,
@@ -1276,9 +1416,11 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
       }
 
       // Worksheet execution
+      const sheetTableName = activeSheet.tableName || state.tableName;
+      const sheetDatasetId = activeSheet.datasetId || state.datasetId;
       const ast = buildWorksheetAST({
-        datasetId: state.datasetId,
-        tableName: state.tableName,
+        datasetId: sheetDatasetId,
+        tableName: sheetTableName,
         columns: state.columns,
         rows: state.rows,
         filters: state.filters,

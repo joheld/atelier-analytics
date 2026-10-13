@@ -1,5 +1,5 @@
 import * as duckdb from '@duckdb/duckdb-wasm';
-import { DatasetMeta } from '../ast/types';
+import { DatasetMeta, JoinType } from '../ast/types';
 
 export interface QueryExecutionResult {
   sql: string;
@@ -177,6 +177,188 @@ class DuckDBManager {
 
   public removeDataset(id: string): void {
     this.activeDatasets.delete(id);
+  }
+
+  /**
+   * Creates a relational view joining two tables in DuckDB-WASM and introspects its schema.
+   * Handles column name collision gracefully by aliasing duplicate columns from the right table.
+   */
+  public async createRelationalJoinView(
+    viewName: string,
+    leftTable: string,
+    rightTable: string,
+    joinType: JoinType,
+    leftKey: string,
+    rightKey: string
+  ): Promise<DatasetMeta> {
+    const conn = await this.getConnection();
+
+    // Inspect columns of both tables to avoid collisions
+    const leftSchemaRes = await conn.query(`DESCRIBE "${leftTable.replace(/"/g, '""')}";`);
+    const rightSchemaRes = await conn.query(`DESCRIBE "${rightTable.replace(/"/g, '""')}";`);
+
+    const leftCols = leftSchemaRes.toArray().map((r) => String(r.toJSON().column_name));
+    const rightCols = rightSchemaRes.toArray().map((r) => String(r.toJSON().column_name));
+
+    const leftColSet = new Set(leftCols);
+
+    // Build SELECT expressions with column disambiguation
+    const leftSelects = leftCols.map((c) => `l."${c.replace(/"/g, '""')}"`);
+    const rightSelects = rightCols.map((c) => {
+      if (leftColSet.has(c)) {
+        return `r."${c.replace(/"/g, '""')}" AS "${rightTable}_${c.replace(/"/g, '""')}"`;
+      }
+      return `r."${c.replace(/"/g, '""')}"`;
+    });
+
+    const allSelects = [...leftSelects, ...rightSelects].join(', ');
+    const safeViewName = viewName.replace(/[^a-zA-Z0-9_]/g, '_').toLowerCase();
+
+    const sql = `
+      CREATE OR REPLACE VIEW "${safeViewName}" AS
+      SELECT ${allSelects}
+      FROM "${leftTable.replace(/"/g, '""')}" l
+      ${joinType} JOIN "${rightTable.replace(/"/g, '""')}" r
+        ON l."${leftKey.replace(/"/g, '""')}" = r."${rightKey.replace(/"/g, '""')}";
+    `;
+
+    await conn.query(sql);
+
+    // Introspect resulting view
+    const viewSchema = await conn.query(`DESCRIBE "${safeViewName}";`);
+    const countResult = await conn.query(`SELECT COUNT(*) AS total FROM "${safeViewName}";`);
+    const count = Number(countResult.toArray()[0]?.toJSON()?.total ?? 0);
+
+    const columns: DatasetMeta['columns'] = [];
+    for (const row of viewSchema.toArray()) {
+      const col = row.toJSON();
+      const colName = String(col.column_name);
+      const colType = String(col.column_type).toUpperCase();
+
+      let dataType: 'string' | 'number' | 'date' | 'boolean' = 'string';
+      let role: 'dimension' | 'measure' = 'dimension';
+
+      if (
+        colType.includes('INT') ||
+        colType.includes('DOUBLE') ||
+        colType.includes('FLOAT') ||
+        colType.includes('DECIMAL') ||
+        colType.includes('NUMERIC') ||
+        colType.includes('REAL')
+      ) {
+        dataType = 'number';
+        role = 'measure';
+      } else if (colType.includes('DATE') || colType.includes('TIMESTAMP') || colType.includes('TIME')) {
+        dataType = 'date';
+        role = 'dimension';
+      } else if (colType.includes('BOOL')) {
+        dataType = 'boolean';
+        role = 'dimension';
+      } else {
+        dataType = 'string';
+        role = 'dimension';
+      }
+
+      columns.push({ name: colName, dataType, role });
+    }
+
+    const meta: DatasetMeta = {
+      id: safeViewName,
+      name: `${viewName} (${joinType} JOIN)`,
+      tableName: safeViewName,
+      description: `${joinType} JOIN entre ${leftTable} y ${rightTable} (${count.toLocaleString()} filas)`,
+      rowCount: count,
+      columns,
+    };
+
+    this.activeDatasets.set(safeViewName, meta);
+    return meta;
+  }
+
+  /**
+   * Creates a UNION ALL view stacking multiple tables by column name in DuckDB-WASM
+   */
+  public async createUnionView(
+    viewName: string,
+    tableNames: string[]
+  ): Promise<DatasetMeta> {
+    const conn = await this.getConnection();
+    if (tableNames.length < 2) {
+      throw new Error('Se requieren al menos dos tablas para una unión.');
+    }
+
+    const safeViewName = viewName.replace(/[^a-zA-Z0-9_]/g, '_').toLowerCase();
+    const selectParts = tableNames.map(
+      (t) => `SELECT * FROM "${t.replace(/"/g, '""')}"`
+    );
+    const sql = `
+      CREATE OR REPLACE VIEW "${safeViewName}" AS
+      ${selectParts.join(' UNION ALL BY NAME ')};
+    `;
+
+    await conn.query(sql);
+
+    // Introspect resulting view
+    const viewSchema = await conn.query(`DESCRIBE "${safeViewName}";`);
+    const countResult = await conn.query(`SELECT COUNT(*) AS total FROM "${safeViewName}";`);
+    const count = Number(countResult.toArray()[0]?.toJSON()?.total ?? 0);
+
+    const columns: DatasetMeta['columns'] = [];
+    for (const row of viewSchema.toArray()) {
+      const col = row.toJSON();
+      const colName = String(col.column_name);
+      const colType = String(col.column_type).toUpperCase();
+
+      let dataType: 'string' | 'number' | 'date' | 'boolean' = 'string';
+      let role: 'dimension' | 'measure' = 'dimension';
+
+      if (
+        colType.includes('INT') ||
+        colType.includes('DOUBLE') ||
+        colType.includes('FLOAT') ||
+        colType.includes('DECIMAL') ||
+        colType.includes('NUMERIC') ||
+        colType.includes('REAL')
+      ) {
+        dataType = 'number';
+        role = 'measure';
+      } else if (colType.includes('DATE') || colType.includes('TIMESTAMP') || colType.includes('TIME')) {
+        dataType = 'date';
+        role = 'dimension';
+      } else if (colType.includes('BOOL')) {
+        dataType = 'boolean';
+        role = 'dimension';
+      } else {
+        dataType = 'string';
+        role = 'dimension';
+      }
+
+      columns.push({ name: colName, dataType, role });
+    }
+
+    const meta: DatasetMeta = {
+      id: safeViewName,
+      name: `${viewName} (UNION)`,
+      tableName: safeViewName,
+      description: `Unión apilada de ${tableNames.join(', ')} (${count.toLocaleString()} filas)`,
+      rowCount: count,
+      columns,
+    };
+
+    this.activeDatasets.set(safeViewName, meta);
+    return meta;
+  }
+
+  /**
+   * Previews query results with a strict LIMIT for interactive validation
+   */
+  public async previewQuery(sql: string, limit = 5): Promise<{ columns: string[]; rows: Record<string, unknown>[] }> {
+    const conn = await this.getConnection();
+    const cleanSql = sql.trim().replace(/;$/, '');
+    const result = await conn.query(`${cleanSql} LIMIT ${limit};`);
+    const rows = result.toArray().map((r) => r.toJSON());
+    const columns = result.schema.fields.map((f) => f.name);
+    return { columns, rows };
   }
 
   /**

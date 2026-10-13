@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { DatasetMeta, Pill, Parameter, CalculatedField, DataType, FieldRole, AnalyticsLine } from '../../core/ast/types';
 import {
   Search,
@@ -19,10 +19,16 @@ import {
   TrendingUp,
   Activity,
   Layers,
+  GitMerge,
+  Database,
 } from 'lucide-react';
 
 interface DataSidebarProps {
   currentDataset: DatasetMeta | null;
+  availableDatasets?: DatasetMeta[];
+  onSelectDataset?: (datasetId: string) => void;
+  onLoadAdditionalFile?: (file: File) => void;
+  onOpenDataModelModal?: () => void;
   parameters: Parameter[];
   calculatedFields: CalculatedField[];
   analyticsLines?: AnalyticsLine[];
@@ -40,6 +46,10 @@ interface DataSidebarProps {
 
 export const DataSidebar: React.FC<DataSidebarProps> = ({
   currentDataset,
+  availableDatasets = [],
+  onSelectDataset,
+  onLoadAdditionalFile,
+  onOpenDataModelModal,
   parameters,
   calculatedFields,
   analyticsLines = [],
@@ -56,6 +66,7 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
 }) => {
   const [sidebarTab, setSidebarTab] = useState<'data' | 'analytics'>('data');
   const [searchTerm, setSearchTerm] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const columns = currentDataset?.columns || [];
   const filteredColumns = columns.filter((c) =>
@@ -213,39 +224,100 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
         </div>
       ) : (
         <>
-      {/* Dataset Header */}
-      <div className="p-3 border-b border-stone-200/80 dark:border-stone-800">
+      {/* Dataset Header & Multi-Source Management */}
+      <div className="p-3 border-b border-stone-200/80 dark:border-stone-800 space-y-2">
         <div className="flex items-center justify-between text-xs font-semibold text-stone-600 dark:text-stone-400">
-          <span className="font-mono uppercase tracking-wider text-[11px]">
-            Campos del Dataset
+          <span className="font-mono uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+            <Database className="h-3.5 w-3.5 text-sky-600 dark:text-sky-400" />
+            <span>Fuentes de Datos</span>
+            {availableDatasets.length > 1 && (
+              <span className="rounded-full bg-sky-100 px-1.5 py-0.2 text-[9.5px] font-bold text-sky-700 dark:bg-sky-950 dark:text-sky-300">
+                {availableDatasets.length}
+              </span>
+            )}
           </span>
-          {currentDataset && (
+
+          <div className="flex items-center gap-1">
+            {/* Hidden Input for Additional File Loading */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv,.parquet,.tsv,.json,.ndjson"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file && onLoadAdditionalFile) {
+                  onLoadAdditionalFile(file);
+                }
+                if (fileInputRef.current) fileInputRef.current.value = '';
+              }}
+            />
             <button
               type="button"
-              onClick={() => onOpenCalculatedFieldModal()}
-              className="flex items-center gap-1 rounded bg-stone-200/80 px-1.5 py-0.5 text-[10.5px] font-mono text-stone-700 hover:bg-stone-300 dark:bg-stone-800 dark:text-stone-300 dark:hover:bg-stone-700"
-              title="Crear un nuevo campo calculado con DuckDB"
+              onClick={() => fileInputRef.current?.click()}
+              className="flex items-center gap-1 rounded bg-stone-100 px-1.5 py-0.5 text-[10px] font-mono text-stone-700 hover:bg-stone-200 dark:bg-stone-800 dark:text-stone-300 dark:hover:bg-stone-700 cursor-pointer"
+              title="Cargar archivo adicional (CSV, Parquet, TSV, JSON) en DuckDB-WASM"
             >
-              <Calculator className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
-              <span>+ Cálculo</span>
+              <Plus className="h-2.5 w-2.5" />
+              <span>Fuente</span>
             </button>
-          )}
+
+            {availableDatasets.length >= 2 && onOpenDataModelModal && (
+              <button
+                type="button"
+                onClick={onOpenDataModelModal}
+                className="flex items-center gap-1 rounded bg-sky-50 px-1.5 py-0.5 text-[10px] font-mono font-bold text-sky-700 hover:bg-sky-100 dark:bg-sky-950/60 dark:text-sky-300 dark:hover:bg-sky-900 cursor-pointer"
+                title="Abrir asistente de modelado de datos (JOIN relacional o UNION apilado)"
+              >
+                <GitMerge className="h-2.5 w-2.5" />
+                <span>Modelar</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {currentDataset ? (
-          <div className="mt-2 rounded-md border border-stone-200 bg-white p-2 dark:border-stone-700 dark:bg-stone-900 shadow-xs">
-            <div className="flex items-center gap-1.5 text-xs font-medium text-stone-900 dark:text-stone-100">
-              <Table className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-              <span className="truncate">{currentDataset.name}</span>
-            </div>
-            <div className="mt-1 flex items-center gap-2 text-[10px] text-stone-500 font-mono">
+          <div className="rounded-md border border-stone-200 bg-white p-2 dark:border-stone-700 dark:bg-stone-900 shadow-2xs">
+            {availableDatasets.length > 1 && onSelectDataset ? (
+              <div className="mb-1.5">
+                <select
+                  value={currentDataset.id}
+                  onChange={(e) => onSelectDataset(e.target.value)}
+                  className="w-full rounded border border-stone-200 bg-stone-50 px-2 py-1 text-xs font-semibold text-stone-800 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200 cursor-pointer"
+                  title="Cambiar la fuente de datos activa para esta hoja de trabajo"
+                >
+                  {availableDatasets.map((ds) => (
+                    <option key={ds.id} value={ds.id}>
+                      {ds.name} ({ds.rowCount.toLocaleString()} f.)
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 text-xs font-medium text-stone-900 dark:text-stone-100">
+                <Table className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span className="truncate">{currentDataset.name}</span>
+              </div>
+            )}
+            <div className="flex items-center justify-between text-[10px] text-stone-500 font-mono mt-1">
               <span className="tabular-nums font-semibold">{currentDataset.rowCount.toLocaleString()} filas</span>
               <span>•</span>
               <span>{columns.length} campos</span>
+              {onOpenCalculatedFieldModal && (
+                <button
+                  type="button"
+                  onClick={() => onOpenCalculatedFieldModal()}
+                  className="text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-0.5 cursor-pointer"
+                  title="Crear un nuevo campo calculado con DuckDB"
+                >
+                  <Calculator className="h-2.5 w-2.5" />
+                  <span>+ Cálculo</span>
+                </button>
+              )}
             </div>
           </div>
         ) : (
-          <div className="mt-2 rounded-md border border-dashed border-stone-300 p-2.5 text-center dark:border-stone-700">
+          <div className="rounded-md border border-dashed border-stone-300 p-2.5 text-center dark:border-stone-700">
             <FileCode className="mx-auto h-4 w-4 text-stone-400" />
             <p className="mt-1 text-[11px] text-stone-500">Esperando archivo...</p>
           </div>

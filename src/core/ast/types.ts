@@ -139,10 +139,28 @@ export interface Parameter {
 
 export type SheetType = 'worksheet' | 'dashboard';
 
+export type JoinType = 'LEFT' | 'INNER' | 'RIGHT' | 'FULL';
+
+export interface JoinRelationConfig {
+  name: string;
+  leftTableName: string;
+  rightTableName: string;
+  joinType: JoinType;
+  leftKey: string;
+  rightKey: string;
+}
+
+export interface UnionConfig {
+  name: string;
+  tableNames: string[];
+}
+
 export interface WorksheetTab {
   id: string;
   name: string;
   type: SheetType;
+  datasetId?: string; // ID of the dataset / table bound to this worksheet
+  tableName?: string; // Table name bound to this worksheet
   columns: Pill[];
   rows: Pill[];
   filters: FilterExpression[];
@@ -163,6 +181,7 @@ export interface WorksheetTab {
 export interface WorkbookProject {
   version: string;
   datasetMeta: DatasetMeta | null;
+  availableDatasets?: DatasetMeta[];
   activeTabId: string;
   sheets: WorksheetTab[];
   calculatedFields: CalculatedField[];
