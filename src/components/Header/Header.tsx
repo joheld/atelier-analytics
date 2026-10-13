@@ -66,26 +66,35 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Center Dataset Info Badge */}
       <div className="flex items-center gap-2">
         {currentDataset ? (
-          <div className="flex items-center gap-2 rounded-full border border-stone-200/80 bg-stone-50 px-3 py-1 font-mono text-xs dark:border-stone-800 dark:bg-stone-950">
-            <Table className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-            <span className="font-semibold text-stone-800 dark:text-stone-200 truncate max-w-[200px]">
-              {currentDataset.name}
-            </span>
-            <span className="text-stone-300 dark:text-stone-700">•</span>
-            <span className="text-stone-500 dark:text-stone-400 tabular-nums">
-              {currentDataset.rowCount.toLocaleString()} filas
-            </span>
-            {onCloseDataset && (
-              <button
-                type="button"
-                onClick={onCloseDataset}
-                className="ml-1 rounded-full p-0.5 text-stone-400 hover:bg-stone-200 hover:text-stone-700 dark:hover:bg-stone-800 dark:hover:text-stone-200"
-                title="Cerrar dataset"
-              >
-                <X className="h-3 w-3" />
-              </button>
-            )}
-          </div>
+          <>
+            <div className="flex items-center gap-2 rounded-full border border-stone-200/80 bg-stone-50 px-3 py-1 font-mono text-xs dark:border-stone-800 dark:bg-stone-950">
+              <Table className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+              <span className="font-semibold text-stone-800 dark:text-stone-200 truncate max-w-[200px]">
+                {currentDataset.name}
+              </span>
+              <span className="text-stone-300 dark:text-stone-700">•</span>
+              <span className="text-stone-500 dark:text-stone-400 tabular-nums">
+                {currentDataset.rowCount.toLocaleString()} filas
+              </span>
+              {onCloseDataset && (
+                <button
+                  type="button"
+                  onClick={onCloseDataset}
+                  className="ml-1 rounded-full p-0.5 text-stone-400 hover:bg-stone-200 hover:text-stone-700 dark:hover:bg-stone-800 dark:hover:text-stone-200"
+                  title="Cerrar dataset"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+            <div
+              className="hidden sm:flex items-center gap-1.5 rounded-full border border-emerald-200/80 bg-emerald-50/70 px-2.5 py-1 text-2xs font-mono text-emerald-800 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-300 select-none shadow-2xs"
+              title="Sesión auto-guardada en IndexedDB. Tu trabajo está protegido contra recargas accidentales."
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span>Auto-guardado activo</span>
+            </div>
+          </>
         ) : (
           <span className="rounded-full bg-stone-100 px-3 py-1 text-xs font-mono text-stone-500 dark:bg-stone-800 dark:text-stone-400">
             DuckDB-WASM Motor Columnar Listo

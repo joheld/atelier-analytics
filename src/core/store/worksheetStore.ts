@@ -19,6 +19,15 @@ import {
 import { buildWorksheetAST } from '../ast/builder';
 import { compileASTtoDuckDB, CompiledQuery } from '../compiler/sqlCompiler';
 import { duckdbEngine, QueryExecutionResult } from '../engine/duckdbClient';
+import {
+  saveDatasetBlob,
+  getDatasetBlob,
+  getLatestDatasetBlob,
+  clearAllDatasets,
+  saveActiveSession,
+  getActiveSession,
+  clearActiveSession,
+} from '../storage/indexedDBStorage';
 
 export interface DashboardSheetExecution {
   queryResult: QueryExecutionResult | null;
@@ -126,8 +135,6 @@ export interface WorksheetStore extends WorksheetState {
   executeCurrentState: () => Promise<void>;
 }
 
-const LOCAL_STORAGE_KEY = 'atelier_saved_workbook_v1';
-
 const defaultSheet: WorksheetTab = {
   id: 'sheet_1',
   name: 'Hoja 1',
@@ -186,21 +193,87 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
     try {
       set({ isExecuting: true, engineError: null });
       await duckdbEngine.getDB();
-      set({
-        isEngineReady: true,
-        isExecuting: false,
-      });
+      set({ isEngineReady: true });
 
-      // Attempt to load cached settings from localStorage
-      try {
-        const savedJson = localStorage.getItem(LOCAL_STORAGE_KEY);
-        if (savedJson) {
-          const parsed = JSON.parse(savedJson) as Partial<WorkbookProject>;
-          if (parsed.calculatedFields) set({ calculatedFields: parsed.calculatedFields });
-          if (parsed.parameters) set({ parameters: parsed.parameters });
+      // 1. Attempt to retrieve active session snapshot from localStorage
+      const session = getActiveSession();
+
+      // 2. Attempt to retrieve dataset Blob from IndexedDB
+      const cachedRecord = session?.currentDatasetId
+        ? await getDatasetBlob(session.currentDatasetId)
+        : await getLatestDatasetBlob();
+
+      if (cachedRecord) {
+        try {
+          // Reconstruct File instance from persisted Blob
+          const file = new File([cachedRecord.blob], cachedRecord.fileName, {
+            type: cachedRecord.fileType,
+            lastModified: cachedRecord.updatedAt,
+          });
+
+          // Re-load dataset into DuckDB-WASM in-memory virtual filesystem
+          const meta = await duckdbEngine.loadUserFile(file);
+          const allDatasets = duckdbEngine.getAvailableDatasets();
+
+          if (session) {
+            // Re-merge calculated fields into dataset columns if present
+            if (session.calculatedFields && session.calculatedFields.length > 0) {
+              const extraCols = session.calculatedFields.map((cf) => ({
+                name: cf.name,
+                dataType: cf.dataType,
+                role: cf.role,
+                isCalculated: true,
+                formula: cf.formula,
+              }));
+              meta.columns = [...meta.columns, ...extraCols];
+            }
+
+            const activeSheet =
+              session.sheets?.find((s) => s.id === session.activeTabId) ||
+              session.sheets?.[0] ||
+              defaultSheet;
+
+            set({
+              availableDatasets: allDatasets,
+              currentDataset: meta,
+              datasetId: meta.id,
+              tableName: meta.tableName,
+              sheets: session.sheets && session.sheets.length > 0 ? session.sheets : [defaultSheet],
+              activeTabId: session.activeTabId || 'sheet_1',
+              calculatedFields: session.calculatedFields || [],
+              parameters: session.parameters || [],
+              theme: session.theme || 'light',
+              columns: activeSheet.columns || [],
+              rows: activeSheet.rows || [],
+              filters: activeSheet.filters || [],
+              marks: activeSheet.marks || defaultSheet.marks,
+              isExecuting: false,
+            });
+
+            // Re-execute query for restored active sheet or dashboard
+            await get().executeCurrentState();
+          } else {
+            set({
+              availableDatasets: allDatasets,
+              currentDataset: meta,
+              datasetId: meta.id,
+              tableName: meta.tableName,
+              isExecuting: false,
+            });
+            await get().executeCurrentState();
+          }
+        } catch (rehydrateErr) {
+          console.warn('[Storage] Error al rehidratar dataset desde IndexedDB:', rehydrateErr);
+          set({ isExecuting: false });
         }
-      } catch (e) {
-        console.warn('No se pudo restaurar estado previo desde localStorage:', e);
+      } else {
+        // No cached dataset, restore non-dataset preferences if any
+        if (session) {
+          if (session.calculatedFields) set({ calculatedFields: session.calculatedFields });
+          if (session.parameters) set({ parameters: session.parameters });
+          if (session.theme) set({ theme: session.theme });
+        }
+        set({ isExecuting: false });
       }
     } catch (err: unknown) {
       set({
@@ -215,6 +288,9 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
       set({ isExecuting: true, engineError: null });
       const meta = await duckdbEngine.loadUserFile(file);
       const allDatasets = duckdbEngine.getAvailableDatasets();
+
+      // Persist the dataset in IndexedDB for resilience against accidental reloads
+      await saveDatasetBlob(meta.id, file.name, file, meta);
 
       // Incorporate any existing calculated fields into dataset metadata
       const { calculatedFields } = get();
@@ -252,6 +328,8 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
   },
 
   closeDataset: () => {
+    void clearAllDatasets();
+    clearActiveSession();
     set({
       currentDataset: null,
       datasetId: '',
@@ -267,6 +345,9 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
         tooltip: [],
         opacity: 0.85,
       },
+      sheets: [defaultSheet],
+      activeTabId: 'sheet_1',
+      dashboardResults: {},
     });
   },
 
@@ -1223,17 +1304,19 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
         ],
       }));
 
-      // Auto-save to localStorage
+      // Immediate session snapshot save on execution
       try {
-        localStorage.setItem(
-          LOCAL_STORAGE_KEY,
-          JSON.stringify({
-            activeTabId: state.activeTabId,
-            sheets: state.sheets,
-            calculatedFields: state.calculatedFields,
-            parameters: state.parameters,
-          })
-        );
+        saveActiveSession({
+          version: 1,
+          updatedAt: Date.now(),
+          activeTabId: state.activeTabId,
+          sheets: state.sheets,
+          calculatedFields: state.calculatedFields,
+          parameters: state.parameters,
+          theme: state.theme,
+          currentDatasetId: state.currentDataset?.id,
+          currentDatasetName: state.currentDataset?.name,
+        });
       } catch (err) {
         // Ignore quota limits
       }
@@ -1245,3 +1328,29 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
     }
   },
 }));
+
+// Automatic session auto-save on any store state changes (debounced 250ms)
+let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
+useWorksheetStore.subscribe((state) => {
+  if (autoSaveTimer) clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(() => {
+    if (
+      state.currentDataset !== null ||
+      state.sheets.some((s) => s.columns.length > 0 || s.rows.length > 0) ||
+      state.calculatedFields.length > 0 ||
+      state.parameters.length > 0
+    ) {
+      saveActiveSession({
+        version: 1,
+        updatedAt: Date.now(),
+        activeTabId: state.activeTabId,
+        sheets: state.sheets,
+        calculatedFields: state.calculatedFields,
+        parameters: state.parameters,
+        theme: state.theme,
+        currentDatasetId: state.currentDataset?.id,
+        currentDatasetName: state.currentDataset?.name,
+      });
+    }
+  }, 250);
+});

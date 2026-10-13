@@ -103,6 +103,23 @@ export const App: React.FC = () => {
     void initEngine();
   }, [initEngine]);
 
+  // Accidental reload and tab close protection (Tableau Desktop UX)
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      const state = useWorksheetStore.getState();
+      const hasActiveWork =
+        state.currentDataset !== null &&
+        (state.columns.length > 0 || state.rows.length > 0 || state.sheets.length > 1);
+      if (hasActiveWork) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []);
+
   const activeSheet = sheets.find((s) => s.id === activeTabId) || sheets[0];
   const isDashboardTab = activeSheet?.type === 'dashboard';
 
