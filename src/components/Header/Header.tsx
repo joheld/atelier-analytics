@@ -8,6 +8,7 @@ import {
   X,
   Download,
   Upload,
+  Check,
 } from 'lucide-react';
 import React, { useRef } from 'react';
 import { DatasetMeta } from '../../core/ast/types';
@@ -88,11 +89,11 @@ export const Header: React.FC<HeaderProps> = ({
               )}
             </div>
             <div
-              className="hidden sm:flex items-center gap-1.5 rounded-full border border-emerald-200/80 bg-emerald-50/70 px-2.5 py-1 text-2xs font-mono text-emerald-800 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-300 select-none shadow-2xs"
-              title="Sesión auto-guardada en IndexedDB. Tu trabajo está protegido contra recargas accidentales."
+              className="hidden sm:flex items-center gap-1 text-[11px] font-mono text-stone-500 dark:text-stone-400 select-none"
+              title="Guardado automático en IndexedDB"
             >
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span>Auto-guardado activo</span>
+              <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+              <span>Guardado</span>
             </div>
           </>
         ) : (
