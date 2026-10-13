@@ -4,6 +4,7 @@ import { WorksheetAST, Pill } from '../../core/ast/types';
 import { getPillSqlIdentifier } from '../../core/ast/builder';
 import { QueryExecutionResult } from '../../core/engine/duckdbClient';
 import { EDITORIAL_OKLCH_CATEGORICAL, EDITORIAL_SEQUENTIAL_BLUE } from '../../utils/oklchColors';
+import { TextTableRenderer } from './TextTableRenderer';
 
 interface PlotRendererProps {
   ast: WorksheetAST | null;
@@ -29,6 +30,11 @@ export const PlotRenderer: React.FC<PlotRendererProps> = ({ ast, result, theme }
     width: 800,
     height: 500,
   });
+
+  // If user selected 'text' (Text Table / Cross-Tab), render rich interactive table
+  if (ast && result && result.rows.length > 0 && ast.markType === 'text') {
+    return <TextTableRenderer ast={ast} result={result} theme={theme} />;
+  }
 
   // Track container size reactively
   useEffect(() => {
@@ -64,11 +70,61 @@ export const PlotRenderer: React.FC<PlotRendererProps> = ({ ast, result, theme }
     const mutedColor = isDark ? '#a8a29e' : '#78716c';
     const gridColor = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.07)';
 
-    // Resolve column accessors from AST
-    const xPill = ast.spatialX[0];
-    const yPill = ast.spatialY[0];
+    // Classify spatial pills for single vs multi-measure layouts
+    const xDims = ast.spatialX.filter((p) => p.role === 'dimension');
+    const xMeasures = ast.spatialX.filter((p) => p.role === 'measure');
+    const yDims = ast.spatialY.filter((p) => p.role === 'dimension');
+    const yMeasures = ast.spatialY.filter((p) => p.role === 'measure');
+
+    const isMultiMeasureVertical = xDims.length > 0 && yMeasures.length > 1;
+    const isMultiMeasureHorizontal = yDims.length > 0 && xMeasures.length > 1;
+    const isMultiMeasureStandalone =
+      xDims.length === 0 && yDims.length === 0 && (yMeasures.length > 1 || xMeasures.length > 1);
+    const isMultiMeasure = isMultiMeasureVertical || isMultiMeasureHorizontal || isMultiMeasureStandalone;
+
+    // Resolve primary axis pill accessors
+    const xPill = isMultiMeasureVertical ? xDims[0] : ast.spatialX[0];
+    const yPill = isMultiMeasureHorizontal ? yDims[0] : ast.spatialY[0];
     const xField = xPill ? getPillSqlIdentifier(xPill) : undefined;
     const yField = yPill ? getPillSqlIdentifier(yPill) : undefined;
+
+    // Unpivot data rows for multiple measures (Grouped / Clustered Bars / Multi-lines)
+    let multiMeasureRows: Record<string, unknown>[] = [];
+    if (isMultiMeasureVertical) {
+      multiMeasureRows = result.rows.flatMap((r) =>
+        yMeasures.map((m) => {
+          const k = getPillSqlIdentifier(m);
+          const val = r[k];
+          return {
+            ...r,
+            _measureName: getPillDisplayLabel(m),
+            _measureValue: typeof val === 'number' ? val : 0,
+          };
+        })
+      );
+    } else if (isMultiMeasureHorizontal) {
+      multiMeasureRows = result.rows.flatMap((r) =>
+        xMeasures.map((m) => {
+          const k = getPillSqlIdentifier(m);
+          const val = r[k];
+          return {
+            ...r,
+            _measureName: getPillDisplayLabel(m),
+            _measureValue: typeof val === 'number' ? val : 0,
+          };
+        })
+      );
+    } else if (isMultiMeasureStandalone) {
+      const mList = yMeasures.length > 1 ? yMeasures : xMeasures;
+      multiMeasureRows = mList.map((m) => {
+        const k = getPillSqlIdentifier(m);
+        const val = result.rows[0]?.[k];
+        return {
+          _measureName: getPillDisplayLabel(m),
+          _measureValue: typeof val === 'number' ? val : 0,
+        };
+      });
+    }
 
     const colorPill = ast.colorChannel;
     const colorField = colorPill ? getPillSqlIdentifier(colorPill) : undefined;
@@ -88,7 +144,7 @@ export const PlotRenderer: React.FC<PlotRendererProps> = ({ ast, result, theme }
     const shouldRotateX = !isXContinuous && hasLongXTicks;
 
     // Margins with dynamic padding for rotated labels and color legend
-    const marginTop = colorPill ? 56 : 32;
+    const marginTop = colorPill || isMultiMeasure ? 56 : 32;
     const marginBottom = shouldRotateX ? 80 : 45;
     const marginLeft = 65;
     const marginRight = 35;
@@ -138,8 +194,10 @@ export const PlotRenderer: React.FC<PlotRendererProps> = ({ ast, result, theme }
 
     const marks: Plot.Markish[] = [];
 
-    // Background horizontal grid lines
-    if (yField) {
+    // Background grid lines
+    if (isMultiMeasureHorizontal) {
+      marks.push(Plot.gridX({ stroke: gridColor, strokeDasharray: '2,2' }));
+    } else if (yField || isMultiMeasure) {
       marks.push(Plot.gridY({ stroke: gridColor, strokeDasharray: '2,2' }));
     }
 
@@ -147,7 +205,54 @@ export const PlotRenderer: React.FC<PlotRendererProps> = ({ ast, result, theme }
 
     // 1. BAR CHART
     if (markType === 'bar') {
-      if (xPill?.role === 'measure' && yPill?.role === 'dimension') {
+      if (isMultiMeasureVertical) {
+        // Clustered / Grouped Vertical Bars (Dimensions on Columns, 2+ Measures on Rows)
+        marks.push(
+          Plot.barY(multiMeasureRows, {
+            fx: xField,
+            x: '_measureName',
+            y: '_measureValue',
+            fill: '_measureName',
+            title: (d: Record<string, unknown>) =>
+              `${d[xField as string]} · ${d._measureName}: ${typeof d._measureValue === 'number' ? Number(d._measureValue).toLocaleString() : d._measureValue}`,
+            tip: true,
+            insetLeft: 1,
+            insetRight: 1,
+            rx: 2,
+          })
+        );
+      } else if (isMultiMeasureHorizontal) {
+        // Clustered / Grouped Horizontal Bars (Dimensions on Rows, 2+ Measures on Columns)
+        marks.push(
+          Plot.barX(multiMeasureRows, {
+            fy: yField,
+            y: '_measureName',
+            x: '_measureValue',
+            fill: '_measureName',
+            title: (d: Record<string, unknown>) =>
+              `${d[yField as string]} · ${d._measureName}: ${typeof d._measureValue === 'number' ? Number(d._measureValue).toLocaleString() : d._measureValue}`,
+            tip: true,
+            insetTop: 1,
+            insetBottom: 1,
+            rx: 2,
+          })
+        );
+      } else if (isMultiMeasureStandalone) {
+        // Standalone comparison of 2+ measures without dimensions
+        marks.push(
+          Plot.barY(multiMeasureRows, {
+            x: '_measureName',
+            y: '_measureValue',
+            fill: '_measureName',
+            title: (d: Record<string, unknown>) =>
+              `${d._measureName}: ${typeof d._measureValue === 'number' ? Number(d._measureValue).toLocaleString() : d._measureValue}`,
+            tip: true,
+            insetLeft: 6,
+            insetRight: 6,
+            rx: 3,
+          })
+        );
+      } else if (xPill?.role === 'measure' && yPill?.role === 'dimension') {
         // Horizontal Bar
         marks.push(
           Plot.barX(result.rows, {
@@ -180,50 +285,100 @@ export const PlotRenderer: React.FC<PlotRendererProps> = ({ ast, result, theme }
     }
     // 2. LINE CHART
     else if (markType === 'line') {
-      marks.push(
-        Plot.lineY(result.rows, {
-          x: xField,
-          y: yField,
-          stroke: colorField || 'oklch(0.55 0.18 245)',
-          strokeWidth: 2.2,
-          curve: 'monotone-x',
-          title: makeTooltipTitle,
-          tip: true,
-        })
-      );
-      marks.push(
-        Plot.dot(result.rows, {
-          x: xField,
-          y: yField,
-          fill: colorField || 'oklch(0.55 0.18 245)',
-          r: 3.5,
-          title: makeTooltipTitle,
-          tip: true,
-        })
-      );
+      if (isMultiMeasureVertical) {
+        marks.push(
+          Plot.lineY(multiMeasureRows, {
+            x: xField,
+            y: '_measureValue',
+            stroke: '_measureName',
+            strokeWidth: 2.2,
+            curve: 'monotone-x',
+            title: (d: Record<string, unknown>) =>
+              `${d[xField as string]} · ${d._measureName}: ${typeof d._measureValue === 'number' ? Number(d._measureValue).toLocaleString() : d._measureValue}`,
+            tip: true,
+          })
+        );
+        marks.push(
+          Plot.dot(multiMeasureRows, {
+            x: xField,
+            y: '_measureValue',
+            fill: '_measureName',
+            r: 3.5,
+            title: (d: Record<string, unknown>) =>
+              `${d[xField as string]} · ${d._measureName}: ${typeof d._measureValue === 'number' ? Number(d._measureValue).toLocaleString() : d._measureValue}`,
+            tip: true,
+          })
+        );
+      } else {
+        marks.push(
+          Plot.lineY(result.rows, {
+            x: xField,
+            y: yField,
+            stroke: colorField || 'oklch(0.55 0.18 245)',
+            strokeWidth: 2.2,
+            curve: 'monotone-x',
+            title: makeTooltipTitle,
+            tip: true,
+          })
+        );
+        marks.push(
+          Plot.dot(result.rows, {
+            x: xField,
+            y: yField,
+            fill: colorField || 'oklch(0.55 0.18 245)',
+            r: 3.5,
+            title: makeTooltipTitle,
+            tip: true,
+          })
+        );
+      }
     }
     // 3. AREA CHART
     else if (markType === 'area') {
-      marks.push(
-        Plot.areaY(result.rows, {
-          x: xField,
-          y: yField,
-          fill: colorField || 'oklch(0.55 0.18 245)',
-          fillOpacity: 0.35,
-          curve: 'monotone-x',
-        })
-      );
-      marks.push(
-        Plot.lineY(result.rows, {
-          x: xField,
-          y: yField,
-          stroke: colorField || 'oklch(0.55 0.18 245)',
-          strokeWidth: 2,
-          curve: 'monotone-x',
-          title: makeTooltipTitle,
-          tip: true,
-        })
-      );
+      if (isMultiMeasureVertical) {
+        marks.push(
+          Plot.areaY(multiMeasureRows, {
+            x: xField,
+            y: '_measureValue',
+            fill: '_measureName',
+            fillOpacity: 0.35,
+            curve: 'monotone-x',
+          })
+        );
+        marks.push(
+          Plot.lineY(multiMeasureRows, {
+            x: xField,
+            y: '_measureValue',
+            stroke: '_measureName',
+            strokeWidth: 2,
+            curve: 'monotone-x',
+            title: (d: Record<string, unknown>) =>
+              `${d[xField as string]} · ${d._measureName}: ${typeof d._measureValue === 'number' ? Number(d._measureValue).toLocaleString() : d._measureValue}`,
+            tip: true,
+          })
+        );
+      } else {
+        marks.push(
+          Plot.areaY(result.rows, {
+            x: xField,
+            y: yField,
+            fill: colorField || 'oklch(0.55 0.18 245)',
+            fillOpacity: 0.35,
+            curve: 'monotone-x',
+          })
+        );
+        marks.push(
+          Plot.lineY(result.rows, {
+            x: xField,
+            y: yField,
+            stroke: colorField || 'oklch(0.55 0.18 245)',
+            strokeWidth: 2,
+            curve: 'monotone-x',
+            title: makeTooltipTitle,
+            tip: true,
+          })
+        );
+      }
     }
     // 4. SCATTER / DOT PLOT
     else if (markType === 'dot') {
@@ -439,7 +594,7 @@ export const PlotRenderer: React.FC<PlotRendererProps> = ({ ast, result, theme }
     }
 
     // 7. Tableau Analytics Lines (Reference Lines, Average, Median, Linear Regression)
-    if (ast.analyticsLines && ast.analyticsLines.length > 0 && yField) {
+    if (ast.analyticsLines && ast.analyticsLines.length > 0 && yField && !isMultiMeasure) {
       const yValues = result.rows
         .map((r) => r[yField])
         .filter((v): v is number => typeof v === 'number' && !isNaN(v));
@@ -506,6 +661,12 @@ export const PlotRenderer: React.FC<PlotRendererProps> = ({ ast, result, theme }
           legend: true,
         };
       }
+    } else if (isMultiMeasure) {
+      colorScaleConfig = {
+        type: 'categorical',
+        range: EDITORIAL_OKLCH_CATEGORICAL,
+        legend: true,
+      };
     }
 
     // Build the Plot specification
@@ -523,20 +684,54 @@ export const PlotRenderer: React.FC<PlotRendererProps> = ({ ast, result, theme }
         fontSize: '11px',
         fontVariantNumeric: 'tabular-nums',
       },
-      x: {
-        label: getPillDisplayLabel(xPill, xField || 'X'),
-        grid: false,
-        line: true,
-        tickRotate: shouldRotateX ? -35 : 0,
-        tickFormat: formatXTick,
-      },
-      y: {
-        label: markType === 'histogram' ? 'Frecuencia (Count)' : getPillDisplayLabel(yPill, yField || 'Y'),
-        grid: false,
-        line: true,
-        tickFormat: (d) =>
-          typeof d === 'number' && d >= 1000 ? `${(d / 1000).toFixed(0)}k` : d,
-      },
+      fx: isMultiMeasureVertical
+        ? {
+            label: getPillDisplayLabel(xPill, xField || 'X'),
+            padding: 0.2,
+            tickRotate: shouldRotateX ? -35 : 0,
+          }
+        : undefined,
+      fy: isMultiMeasureHorizontal
+        ? {
+            label: getPillDisplayLabel(yPill, yField || 'Y'),
+            padding: 0.2,
+          }
+        : undefined,
+      x: isMultiMeasureVertical
+        ? {
+            axis: null,
+          }
+        : isMultiMeasureHorizontal
+        ? {
+            label: 'Valor de Métricas',
+            grid: false,
+            line: true,
+            tickFormat: (d) =>
+              typeof d === 'number' && d >= 1000 ? `${(d / 1000).toFixed(0)}k` : d,
+          }
+        : {
+            label: isMultiMeasureStandalone ? 'Métricas' : getPillDisplayLabel(xPill, xField || 'X'),
+            grid: false,
+            line: true,
+            tickRotate: shouldRotateX ? -35 : 0,
+            tickFormat: formatXTick,
+          },
+      y: isMultiMeasureHorizontal
+        ? {
+            axis: null,
+          }
+        : {
+            label:
+              isMultiMeasureVertical || isMultiMeasureStandalone
+                ? 'Valor de Métricas'
+                : markType === 'histogram'
+                ? 'Frecuencia (Count)'
+                : getPillDisplayLabel(yPill, yField || 'Y'),
+            grid: false,
+            line: true,
+            tickFormat: (d) =>
+              typeof d === 'number' && d >= 1000 ? `${(d / 1000).toFixed(0)}k` : d,
+          },
       color: colorScaleConfig,
       marks,
     });

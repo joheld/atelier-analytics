@@ -435,4 +435,60 @@ describe('Atelier Analytics Compiler & AST Builder', () => {
     expect(boxCompiled.sql).toContain('SELECT\n  region AS region,\n  sales AS sum_sales\nFROM superstore');
     expect(boxCompiled.sql).not.toContain('GROUP BY');
   });
+
+  it('compiles multi-measure clustered queries projecting multiple aggregated metrics simultaneously', () => {
+    const multiMeasureState: WorksheetState = {
+      datasetId: 'superstore',
+      tableName: 'superstore',
+      columns: [{ id: 'c1', columnName: 'category', role: 'dimension', dataType: 'string' }],
+      rows: [
+        { id: 'r1', columnName: 'sales', role: 'measure', dataType: 'number', aggregation: 'SUM' },
+        { id: 'r2', columnName: 'profit', role: 'measure', dataType: 'number', aggregation: 'SUM' },
+        { id: 'r3', columnName: 'discount', role: 'measure', dataType: 'number', aggregation: 'AVG' },
+      ],
+      filters: [],
+      marks: { markType: 'bar', detail: [], tooltip: [], opacity: 0.9 },
+    };
+
+    const ast = buildWorksheetAST(multiMeasureState);
+    expect(ast.spatialX).toHaveLength(1);
+    expect(ast.spatialY).toHaveLength(3);
+    expect(ast.aggregatedMeasures).toHaveLength(3);
+
+    const compiled = compileASTtoDuckDB(ast);
+    expect(compiled.sql).toContain('category AS category');
+    expect(compiled.sql).toContain('SUM(sales) AS sum_sales');
+    expect(compiled.sql).toContain('SUM(profit) AS sum_profit');
+    expect(compiled.sql).toContain('AVG(discount) AS avg_discount');
+    expect(compiled.sql).toContain('GROUP BY category');
+  });
+
+  it('compiles Text Table (Cross-Tab) with multiple dimensions and measures', () => {
+    const crossTabState: WorksheetState = {
+      datasetId: 'superstore',
+      tableName: 'superstore',
+      columns: [
+        { id: 'c1', columnName: 'region', role: 'dimension', dataType: 'string' },
+      ],
+      rows: [
+        { id: 'r1', columnName: 'category', role: 'dimension', dataType: 'string' },
+        { id: 'r2', columnName: 'sales', role: 'measure', dataType: 'number', aggregation: 'SUM' },
+        { id: 'r3', columnName: 'profit', role: 'measure', dataType: 'number', aggregation: 'SUM' },
+      ],
+      filters: [],
+      marks: { markType: 'text', detail: [], tooltip: [], opacity: 1 },
+    };
+
+    const ast = buildWorksheetAST(crossTabState);
+    expect(ast.markType).toBe('text');
+    expect(ast.groupByDimensions).toHaveLength(2);
+    expect(ast.aggregatedMeasures).toHaveLength(2);
+
+    const compiled = compileASTtoDuckDB(ast);
+    expect(compiled.sql).toContain('region AS region');
+    expect(compiled.sql).toContain('category AS category');
+    expect(compiled.sql).toContain('SUM(sales) AS sum_sales');
+    expect(compiled.sql).toContain('SUM(profit) AS sum_profit');
+    expect(compiled.sql).toContain('GROUP BY region, category');
+  });
 });
