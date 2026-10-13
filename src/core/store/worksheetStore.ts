@@ -28,6 +28,11 @@ import {
   saveActiveSession,
   getActiveSession,
   clearActiveSession,
+  ActiveSessionSnapshot,
+  SavedWorkbookRecord,
+  saveWorkbookRecord,
+  getAllWorkbookRecords,
+  deleteWorkbookRecord,
 } from '../storage/indexedDBStorage';
 
 export interface DashboardSheetExecution {
@@ -71,6 +76,19 @@ export interface WorksheetStore extends WorksheetState {
   closeDataModelModal: () => void;
   createJoinModel: (config: JoinRelationConfig) => Promise<DatasetMeta>;
   createUnionModel: (config: UnionConfig) => Promise<DatasetMeta>;
+
+  // Workbooks Management (Catálogo de Reportes & Storage Inspector)
+  currentWorkbookId: string;
+  currentWorkbookName: string;
+  savedWorkbooks: SavedWorkbookRecord[];
+  isStorageModalOpen: boolean;
+  openStorageModal: () => void;
+  closeStorageModal: () => void;
+  createNewWorkbook: (name?: string) => Promise<void>;
+  switchWorkbook: (id: string) => Promise<void>;
+  renameCurrentWorkbook: (name: string) => void;
+  deleteWorkbook: (id: string) => Promise<void>;
+  refreshSavedWorkbooks: () => Promise<void>;
 
   // Actions - Core Engine & Datasets
   initEngine: () => Promise<void>;
@@ -198,12 +216,145 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
   dashboardResults: {},
   isDataModelModalOpen: false,
 
+  currentWorkbookId: 'wb_default',
+  currentWorkbookName: 'Reporte Principal',
+  savedWorkbooks: [],
+  isStorageModalOpen: false,
+
+  openStorageModal: () => set({ isStorageModalOpen: true }),
+  closeStorageModal: () => set({ isStorageModalOpen: false }),
+
   openDataModelModal: () => {
     set({ isDataModelModalOpen: true });
   },
 
   closeDataModelModal: () => {
     set({ isDataModelModalOpen: false });
+  },
+
+  refreshSavedWorkbooks: async () => {
+    const list = await getAllWorkbookRecords();
+    set({ savedWorkbooks: list });
+  },
+
+  createNewWorkbook: async (name?: string) => {
+    const state = get();
+    // 1. Save current workbook snapshot before switching
+    const currentSnapshot: ActiveSessionSnapshot = {
+      version: 1,
+      updatedAt: Date.now(),
+      activeTabId: state.activeTabId,
+      sheets: state.sheets,
+      calculatedFields: state.calculatedFields,
+      parameters: state.parameters,
+      theme: state.theme,
+      currentDatasetId: state.currentDataset?.id,
+      currentDatasetName: state.currentDataset?.name,
+      currentWorkbookId: state.currentWorkbookId,
+      currentWorkbookName: state.currentWorkbookName,
+    };
+    await saveWorkbookRecord({
+      id: state.currentWorkbookId,
+      name: state.currentWorkbookName,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      snapshot: currentSnapshot,
+    });
+
+    // 2. Initialize new blank workbook
+    const newId = `wb_${Date.now()}`;
+    const newName = name || `Reporte ${state.savedWorkbooks.length + 2}`;
+    const defaultTab = {
+      ...defaultSheet,
+      datasetId: state.currentDataset?.id,
+      tableName: state.currentDataset?.tableName,
+    };
+
+    set({
+      currentWorkbookId: newId,
+      currentWorkbookName: newName,
+      sheets: [defaultTab],
+      activeTabId: defaultTab.id,
+      columns: [],
+      rows: [],
+      filters: [],
+      marks: {
+        markType: 'auto',
+        detail: [],
+        tooltip: [],
+        opacity: 0.85,
+      },
+      dashboardResults: {},
+    });
+
+    await get().refreshSavedWorkbooks();
+    await get().executeCurrentState();
+  },
+
+  switchWorkbook: async (id: string) => {
+    const state = get();
+    if (state.currentWorkbookId === id) return;
+
+    // 1. Save current active workbook
+    const currentSnapshot: ActiveSessionSnapshot = {
+      version: 1,
+      updatedAt: Date.now(),
+      activeTabId: state.activeTabId,
+      sheets: state.sheets,
+      calculatedFields: state.calculatedFields,
+      parameters: state.parameters,
+      theme: state.theme,
+      currentDatasetId: state.currentDataset?.id,
+      currentDatasetName: state.currentDataset?.name,
+      currentWorkbookId: state.currentWorkbookId,
+      currentWorkbookName: state.currentWorkbookName,
+    };
+    await saveWorkbookRecord({
+      id: state.currentWorkbookId,
+      name: state.currentWorkbookName,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      snapshot: currentSnapshot,
+    });
+
+    // 2. Load target workbook
+    const target = state.savedWorkbooks.find((wb) => wb.id === id);
+    if (!target) return;
+
+    const snap = target.snapshot;
+    const activeSheet = snap.sheets.find((s) => s.id === snap.activeTabId) || snap.sheets[0] || defaultSheet;
+    const boundDataset = activeSheet.datasetId
+      ? state.availableDatasets.find((d) => d.id === activeSheet.datasetId) || state.currentDataset
+      : state.currentDataset;
+
+    set({
+      currentWorkbookId: target.id,
+      currentWorkbookName: target.name,
+      sheets: snap.sheets,
+      activeTabId: activeSheet.id,
+      currentDataset: boundDataset,
+      datasetId: boundDataset ? boundDataset.id : state.datasetId,
+      tableName: boundDataset ? boundDataset.tableName : state.tableName,
+      columns: activeSheet.columns,
+      rows: activeSheet.rows,
+      filters: activeSheet.filters,
+      marks: activeSheet.marks,
+      calculatedFields: snap.calculatedFields || [],
+      parameters: snap.parameters || [],
+      theme: snap.theme || state.theme,
+    });
+
+    await get().refreshSavedWorkbooks();
+    await get().executeCurrentState();
+  },
+
+  renameCurrentWorkbook: (name: string) => {
+    set({ currentWorkbookName: name });
+  },
+
+  deleteWorkbook: async (id: string) => {
+    await deleteWorkbookRecord(id);
+    await get().refreshSavedWorkbooks();
   },
 
   initEngine: async () => {
@@ -276,6 +427,8 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
               rows: activeSheet.rows || [],
               filters: activeSheet.filters || [],
               marks: activeSheet.marks || defaultSheet.marks,
+              currentWorkbookId: session.currentWorkbookId || 'wb_default',
+              currentWorkbookName: session.currentWorkbookName || 'Reporte Principal',
               isExecuting: false,
             });
 
@@ -301,9 +454,12 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
           if (session.calculatedFields) set({ calculatedFields: session.calculatedFields });
           if (session.parameters) set({ parameters: session.parameters });
           if (session.theme) set({ theme: session.theme });
+          if (session.currentWorkbookId) set({ currentWorkbookId: session.currentWorkbookId });
+          if (session.currentWorkbookName) set({ currentWorkbookName: session.currentWorkbookName });
         }
         set({ isExecuting: false });
       }
+      await get().refreshSavedWorkbooks();
     } catch (err: unknown) {
       set({
         engineError: err instanceof Error ? err.message : 'Error al inicializar DuckDB-WASM',
@@ -1448,7 +1604,7 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
 
       // Immediate session snapshot save on execution
       try {
-        saveActiveSession({
+        const snap: ActiveSessionSnapshot = {
           version: 1,
           updatedAt: Date.now(),
           activeTabId: state.activeTabId,
@@ -1458,7 +1614,10 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
           theme: state.theme,
           currentDatasetId: state.currentDataset?.id,
           currentDatasetName: state.currentDataset?.name,
-        });
+          currentWorkbookId: state.currentWorkbookId,
+          currentWorkbookName: state.currentWorkbookName,
+        };
+        saveActiveSession(snap);
       } catch (err) {
         // Ignore quota limits
       }
@@ -1482,7 +1641,7 @@ useWorksheetStore.subscribe((state) => {
       state.calculatedFields.length > 0 ||
       state.parameters.length > 0
     ) {
-      saveActiveSession({
+      const snap: ActiveSessionSnapshot = {
         version: 1,
         updatedAt: Date.now(),
         activeTabId: state.activeTabId,
@@ -1492,6 +1651,16 @@ useWorksheetStore.subscribe((state) => {
         theme: state.theme,
         currentDatasetId: state.currentDataset?.id,
         currentDatasetName: state.currentDataset?.name,
+        currentWorkbookId: state.currentWorkbookId,
+        currentWorkbookName: state.currentWorkbookName,
+      };
+      saveActiveSession(snap);
+      void saveWorkbookRecord({
+        id: state.currentWorkbookId,
+        name: state.currentWorkbookName,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        snapshot: snap,
       });
     }
   }, 250);

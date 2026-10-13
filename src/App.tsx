@@ -17,6 +17,7 @@ import { ParameterModal } from './components/Parameters/ParameterModal';
 import { ParameterControlsBar } from './components/Parameters/ParameterControlsBar';
 import { ShowMeDrawer } from './components/ShowMe/ShowMeDrawer';
 import { DataModelModal } from './components/DataModel/DataModelModal';
+import { StorageInspectorModal } from './components/Storage/StorageInspectorModal';
 import { Columns, Rows, Loader2, Sparkles, ArrowUpDown } from 'lucide-react';
 import { buildWorksheetAST } from './core/ast/builder';
 
@@ -105,6 +106,18 @@ export const App: React.FC = () => {
     // Project Persistence
     exportProjectFile,
     importProjectFile,
+
+    // Multi-Workbook / Storage Management
+    currentWorkbookId,
+    currentWorkbookName,
+    savedWorkbooks,
+    isStorageModalOpen,
+    openStorageModal,
+    closeStorageModal,
+    createNewWorkbook,
+    switchWorkbook,
+    renameCurrentWorkbook,
+    deleteWorkbook,
   } = useWorksheetStore();
 
   useEffect(() => {
@@ -160,6 +173,14 @@ export const App: React.FC = () => {
         latencyMs={queryResult?.durationMs}
         rowCount={queryResult?.rowCount}
         hasPillsOnShelves={hasPillsOnShelves}
+        currentWorkbookId={currentWorkbookId}
+        currentWorkbookName={currentWorkbookName}
+        savedWorkbooks={savedWorkbooks}
+        onNewWorkbook={() => void createNewWorkbook()}
+        onSwitchWorkbook={(id) => void switchWorkbook(id)}
+        onRenameWorkbook={renameCurrentWorkbook}
+        onDeleteWorkbook={(id) => void deleteWorkbook(id)}
+        onOpenStorageModal={openStorageModal}
       />
 
       {/* Main Studio Workspace */}
@@ -437,6 +458,17 @@ export const App: React.FC = () => {
           onCreateUnion={createUnionModel}
         />
       )}
+
+      {/* Storage Transparency & Inspector Modal */}
+      <StorageInspectorModal
+        isOpen={isStorageModalOpen}
+        onClose={closeStorageModal}
+        onExportProject={exportProjectFile}
+        currentWorkbookName={currentWorkbookName}
+        savedWorkbooksCount={savedWorkbooks.length}
+        availableDatasets={availableDatasets}
+        sheetsCount={sheets.length}
+      />
     </div>
   );
 };

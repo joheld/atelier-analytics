@@ -130,6 +130,7 @@ gitGraph
     commit id: "fix-text-table-hooks-and-error-boundary" tag: "v1.8.1"
     commit id: "indexeddb-persistence-and-session-autosave" tag: "v1.9.0"
     commit id: "multi-source-and-visual-data-modeling" tag: "v2.0.0"
+    commit id: "storage-transparency-and-multi-workbook-catalog" tag: "v2.1.0"
 ```
 
 ---
@@ -156,6 +157,7 @@ gitGraph
 | **CP-16** | Corrección de React Hooks en Tabla de Texto y Canvas Error Boundary | **Completado** | 1) Corrección de orden de React Hooks en `PlotRenderer.tsx`: eliminado retorno anticipado condicional antes de hooks (`Rendered fewer hooks than expected`) y movido al retorno JSX final; 2) Creado `CanvasErrorBoundary.tsx` para aislar cualquier excepción de renderizado y prevenir pantallas en blanco; 3) Blindado `TextTableRenderer.tsx` con soporte para BigInt, descubrimiento universal de pastillas y portapapeles seguro; 4) 13/13 tests pasando en Vitest (con suite para TextTableRenderer), 0 errores `tsc`, build en 2.36s y HTTP 200 en http://127.0.0.1:5173. |
 | **CP-17** | Persistencia Completa In-Browser: IndexedDB Datasets, Auto-Save Reactivo y Protección BeforeUnload | **Completado** | 1) Almacenamiento binario del dataset (`File`/`Blob`) en IndexedDB para supervivencia a recargas y F5; 2) Auto-guardado en segundo plano con debounce (250ms) del AST, estantes, hojas, campos calculados y parámetros; 3) Rehidratación automática transparente en `initEngine` montando el dataset en DuckDB-WASM y re-ejecutando queries; 4) Protección nativa `beforeunload` para advertir antes de recargas accidentales; 5) Badge visual "Auto-guardado activo" en Header; 6) 15/15 tests pasando en Vitest, 0 errores tsc, build limpio y HTTP 200 en puerto 5173. |
 | **CP-18** | Multi-Fuente y Modelado Relacional de Datos: Joins, Unions y Dashboards Compuestos | **Completado** | 1) Soporte multi-tabla simultáneo en DuckDB-WASM (cada archivo se monta como tabla independiente); 2) Selector multi-fuente en la barra lateral con botón `+ Fuente` y badge de tablas cargadas; 3) Vinculación por hoja (`sheet.tableName`/`sheet.datasetId`), permitiendo que cada hoja analice un archivo diferente y convivan en el mismo Dashboard con badge de origen; 4) Asistente visual de modelado de datos (`DataModelModal.tsx`) con soporte para 4 tipos de JOIN (`LEFT`, `INNER`, `FULL`, `RIGHT`), desambiguación automática de nombres de columnas y apilado vertical `UNION ALL BY NAME`; 5) Previsualización en vivo en 5 filas con DuckDB-WASM; 6) 18/18 tests unitarios pasando, 0 errores tsc, build limpio en 2.40s y HTTP 200 en puerto 5173. |
+| **CP-19** | Transparencia de Almacenamiento Local y Catálogo de Reportes Múltiples | **Completado** | 1) Modal de Transparencia de Almacenamiento (`StorageInspectorModal.tsx`) accesible al pulsar el badge "Guardado en Mac" en el Header; muestra métricas de almacenamiento, arquitectura en capas, ubicación física en disco en macOS (`~/Library/Application Support/...`) y botón para exportar `.atelier` a `~/Downloads`; 2) Catálogo de Reportes Múltiples en el Header con selector de reporte activo, renombrado en tiempo real, creación de nuevos reportes independientes (`+ Nuevo Reporte en Blanco`) sin cerrar ni perder el trabajo activo y alternancia instantánea en 1 clic; 3) 19/19 tests unitarios pasando en Vitest, 0 errores de TypeScript, compilación de producción en 2.58s y HTTP 200 en http://127.0.0.1:5173. |
 
 ---
 
@@ -175,7 +177,7 @@ atelier-analytics/
 ├── dist/                         # Compilación estática de producción (SPA offline)
 └── src/
     ├── main.tsx                  # Bootstrap React 19
-    ├── App.tsx                   # Layout editorial tipo Studio con DataModelModal, CanvasErrorBoundary y beforeunload guard
+    ├── App.tsx                   # Layout editorial tipo Studio con StorageInspectorModal, DataModelModal, CanvasErrorBoundary
     ├── index.css                 # Variables CSS OKLCH, estilos tabulares y reset
     ├── core/
     │   ├── ast/
@@ -185,16 +187,18 @@ atelier-analytics/
     │   │   ├── sqlCompiler.ts    # Compilador optimizado AST -> SQL con soporte para distribution queries y window functions
     │   │   └── sqlCompiler.test.ts # Suite de pruebas unitarias (11/11 tests pasados, 100% verde)
     │   ├── engine/
-    │   │   ├── duckdbClient.ts   # Conector DuckDB-WASM con creación de vistas relacionales (JOIN con desambiguación y UNION ALL BY NAME)
-    │   │   └── dataModeling.test.ts # Suite de pruebas unitarias de modelado relacional y validación de esquemas (3/3 pasados)
+    │   │   ├── duckdbClient.ts   # Conector DuckDB-WASM con creación de vistas relacionales (JOIN y UNION ALL BY NAME)
+    │   │   └── dataModeling.test.ts # Suite de pruebas unitarias de modelado relacional (3/3 pasados)
     │   ├── storage/
-    │   │   ├── indexedDBStorage.ts # Motor de persistencia binaria IndexedDB con getAllDatasetBlobs para multi-tablas
-    │   │   └── indexedDBStorage.test.ts # Pruebas unitarias de serialización, recuperación multi-pestaña y borrado de sesión
+    │   │   ├── indexedDBStorage.ts # Motor de persistencia binaria IndexedDB con almacenamiento de datasets, catálogo de workbooks y métricas de disco
+    │   │   └── indexedDBStorage.test.ts # Pruebas unitarias de serialización, recuperación de sesiones y catálogo de workbooks (3/3 pasados)
     │   └── store/
-    │       └── worksheetStore.ts # Almacén Zustand reactivo con vinculación dataset por hoja, createJoinModel y createUnionModel
+    │       └── worksheetStore.ts # Almacén Zustand reactivo con catálogo de reportes (createNewWorkbook, switchWorkbook, renameCurrentWorkbook)
     ├── components/
     │   ├── Header/
-    │   │   └── Header.tsx        # Barra editorial con estado, latencia, badge "Guardado" minimalista, tema y botones Abrir/Guardar
+    │   │   └── Header.tsx        # Barra editorial con selector de reportes, renombrado en vivo, badge interactivo "Guardado en Mac" y tema
+    │   ├── Storage/
+    │   │   └── StorageInspectorModal.tsx # Modal de transparencia de almacenamiento local en macOS, métricas de uso y descarga de proyecto
     │   ├── DataSidebar/
     │   │   └── DataSidebar.tsx   # Panel Tableau con selector de fuente activa, botón '+ Fuente', botón 'Modelar' y pestañas Datos/Análisis
     │   ├── DataModel/
@@ -234,11 +238,15 @@ atelier-analytics/
 
 ## 6. Estado de la Sesión
 
-- **Estado Actual:** Implementada la arquitectura completa de **Multi-Fuente de Datos y Modelado Relacional (Tableau Data Model)**:
-  1. **Multi-Fuente por Hoja y Dashboard Compuesto:** El usuario puede cargar múltiples archivos (CSV, Parquet, TSV, JSON) en DuckDB-WASM con el botón `+ Fuente`. Cada hoja de trabajo puede analizar una fuente independiente seleccionable mediante el dropdown de la barra lateral. En el **Dashboard**, conviven hojas alimentadas por diferentes archivos, mostrando en cada tarjeta una etiqueta con su tabla de origen.
-  2. **Asistente Visual de Modelado de Datos (`DataModelModal.tsx`):**
-     - **Relaciones / JOIN:** Permite vincular dos tablas mediante una clave en común (`pedidos.cliente_id = clientes.id`), seleccionando entre 4 tipos de unión (`LEFT`, `INNER`, `FULL`, `RIGHT`). DuckDB-WASM resuelve automáticamente colisiones de nombres de columnas (prefijando columnas repetidas con el nombre de la tabla).
-     - **Apilado / UNION:** Permite apilar verticalmente dos o más tablas con `UNION ALL BY NAME`, completando automáticamente con `NULL` las columnas dispares.
-     - **Previsualización en Vivo:** Botón "Previsualizar 5 filas" que valida la consulta y muestra el esquema resultante en milisegundos antes de confirmar.
-  3. **Persistencia Multi-Tabla:** `getAllDatasetBlobs` en IndexedDB rehidrata todos los archivos cargados al recargar la página.
-- **Siguiente Paso:** Sistema 100% verificado y validado bajo la batería Zero-Defect (18/18 tests unitarios pasando en Vitest, 0 errores tsc, build de producción en 2.40s y servidor respondiendo HTTP 200 en http://127.0.0.1:5173). Listo para interactuar con el usuario.
+- **Estado Actual:** Implementada la solución integral de **Transparencia de Almacenamiento Local y Catálogo de Reportes Múltiples**:
+  1. **Transparencia y Ubicación de Datos en Mac:** El badge "Guardado en Mac" del Header es ahora interactivo y abre el modal `StorageInspectorModal.tsx`. Explica claramente al usuario:
+     - Dónde están guardados sus datos: Base de datos IndexedDB `atelier_analytics_db_v1` en el sandbox local del navegador (macOS: `~/Library/Application Support/Google/Chrome/Default/IndexedDB/http_localhost_5173_0.indexeddb.leveldb/` o carpetas análogas de Arc/Safari/Brave).
+     - Privacidad 100% Offline (Zero-Cloud): Los datos nunca tocan servidores externos.
+     - Métricas reales de uso: Datasets guardados, volumen en bytes y número de reportes.
+     - Exportación física directa: Botón para descargar el archivo de proyecto físico `.atelier` a `~/Downloads`.
+  2. **Catálogo de Reportes Múltiples (Múltiples Reportes sin Cerrar Nada):**
+     - Selector en el Header con el nombre editable del reporte activo (`currentWorkbookName`).
+     - Al desplegar, permite pulsar `+ Nuevo Reporte en Blanco`: guarda el reporte actual automáticamente en IndexedDB y abre un nuevo reporte limpio sin perder nada.
+     - Lista todos los reportes guardados con fecha y nombre, permitiendo alternar entre ellos con un solo clic o eliminarlos.
+     - Convive armónicamente con la estrategia de múltiples pestañas (Hojas y Dashboards) en la barra inferior.
+- **Siguiente Paso:** Sistema 100% verificado y validado bajo la batería Zero-Defect (19/19 tests unitarios pasando en Vitest, 0 errores tsc, build de producción en 2.58s y servidor respondiendo HTTP 200 en http://127.0.0.1:5173). Listo para interactuar con el usuario.

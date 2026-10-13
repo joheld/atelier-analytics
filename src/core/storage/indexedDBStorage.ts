@@ -1,8 +1,9 @@
 import { WorksheetTab, CalculatedField, Parameter, DatasetMeta } from '../ast/types';
 
 const DB_NAME = 'atelier_analytics_db_v1';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const DATASET_STORE = 'datasets';
+const WORKBOOK_STORE = 'workbooks';
 const SESSION_STORAGE_KEY = 'atelier_active_session_v1';
 
 export interface PersistedDatasetRecord {
@@ -12,6 +13,14 @@ export interface PersistedDatasetRecord {
   fileType: string;
   meta?: DatasetMeta;
   updatedAt: number;
+}
+
+export interface SavedWorkbookRecord {
+  id: string;
+  name: string;
+  createdAt: number;
+  updatedAt: number;
+  snapshot: ActiveSessionSnapshot;
 }
 
 export interface ActiveSessionSnapshot {
@@ -24,6 +33,8 @@ export interface ActiveSessionSnapshot {
   theme: 'light' | 'dark';
   currentDatasetId?: string;
   currentDatasetName?: string;
+  currentWorkbookId?: string;
+  currentWorkbookName?: string;
 }
 
 /**
@@ -41,6 +52,9 @@ function openDB(): Promise<IDBDatabase> {
       const db = (event.target as IDBOpenDBRequest).result;
       if (!db.objectStoreNames.contains(DATASET_STORE)) {
         db.createObjectStore(DATASET_STORE, { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains(WORKBOOK_STORE)) {
+        db.createObjectStore(WORKBOOK_STORE, { keyPath: 'id' });
       }
     };
 
@@ -170,6 +184,103 @@ export async function clearAllDatasets(): Promise<void> {
   } catch (err) {
     console.warn('[Storage] Error al limpiar datasets en IndexedDB:', err);
   }
+}
+
+// In-memory fallback map for workbooks when indexedDB is unavailable (Node/Vitest)
+const memoryWorkbooks: Map<string, SavedWorkbookRecord> = new Map();
+
+/**
+ * Saves a workbook snapshot record to IndexedDB
+ */
+export async function saveWorkbookRecord(record: SavedWorkbookRecord): Promise<void> {
+  try {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(WORKBOOK_STORE, 'readwrite');
+      const store = tx.objectStore(WORKBOOK_STORE);
+      const request = store.put(record);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  } catch (err) {
+    memoryWorkbooks.set(record.id, record);
+  }
+}
+
+/**
+ * Retrieves all saved workbook records from IndexedDB
+ */
+export async function getAllWorkbookRecords(): Promise<SavedWorkbookRecord[]> {
+  try {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(WORKBOOK_STORE, 'readonly');
+      const store = tx.objectStore(WORKBOOK_STORE);
+      const request = store.getAll();
+      request.onsuccess = () => {
+        const records = (request.result as SavedWorkbookRecord[]) || [];
+        records.sort((a, b) => b.updatedAt - a.updatedAt);
+        resolve(records);
+      };
+      request.onerror = () => reject(request.error);
+    });
+  } catch (err) {
+    return Array.from(memoryWorkbooks.values()).sort((a, b) => b.updatedAt - a.updatedAt);
+  }
+}
+
+/**
+ * Retrieves a single workbook record by ID
+ */
+export async function getWorkbookRecord(id: string): Promise<SavedWorkbookRecord | null> {
+  try {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(WORKBOOK_STORE, 'readonly');
+      const store = tx.objectStore(WORKBOOK_STORE);
+      const request = store.get(id);
+      request.onsuccess = () => resolve((request.result as SavedWorkbookRecord) || null);
+      request.onerror = () => reject(request.error);
+    });
+  } catch (err) {
+    return memoryWorkbooks.get(id) || null;
+  }
+}
+
+/**
+ * Deletes a workbook record from IndexedDB
+ */
+export async function deleteWorkbookRecord(id: string): Promise<void> {
+  try {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(WORKBOOK_STORE, 'readwrite');
+      const store = tx.objectStore(WORKBOOK_STORE);
+      const request = store.delete(id);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  } catch (err) {
+    memoryWorkbooks.delete(id);
+  }
+}
+
+/**
+ * Calculates storage metrics (total datasets, bytes, and saved workbooks)
+ */
+export async function getStorageUsageSummary(): Promise<{
+  datasetCount: number;
+  datasetBytes: number;
+  workbookCount: number;
+}> {
+  const datasetBlobs = await getAllDatasetBlobs();
+  const workbooks = await getAllWorkbookRecords();
+  const totalBytes = datasetBlobs.reduce((acc, curr) => acc + (curr.blob?.size || 0), 0);
+  return {
+    datasetCount: datasetBlobs.length,
+    datasetBytes: totalBytes,
+    workbookCount: workbooks.length,
+  };
 }
 
 // In-memory fallback for environments where window.localStorage is not defined (e.g. Node/Vitest)

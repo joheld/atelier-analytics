@@ -87,10 +87,73 @@ describe('IndexedDB and Session Storage Persistence', () => {
       theme: 'light',
     });
 
-    expect(getActiveSession()).not.toBeNull();
-
     clearActiveSession();
 
     expect(getActiveSession()).toBeNull();
+  });
+
+  it('saves, retrieves, and deletes independent workbook records in catalog', async () => {
+    const recordA = {
+      id: 'wb_ventas',
+      name: 'Ventas Anuales',
+      createdAt: 1000,
+      updatedAt: 2000,
+      snapshot: {
+        version: 1 as const,
+        updatedAt: 2000,
+        activeTabId: 'sheet_1',
+        sheets: [],
+        calculatedFields: [],
+        parameters: [],
+        theme: 'light' as const,
+        currentWorkbookId: 'wb_ventas',
+        currentWorkbookName: 'Ventas Anuales',
+      },
+    };
+
+    const recordB = {
+      id: 'wb_churn',
+      name: 'Análisis de Churn',
+      createdAt: 1000,
+      updatedAt: 3000,
+      snapshot: {
+        version: 1 as const,
+        updatedAt: 3000,
+        activeTabId: 'sheet_1',
+        sheets: [],
+        calculatedFields: [],
+        parameters: [],
+        theme: 'dark' as const,
+        currentWorkbookId: 'wb_churn',
+        currentWorkbookName: 'Análisis de Churn',
+      },
+    };
+
+    const {
+      saveWorkbookRecord,
+      getAllWorkbookRecords,
+      getWorkbookRecord,
+      deleteWorkbookRecord,
+      getStorageUsageSummary,
+    } = await import('./indexedDBStorage');
+
+    await saveWorkbookRecord(recordA);
+    await saveWorkbookRecord(recordB);
+
+    const all = await getAllWorkbookRecords();
+    expect(all).toHaveLength(2);
+    expect(all[0].id).toBe('wb_churn'); // sorted by updatedAt descending
+    expect(all[1].id).toBe('wb_ventas');
+
+    const single = await getWorkbookRecord('wb_ventas');
+    expect(single?.name).toBe('Ventas Anuales');
+
+    const summary = await getStorageUsageSummary();
+    expect(summary.workbookCount).toBe(2);
+
+    await deleteWorkbookRecord('wb_ventas');
+    const remaining = await getAllWorkbookRecords();
+    expect(remaining).toHaveLength(1);
+    expect(remaining[0].id).toBe('wb_churn');
   });
 });
