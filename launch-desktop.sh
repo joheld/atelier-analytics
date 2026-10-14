@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PROJECT_DIR="/Users/joe/atelier-analytics"
-PORT="5173"
+# Export portable PATH for macOS desktop/app environments
+export PATH="$HOME/.bun/bin:$HOME/.local/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:$PATH"
+
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="${PROJECT_DIR:-$DIR}"
+PORT="${PORT:-5173}"
 URL="http://127.0.0.1:${PORT}"
 
 # Verify if server is already responding

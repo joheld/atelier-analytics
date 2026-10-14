@@ -158,6 +158,7 @@ gitGraph
 | **CP-17** | Persistencia Completa In-Browser: IndexedDB Datasets, Auto-Save Reactivo y Protección BeforeUnload | **Completado** | 1) Almacenamiento binario del dataset (`File`/`Blob`) en IndexedDB para supervivencia a recargas y F5; 2) Auto-guardado en segundo plano con debounce (250ms) del AST, estantes, hojas, campos calculados y parámetros; 3) Rehidratación automática transparente en `initEngine` montando el dataset en DuckDB-WASM y re-ejecutando queries; 4) Protección nativa `beforeunload` para advertir antes de recargas accidentales; 5) Badge visual "Auto-guardado activo" en Header; 6) 15/15 tests pasando en Vitest, 0 errores tsc, build limpio y HTTP 200 en puerto 5173. |
 | **CP-18** | Multi-Fuente y Modelado Relacional de Datos: Joins, Unions y Dashboards Compuestos | **Completado** | 1) Soporte multi-tabla simultáneo en DuckDB-WASM (cada archivo se monta como tabla independiente); 2) Selector multi-fuente en la barra lateral con botón `+ Fuente` y badge de tablas cargadas; 3) Vinculación por hoja (`sheet.tableName`/`sheet.datasetId`), permitiendo que cada hoja analice un archivo diferente y convivan en el mismo Dashboard con badge de origen; 4) Asistente visual de modelado de datos (`DataModelModal.tsx`) con soporte para 4 tipos de JOIN (`LEFT`, `INNER`, `FULL`, `RIGHT`), desambiguación automática de nombres de columnas y apilado vertical `UNION ALL BY NAME`; 5) Previsualización en vivo en 5 filas con DuckDB-WASM; 6) 18/18 tests unitarios pasando, 0 errores tsc, build limpio en 2.40s y HTTP 200 en puerto 5173. |
 | **CP-19** | Transparencia de Almacenamiento Local y Catálogo de Reportes Múltiples | **Completado** | 1) Modal de Transparencia de Almacenamiento (`StorageInspectorModal.tsx`) accesible al pulsar el badge "Guardado en Mac" en el Header; muestra métricas de almacenamiento, arquitectura en capas, ubicación física en disco en macOS (`~/Library/Application Support/...`) y botón para exportar `.atelier` a `~/Downloads`; 2) Catálogo de Reportes Múltiples en el Header con selector de reporte activo, renombrado en tiempo real, creación de nuevos reportes independientes (`+ Nuevo Reporte en Blanco`) sin cerrar ni perder el trabajo activo y alternancia instantánea en 1 clic; 3) 19/19 tests unitarios pasando en Vitest, 0 errores de TypeScript, compilación de producción en 2.58s y HTTP 200 en http://127.0.0.1:5173. |
+| **CP-20** | Resolución de PATH en Launcher de Escritorio y Acceso Directo macOS | **Completado** | 1) Corrección de error `nohup: bun: No such file or directory` al abrir desde `Atelier Analytics.app` o `.command`; 2) Exportación explícita de `PATH` (`$HOME/.bun/bin:/opt/homebrew/bin:/usr/local/bin:$PATH`) en `run.sh`, `launch-desktop.sh` y `main.scpt`; 3) Resolución dinámica y portable de rutas sin hardcoding de `/Users/joe`; 4) Verificación empírica mediante `open` en macOS con inicio de servidor en 187ms y respuesta HTTP 200. |
 
 ---
 
@@ -172,8 +173,8 @@ atelier-analytics/
 ├── vite.config.ts                # Configuración Vite con headers COOP/COEP y chunk optimization
 ├── tailwind.config.js            # Design system editorial con colores OKLCH para pastillas
 ├── postcss.config.js             # PostCSS y autoprefixer
-├── run.sh                        # Script portable bare-metal inmunizado contra SIGHUP
-├── launch-desktop.sh             # Script lanzador con verificación de socket y apertura en navegador
+├── run.sh                        # Script portable bare-metal con PATH explícito y detección dinámica de bun
+├── launch-desktop.sh             # Script lanzador con verificación de socket, PATH explícito y apertura en navegador
 ├── dist/                         # Compilación estática de producción (SPA offline)
 └── src/
     ├── main.tsx                  # Bootstrap React 19
@@ -238,15 +239,11 @@ atelier-analytics/
 
 ## 6. Estado de la Sesión
 
-- **Estado Actual:** Implementada la solución integral de **Transparencia de Almacenamiento Local y Catálogo de Reportes Múltiples**:
-  1. **Transparencia y Ubicación de Datos en Mac:** El badge "Guardado en Mac" del Header es ahora interactivo y abre el modal `StorageInspectorModal.tsx`. Explica claramente al usuario:
-     - Dónde están guardados sus datos: Base de datos IndexedDB `atelier_analytics_db_v1` en el sandbox local del navegador (macOS: `~/Library/Application Support/Google/Chrome/Default/IndexedDB/http_localhost_5173_0.indexeddb.leveldb/` o carpetas análogas de Arc/Safari/Brave).
-     - Privacidad 100% Offline (Zero-Cloud): Los datos nunca tocan servidores externos.
-     - Métricas reales de uso: Datasets guardados, volumen en bytes y número de reportes.
-     - Exportación física directa: Botón para descargar el archivo de proyecto físico `.atelier` a `~/Downloads`.
-  2. **Catálogo de Reportes Múltiples (Múltiples Reportes sin Cerrar Nada):**
-     - Selector en el Header con el nombre editable del reporte activo (`currentWorkbookName`).
-     - Al desplegar, permite pulsar `+ Nuevo Reporte en Blanco`: guarda el reporte actual automáticamente en IndexedDB y abre un nuevo reporte limpio sin perder nada.
-     - Lista todos los reportes guardados con fecha y nombre, permitiendo alternar entre ellos con un solo clic o eliminarlos.
-     - Convive armónicamente con la estrategia de múltiples pestañas (Hojas y Dashboards) en la barra inferior.
-- **Siguiente Paso:** Sistema 100% verificado y validado bajo la batería Zero-Defect (19/19 tests unitarios pasando en Vitest, 0 errores tsc, build de producción en 2.58s y servidor respondiendo HTTP 200 en http://127.0.0.1:5173). Listo para interactuar con el usuario.
+- **Estado Actual:** Resuelto el problema de ejecución del acceso directo en macOS (`nohup: bun: No such file or directory`):
+  1. **Causa Raíz:** Al hacer doble clic en `Atelier Analytics.app` en el escritorio de macOS, el entorno GUI ejecuta el AppleScript bajo `/bin/sh` con un `$PATH` de sistema mínimo (`/usr/bin:/bin:/usr/sbin:/sbin`), el cual no incluye `~/.bun/bin`, `/opt/homebrew/bin` ni `/usr/local/bin`.
+  2. **Solución Implementada:**
+     - `run.sh` y `launch-desktop.sh`: Exportan explícitamente `$HOME/.bun/bin:/opt/homebrew/bin:/usr/local/bin` y detectan dinámicamente la ruta del ejecutable `bun`.
+     - `Atelier Analytics.app` (`main.scpt`): Recompilado con `osacompile` para exportar `PATH` y resolver dinámicamente `launch-desktop.sh` usando `POSIX path of (path to home folder)`.
+     - `Atelier Analytics.command`: Blindado con exportación de `PATH` y resolución con `$HOME`.
+  3. **Verificación:** Ejecutado `open "/Users/joe/Desktop/Atelier Analytics.app"`, levantando Vite en 187ms y confirmando `HTTP 200 OK` en `http://127.0.0.1:5173` sin alertas de error.
+- **Siguiente Paso:** Sistema 100% operativo, verificado y listo para el usuario.
