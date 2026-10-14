@@ -110,7 +110,7 @@ function compileDimensionExpr(pill: Pill, parameters?: Parameter[]): { expr: str
 /**
  * Compiles a single filter expression into a SQL WHERE clause
  */
-function compileFilter(f: FilterExpression): string {
+export function compileFilter(f: FilterExpression): string {
   const safeCol = escapeIdentifier(f.columnName);
 
   switch (f.operator) {

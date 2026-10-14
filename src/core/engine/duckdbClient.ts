@@ -1,6 +1,8 @@
 import * as duckdb from '@duckdb/duckdb-wasm';
 import * as XLSX from 'xlsx';
-import { DatasetMeta, JoinType } from '../ast/types';
+import { DatasetMeta, JoinType, DataType, FilterExpression } from '../ast/types';
+import { analyzeAndCleanSheet } from './dataInterpreter';
+import { compileFilter } from '../compiler/sqlCompiler';
 
 export interface QueryExecutionResult {
   sql: string;
@@ -144,7 +146,8 @@ class DuckDBManager {
 
   /**
    * Loads a user file (Parquet, CSV, TSV, JSON, or Excel .xlsx/.xls) directly into DuckDB in-memory columnar storage.
-   * For Excel files, parses sheets via SheetJS, converts them to clean tabular CSV, and registers all sheets.
+   * For Excel files, analyzes the sheet with Tableau-style Data Interpreter, registering clean and raw virtual files.
+   * Creates a physical base table ("_base") and an active view for zero-latency Data Source Filters and Data Prep.
    */
   public async loadUserFile(file: File): Promise<DatasetMeta> {
     const db = await this.getDB();
@@ -172,9 +175,9 @@ class DuckDBManager {
         const worksheet = workbook.Sheets[sheetName];
         if (!worksheet) continue;
 
-        // Convert worksheet to clean CSV preserving raw numbers and removing empty rows
-        const csv = XLSX.utils.sheet_to_csv(worksheet, { blankrows: false, rawNumbers: true });
-        if (!csv.trim() && sheetNames.length > 1) {
+        // Run Tableau-style Data Interpreter
+        const interp = analyzeAndCleanSheet(worksheet);
+        if (!interp.cleanCsv.trim() && sheetNames.length > 1) {
           continue; // skip empty secondary sheets
         }
 
@@ -184,11 +187,21 @@ class DuckDBManager {
             ? tableName
             : `${tableName}_${cleanSheetName || `sheet${i + 1}`}`;
 
-        const virtualCsvFileName = `${sheetTableName}.csv`;
-        await db.registerFileText(virtualCsvFileName, csv);
+        // Register both raw and clean virtual CSV files
+        const rawVirtualFile = `${sheetTableName}_raw.csv`;
+        const cleanVirtualFile = `${sheetTableName}_clean.csv`;
+        await db.registerFileText(rawVirtualFile, interp.rawCsv);
+        await db.registerFileText(cleanVirtualFile, interp.cleanCsv);
 
+        // If messy layout was detected, default to clean CSV; otherwise raw CSV
+        const activeVirtualFile = interp.hasMessyLayout ? cleanVirtualFile : rawVirtualFile;
+
+        await conn.query(`DROP VIEW IF EXISTS "${sheetTableName}";`);
+        await conn.query(`DROP TABLE IF EXISTS "${sheetTableName}_base";`);
         await conn.query(`DROP TABLE IF EXISTS "${sheetTableName}";`);
-        await conn.query(`CREATE TABLE "${sheetTableName}" AS SELECT * FROM read_csv_auto('${virtualCsvFileName}');`);
+
+        await conn.query(`CREATE TABLE "${sheetTableName}_base" AS SELECT * FROM read_csv_auto('${activeVirtualFile}');`);
+        await conn.query(`CREATE OR REPLACE VIEW "${sheetTableName}" AS SELECT * FROM "${sheetTableName}_base";`);
 
         const displayName = sheetNames.length === 1 ? file.name : `${file.name} [${sheetName}]`;
         const sheetMeta = await this.introspectTable(
@@ -196,6 +209,11 @@ class DuckDBManager {
           displayName,
           sheetNames.length === 1 ? undefined : `${file.name} - Hoja: ${sheetName}`
         );
+
+        sheetMeta.isDataInterpreterAvailable = true;
+        sheetMeta.isDataInterpreterEnabled = interp.hasMessyLayout;
+        sheetMeta.dataInterpreterReport = interp.report;
+        sheetMeta.dataSourceFilters = [];
 
         if (!primaryMeta) {
           primaryMeta = sheetMeta;
@@ -212,22 +230,29 @@ class DuckDBManager {
     // Register file handle inside DuckDB virtual filesystem for standard text/binary formats
     await db.registerFileHandle(fileName, file, duckdb.DuckDBDataProtocol.BROWSER_FILEREADER, true);
 
-    // Drop table if reloaded
+    await conn.query(`DROP VIEW IF EXISTS "${tableName}";`);
+    await conn.query(`DROP TABLE IF EXISTS "${tableName}_base";`);
     await conn.query(`DROP TABLE IF EXISTS "${tableName}";`);
 
     // Determine reader function by extension
     if (extension === 'parquet' || fileName.endsWith('.parquet.snappy')) {
-      await conn.query(`CREATE TABLE "${tableName}" AS SELECT * FROM read_parquet('${fileName}');`);
+      await conn.query(`CREATE TABLE "${tableName}_base" AS SELECT * FROM read_parquet('${fileName}');`);
     } else if (extension === 'tsv') {
-      await conn.query(`CREATE TABLE "${tableName}" AS SELECT * FROM read_csv_auto('${fileName}', delim='\\t');`);
+      await conn.query(`CREATE TABLE "${tableName}_base" AS SELECT * FROM read_csv_auto('${fileName}', delim='\\t');`);
     } else if (extension === 'json' || extension === 'ndjson') {
-      await conn.query(`CREATE TABLE "${tableName}" AS SELECT * FROM read_json_auto('${fileName}');`);
+      await conn.query(`CREATE TABLE "${tableName}_base" AS SELECT * FROM read_json_auto('${fileName}');`);
     } else {
       // Default to auto-detecting CSV
-      await conn.query(`CREATE TABLE "${tableName}" AS SELECT * FROM read_csv_auto('${fileName}');`);
+      await conn.query(`CREATE TABLE "${tableName}_base" AS SELECT * FROM read_csv_auto('${fileName}');`);
     }
 
-    return await this.introspectTable(tableName, file.name);
+    await conn.query(`CREATE OR REPLACE VIEW "${tableName}" AS SELECT * FROM "${tableName}_base";`);
+
+    const meta = await this.introspectTable(tableName, file.name);
+    meta.isDataInterpreterAvailable = false;
+    meta.isDataInterpreterEnabled = false;
+    meta.dataSourceFilters = [];
+    return meta;
   }
 
   public getAvailableDatasets(): DatasetMeta[] {
@@ -240,6 +265,182 @@ class DuckDBManager {
 
   public removeDataset(id: string): void {
     this.activeDatasets.delete(id);
+  }
+
+  /**
+   * Helper to preserve metadata flags across schema introspections
+   */
+  private copyDatasetFlags(source: DatasetMeta, target: DatasetMeta): void {
+    target.isDataInterpreterAvailable = source.isDataInterpreterAvailable;
+    target.isDataInterpreterEnabled = source.isDataInterpreterEnabled;
+    target.dataInterpreterReport = source.dataInterpreterReport;
+    target.dataSourceFilters = source.dataSourceFilters;
+  }
+
+  /**
+   * Reapplies data source filters view over the base table
+   */
+  private async reapplyDataSourceFiltersView(tableName: string, filters: FilterExpression[]): Promise<void> {
+    const conn = await this.getConnection();
+    let whereSql = '1=1';
+    if (filters.length > 0) {
+      const parts = filters.map((f) => compileFilter(f)).filter(Boolean);
+      if (parts.length > 0) {
+        whereSql = parts.join(' AND ');
+      }
+    }
+    await conn.query(
+      `CREATE OR REPLACE VIEW "${tableName.replace(/"/g, '""')}" AS SELECT * FROM "${tableName.replace(/"/g, '""')}_base" WHERE ${whereSql};`
+    );
+  }
+
+  /**
+   * Toggles Tableau Data Interpreter on or off for an Excel dataset
+   */
+  public async setDataInterpreterEnabled(tableName: string, enabled: boolean): Promise<DatasetMeta> {
+    const conn = await this.getConnection();
+    const meta = this.activeDatasets.get(tableName);
+    if (!meta) throw new Error(`Dataset no encontrado: ${tableName}`);
+
+    const virtualFile = enabled ? `${tableName}_clean.csv` : `${tableName}_raw.csv`;
+    await conn.query(`DROP VIEW IF EXISTS "${tableName}";`);
+    await conn.query(`DROP TABLE IF EXISTS "${tableName}_base";`);
+    await conn.query(`CREATE TABLE "${tableName}_base" AS SELECT * FROM read_csv_auto('${virtualFile}');`);
+
+    await this.reapplyDataSourceFiltersView(tableName, meta.dataSourceFilters || []);
+
+    const updatedMeta = await this.introspectTable(tableName, meta.name, meta.description);
+    this.copyDatasetFlags(meta, updatedMeta);
+    updatedMeta.isDataInterpreterEnabled = enabled;
+
+    return updatedMeta;
+  }
+
+  /**
+   * Applies root-level Data Source Filters in DuckDB-WASM
+   */
+  public async applyDataSourceFilters(tableName: string, filters: FilterExpression[]): Promise<DatasetMeta> {
+    const meta = this.activeDatasets.get(tableName);
+    if (!meta) throw new Error(`Dataset no encontrado: ${tableName}`);
+
+    await this.reapplyDataSourceFiltersView(tableName, filters);
+
+    const updatedMeta = await this.introspectTable(tableName, meta.name, meta.description);
+    this.copyDatasetFlags(meta, updatedMeta);
+    updatedMeta.dataSourceFilters = filters;
+
+    return updatedMeta;
+  }
+
+  /**
+   * Renames a column in the base table and updates views
+   */
+  public async renameColumn(tableName: string, oldName: string, newName: string): Promise<DatasetMeta> {
+    const conn = await this.getConnection();
+    const meta = this.activeDatasets.get(tableName);
+    if (!meta) throw new Error(`Dataset no encontrado: ${tableName}`);
+
+    const safeBaseTable = `${tableName}_base`.replace(/"/g, '""');
+    const safeOld = oldName.replace(/"/g, '""');
+    const safeNew = newName.replace(/"/g, '""');
+
+    await conn.query(`ALTER TABLE "${safeBaseTable}" RENAME COLUMN "${safeOld}" TO "${safeNew}";`);
+
+    await this.reapplyDataSourceFiltersView(tableName, meta.dataSourceFilters || []);
+    const updatedMeta = await this.introspectTable(tableName, meta.name, meta.description);
+    this.copyDatasetFlags(meta, updatedMeta);
+
+    return updatedMeta;
+  }
+
+  /**
+   * Changes column data type (Cast) using safe TRY_CAST in DuckDB
+   */
+  public async castColumn(tableName: string, columnName: string, newType: DataType): Promise<DatasetMeta> {
+    const conn = await this.getConnection();
+    const meta = this.activeDatasets.get(tableName);
+    if (!meta) throw new Error(`Dataset no encontrado: ${tableName}`);
+
+    let targetType = 'VARCHAR';
+    if (newType === 'number') targetType = 'DOUBLE';
+    else if (newType === 'date') targetType = 'DATE';
+    else if (newType === 'boolean') targetType = 'BOOLEAN';
+
+    const safeBaseTable = `${tableName}_base`.replace(/"/g, '""');
+    const safeCol = columnName.replace(/"/g, '""');
+
+    await conn.query(`
+      CREATE OR REPLACE TABLE "${safeBaseTable}" AS
+      SELECT * EXCLUDE ("${safeCol}"), TRY_CAST("${safeCol}" AS ${targetType}) AS "${safeCol}"
+      FROM "${safeBaseTable}";
+    `);
+
+    await this.reapplyDataSourceFiltersView(tableName, meta.dataSourceFilters || []);
+    const updatedMeta = await this.introspectTable(tableName, meta.name, meta.description);
+    this.copyDatasetFlags(meta, updatedMeta);
+
+    return updatedMeta;
+  }
+
+  /**
+   * Splits a column into two separate columns using DuckDB SPLIT_PART
+   */
+  public async splitColumn(tableName: string, columnName: string, delimiter: string = ' '): Promise<DatasetMeta> {
+    const conn = await this.getConnection();
+    const meta = this.activeDatasets.get(tableName);
+    if (!meta) throw new Error(`Dataset no encontrado: ${tableName}`);
+
+    const safeBaseTable = `${tableName}_base`.replace(/"/g, '""');
+    const safeCol = columnName.replace(/"/g, '""');
+    const safeDelim = delimiter.replace(/'/g, "''");
+    const col1 = `${columnName} (1)`.replace(/"/g, '""');
+    const col2 = `${columnName} (2)`.replace(/"/g, '""');
+
+    await conn.query(`
+      CREATE OR REPLACE TABLE "${safeBaseTable}" AS
+      SELECT *,
+        NULLIF(TRIM(SPLIT_PART("${safeCol}", '${safeDelim}', 1)), '') AS "${col1}",
+        NULLIF(TRIM(SPLIT_PART("${safeCol}", '${safeDelim}', 2)), '') AS "${col2}"
+      FROM "${safeBaseTable}";
+    `);
+
+    await this.reapplyDataSourceFiltersView(tableName, meta.dataSourceFilters || []);
+    const updatedMeta = await this.introspectTable(tableName, meta.name, meta.description);
+    this.copyDatasetFlags(meta, updatedMeta);
+
+    return updatedMeta;
+  }
+
+  /**
+   * Cleans text column values (TRIM, UPPER, LOWER)
+   */
+  public async cleanColumn(
+    tableName: string,
+    columnName: string,
+    cleanType: 'trim' | 'upper' | 'lower'
+  ): Promise<DatasetMeta> {
+    const conn = await this.getConnection();
+    const meta = this.activeDatasets.get(tableName);
+    if (!meta) throw new Error(`Dataset no encontrado: ${tableName}`);
+
+    const safeBaseTable = `${tableName}_base`.replace(/"/g, '""');
+    const safeCol = columnName.replace(/"/g, '""');
+
+    let sqlFunc = `TRIM("${safeCol}")`;
+    if (cleanType === 'upper') sqlFunc = `UPPER("${safeCol}")`;
+    else if (cleanType === 'lower') sqlFunc = `LOWER("${safeCol}")`;
+
+    await conn.query(`
+      UPDATE "${safeBaseTable}"
+      SET "${safeCol}" = ${sqlFunc}
+      WHERE "${safeCol}" IS NOT NULL;
+    `);
+
+    await this.reapplyDataSourceFiltersView(tableName, meta.dataSourceFilters || []);
+    const updatedMeta = await this.introspectTable(tableName, meta.name, meta.description);
+    this.copyDatasetFlags(meta, updatedMeta);
+
+    return updatedMeta;
   }
 
   /**

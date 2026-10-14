@@ -29,6 +29,7 @@ interface DataSidebarProps {
   onSelectDataset?: (datasetId: string) => void;
   onLoadAdditionalFile?: (file: File) => void;
   onOpenDataModelModal?: () => void;
+  onOpenDataSource?: () => void;
   parameters: Parameter[];
   calculatedFields: CalculatedField[];
   analyticsLines?: AnalyticsLine[];
@@ -50,6 +51,7 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
   onSelectDataset,
   onLoadAdditionalFile,
   onOpenDataModelModal,
+  onOpenDataSource,
   parameters,
   calculatedFields,
   analyticsLines = [],
@@ -66,11 +68,12 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
 }) => {
   const [sidebarTab, setSidebarTab] = useState<'data' | 'analytics'>('data');
   const [searchTerm, setSearchTerm] = useState('');
+  const [showHidden, setShowHidden] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const columns = currentDataset?.columns || [];
-  const filteredColumns = columns.filter((c) =>
-    c.name.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredColumns = columns.filter(
+    (c) => (showHidden || !c.hidden) && c.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const dimensions = filteredColumns.filter((c) => c.role === 'dimension');
@@ -262,6 +265,17 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
               <span>Fuente</span>
             </button>
 
+            {onOpenDataSource && (
+              <button
+                type="button"
+                onClick={onOpenDataSource}
+                className="flex items-center gap-1 rounded bg-stone-100 px-1.5 py-0.5 text-[10px] font-mono font-medium text-stone-700 hover:bg-stone-200 dark:bg-stone-800 dark:text-stone-300 dark:hover:bg-stone-700 cursor-pointer"
+                title="Abrir página de fuente de datos: Intérprete de datos, filtros de fuente y preparación"
+              >
+                <span>Preparar</span>
+              </button>
+            )}
+
             {availableDatasets.length >= 2 && onOpenDataModelModal && (
               <button
                 type="button"
@@ -326,9 +340,9 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
 
       {currentDataset ? (
         <>
-          {/* Field Search Input */}
-          <div className="p-2.5 border-b border-stone-200/80 dark:border-stone-800">
-            <div className="relative">
+          {/* Field Search Input & Show Hidden Toggle */}
+          <div className="p-2.5 border-b border-stone-200/80 dark:border-stone-800 flex items-center gap-1.5">
+            <div className="relative flex-1">
               <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-stone-400" />
               <input
                 type="text"
@@ -338,6 +352,20 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
                 className="w-full rounded-md border border-stone-200 bg-white py-1.5 pl-8 pr-2.5 text-xs text-stone-900 placeholder-stone-400 focus:border-stone-400 focus:outline-none dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100"
               />
             </div>
+            {columns.some((c) => c.hidden) && (
+              <button
+                type="button"
+                onClick={() => setShowHidden(!showHidden)}
+                className={`p-1.5 rounded border text-xs cursor-pointer transition-colors ${
+                  showHidden
+                    ? 'border-amber-400 bg-amber-50 text-amber-700 dark:border-amber-600 dark:bg-amber-950/40 dark:text-amber-300'
+                    : 'border-stone-200 bg-white text-stone-400 hover:text-stone-700 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-400'
+                }`}
+                title={showHidden ? 'Ocultar campos marcados como ocultos' : 'Mostrar campos ocultos'}
+              >
+                {showHidden ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+              </button>
+            )}
           </div>
 
           {/* Field Lists (Dimensions & Measures) */}

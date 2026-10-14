@@ -134,6 +134,7 @@ gitGraph
     commit id: "mac-desktop-launcher-path-fix" tag: "v2.1.1"
     commit id: "tableau-start-page-and-recent-workbooks" tag: "v2.2.0"
     commit id: "excel-xlsx-xls-sheetjs-multi-sheet" tag: "v2.3.0"
+    commit id: "data-interpreter-source-filters-and-prep" tag: "v2.4.0"
 ```
 
 ---
@@ -164,6 +165,7 @@ gitGraph
 | **CP-20** | Resolución de PATH en Launcher de Escritorio y Acceso Directo macOS | **Completado** | 1) Corrección de error `nohup: bun: No such file or directory` al abrir desde `Atelier Analytics.app` o `.command`; 2) Exportación explícita de `PATH` (`$HOME/.bun/bin:/opt/homebrew/bin:/usr/local/bin:$PATH`) en `run.sh`, `launch-desktop.sh` y `main.scpt`; 3) Resolución dinámica y portable de rutas sin hardcoding de `/Users/joe`; 4) Verificación empírica mediante `open` en macOS con inicio de servidor en 187ms y respuesta HTTP 200. |
 | **CP-21** | Página de Inicio Auténtica de Tableau Desktop (`StartPage.tsx`) con Libros Recientes y Muestras | **Completado** | 1) Pantalla de inicio Tableau Desktop (`StartPage.tsx`) activa al arrancar la app; 2) Panel izquierdo "Conectar": Excel, CSV, Parquet, JSON y fuentes de muestra con 1 clic (Superstore Sales y World Indicators); 3) Panel central "Libros de trabajo recientes": tarjetas con vista previa gráfica, fechas relativas, estado activo y banner de reanudación inmediata; 4) Toggle bidireccional mediante el logo de Atelier en el Header para alternar entre el Inicio y el Lienzo sin cerrar nada; 5) 19/19 tests unitarios pasando, 0 errores tsc, build limpio y HTTP 200 en http://127.0.0.1:5173. |
 | **CP-22** | Soporte Nativo de Archivos Microsoft Excel (.xlsx / .xls) Multi-Hoja con SheetJS y DuckDB-WASM | **Completado** | 1) Ingestión client-side de archivos Excel (.xlsx y .xls) mediante SheetJS (`xlsx@0.18.5`); 2) Preservación de precisión numérica con `rawNumbers: true` para evitar distorsiones por formatos de moneda o porcentajes; 3) Soporte multi-hoja completo estilo Tableau Desktop: cada hoja se carga como una tabla independiente en DuckDB y se registra en `availableDatasets`, permitiendo análisis directo y relaciones (JOIN/UNION); 4) Conector independiente "Microsoft Excel" en StartPage, EmptyWorkspace y barra lateral; 5) 23/23 tests pasando en Vitest, 0 errores tsc, build limpio y HTTP 200. |
+| **CP-23** | Tableau Data Interpreter, Filtros de Fuente de Datos y Prelimpieza de Datos en Cuadrícula | **Completado** | 1) Data Interpreter (`dataInterpreter.ts`) con heurística de encabezados, detección de notas, metadatos y poda de subtotales/totales generales al pie; 2) Arquitectura física base + vista SQL en DuckDB (`CREATE OR REPLACE VIEW ... WHERE ...`) para Filtros de Fuente de Datos que gobiernan a nivel raíz antes de hojas y dashboards; 3) Prelimpieza de datos en cuadrícula (renombrado, TRY_CAST vectorial con EXCLUDE, SPLIT_PART por delimitador, TRIM/UPPER/LOWER y ocultamiento de campos); 4) Pestaña "Fuente de datos" en TabBar y banco de trabajo `DataSourceWorkbench.tsx`; 5) 29/29 tests unitarios pasando, 0 errores tsc, build limpio y HTTP 200. |
 
 ---
 
@@ -193,24 +195,29 @@ atelier-analytics/
     │   │   ├── sqlCompiler.ts    # Compilador optimizado AST -> SQL con soporte para distribution queries y window functions
     │   │   └── sqlCompiler.test.ts # Suite de pruebas unitarias (11/11 tests pasados, 100% verde)
     │   ├── engine/
-    │   │   ├── duckdbClient.ts   # Conector DuckDB-WASM con creación de vistas relacionales (JOIN y UNION ALL BY NAME)
-    │   │   └── dataModeling.test.ts # Suite de pruebas unitarias de modelado relacional (3/3 pasados)
+    │   │   ├── duckdbClient.ts   # Conector DuckDB-WASM con vistas relacionales, tablas base + vistas de filtros de fuente y transformaciones
+    │   │   ├── dataInterpreter.ts # Motor Tableau Data Interpreter: detección de cabeceras, notas, metadatos y poda de subtotales
+    │   │   ├── dataInterpreter.test.ts # Suite de pruebas del Data Interpreter (3/3 pasados)
+    │   │   ├── dataModeling.test.ts # Suite de pruebas unitarias de modelado relacional (3/3 pasados)
+    │   │   └── dataPrep.test.ts  # Suite de pruebas unitarias de compilación de filtros de fuente de datos (3/3 pasados)
     │   ├── storage/
     │   │   ├── indexedDBStorage.ts # Motor de persistencia binaria IndexedDB con almacenamiento de datasets, catálogo de workbooks y métricas de disco
     │   │   └── indexedDBStorage.test.ts # Pruebas unitarias de serialización, recuperación de sesiones y catálogo de workbooks (3/3 pasados)
     │   └── store/
-    │       └── worksheetStore.ts # Almacén Zustand reactivo con catálogo de reportes (createNewWorkbook, switchWorkbook, renameCurrentWorkbook)
+    │       └── worksheetStore.ts # Almacén Zustand reactivo con catálogo de reportes y acciones de preparación de datos
     ├── components/
     │   ├── Header/
     │   │   └── Header.tsx        # Barra editorial con selector de reportes, renombrado en vivo, badge interactivo "Guardado en Mac" y tema
     │   ├── Storage/
     │   │   └── StorageInspectorModal.tsx # Modal de transparencia de almacenamiento local en macOS, métricas de uso y descarga de proyecto
     │   ├── DataSidebar/
-    │   │   └── DataSidebar.tsx   # Panel Tableau con selector de fuente activa, botón '+ Fuente', botón 'Modelar' y pestañas Datos/Análisis
+    │   │   └── DataSidebar.tsx   # Panel Tableau con selector de fuente activa, botón '+ Fuente', botón 'Preparar', botón 'Modelar' y filtro de campos ocultos
+    │   ├── DataSource/
+    │   │   └── DataSourceWorkbench.tsx # Banco de trabajo Tableau Data Source: toggle Data Interpreter, filtros de fuente y cuadrícula de preparación
     │   ├── DataModel/
     │   │   └── DataModelModal.tsx # Asistente visual de modelado de datos: Relaciones (JOIN), Apilado (UNION) y previsualización interactiva
     │   ├── Tabs/
-    │   │   └── TabBar.tsx        # Barra inferior de pestañas con cambio de hoja, duplicar, renombrar y añadir hojas/dashboards
+    │   │   └── TabBar.tsx        # Barra inferior de pestañas con botón "Fuente de datos", cambio de hoja, duplicar y añadir hojas/dashboards
     │   ├── ShowMe/
     │   │   └── ShowMeDrawer.tsx  # Galería inteligente Show Me (15 arquetipos visuales, evaluación de requisitos y recomendados)
     │   ├── Dashboard/
@@ -242,20 +249,31 @@ atelier-analytics/
 
 ---
 
-## 6. Estado de la Sesión
-
-- **Estado Actual:** Resuelta la carga de archivos de Microsoft Excel (.xlsx / .xls) mono y multi-hoja en DuckDB-WASM:
-  1. **Causa Raíz:** DuckDB-WASM carece de un lector binario nativo de hojas de cálculo Excel (`.xlsx` es un contenedor ZIP comprimido de archivos XML). Al no haber rama condicional para `.xlsx`/`.xls`, la función `loadUserFile` caía en el fallback por defecto de `read_csv_auto()`, provocando un fallo de parseo UTF-8 y fallando la carga de forma silenciosa. Además, los inputs de archivo en `EmptyWorkspace.tsx` y `DataSidebar.tsx` no incluían `.xlsx` ni `.xls` en su atributo `accept`.
-  2. **Solución Implementada:**
-     - Integración de `xlsx` (SheetJS v0.18.5) para decodificar en memoria archivos `.xlsx` y `.xls` (BIFF8) a partir del `ArrayBuffer` del archivo del usuario.
-     - Conversión streaming a CSV mediante `XLSX.utils.sheet_to_csv` con `rawNumbers: true` (garantizando que precios o porcentajes con formato de moneda `$#,##0.00` se exporten como números decimales limpios y no como strings entrecomillados) y `blankrows: false`.
-     - Registro dinámico en el sistema de archivos virtual de DuckDB (`db.registerFileText`) y creación de tablas SQL independientes por cada hoja.
-     - Soporte multi-hoja estilo Tableau Desktop: la hoja principal se asigna al lienzo activo y las hojas secundarias se registran en `availableDatasets`, listas para ser inspeccionadas o vinculadas mediante relaciones (`JOIN`) y uniones (`UNION`).
-     - Creación del método unificado `introspectTable` en `duckdbClient.ts` para deduplicar la inferencia de esquemas.
-     - Actualización de los selectores de archivo (`accept`) y conectores en `StartPage.tsx`, `EmptyWorkspace.tsx` y `DataSidebar.tsx`.
-  3. **Verificación:**
-     - Suite completa de 23 tests unitarios pasando (`bun test` y `vitest run`).
-     - Verificación estricta de TypeScript (`tsc --noEmit`) con 0 errores.
-     - Compilación estática de producción (`vite build`) limpia en 2.77s.
-     - Servicio activo en macOS respondiendo `HTTP 200 OK` en `http://127.0.0.1:5173`.
-- **Siguiente Paso:** Entregar confirmación al usuario y probar con sus archivos Excel.
+- **Estado Actual:** Implementada la arquitectura completa de preparación de datos estilo Tableau Desktop (Checkpoint **CP-23**):
+  1. **Tableau Data Interpreter (`dataInterpreter.ts`):** Motor de análisis heurístico que examina los libros de Excel (`.xlsx`/`.xls`) antes de ingresarlos a DuckDB-WASM:
+     - Detecta y descarta automáticamente filas de metadatos, títulos corporativos superiores, notas y líneas en blanco.
+     - Identifica la fila real de cabeceras tabulares mediante densidad y tipos de valores.
+     - Rellena celdas combinadas horizontales (`F1`, `F2` -> nombres derivados o anteriores).
+     - Detecta y descarta subtotales y filas de totales generales al pie (`Total`, `Grand Total`, `Subtotal`, `Promedio`, `Fuente:`, etc.) para evitar duplicaciones en agregaciones de Tableau.
+     - Genera versión gemela `_clean.csv` y reporte de diagnóstico explicativo (`dataInterpreterReport`). Conmutador instantáneo On/Off en la UI.
+  2. **Filtros de Fuente de Datos (Data Source Filters):**
+     - Gobernanza de filtrado en la raíz de DuckDB-WASM antes de que los datos alcancen cualquier hoja de trabajo o dashboard.
+     - Arquitectura física DuckDB `"${tableName}_base"` + vista activa `CREATE OR REPLACE VIEW "${tableName}" AS SELECT * FROM "${tableName}_base" WHERE ...`.
+     - Integración con el compilador AST (`compileFilter`) para filtros categóricos (`in`, `not_in`), rangos numéricos/fechas (`range`) y búsqueda textual (`contains`).
+     - Reduce drásticamente la memoria ocupada y garantiza coherencia transversal en todo el libro.
+  3. **Herramientas de Prelimpieza en Cuadrícula (Data Prep Grid Tools):**
+     - Renombrado directo de columnas en DuckDB (`ALTER TABLE ... RENAME COLUMN ...`).
+     - Conversión de tipos vectorizada mediante `TRY_CAST` con preservación de columnas (`SELECT * EXCLUDE (col), TRY_CAST(...) AS col`).
+     - División de columnas por delimitador (`splitDatasetColumn`) usando `SPLIT_PART` de DuckDB para generar campos derivados (`col_1`, `col_2`).
+     - Limpieza de texto asistida (`cleanDatasetColumn`): `TRIM`, `UPPER` y `LOWER`.
+     - Ocultamiento/visibilidad de campos (`hidden?: boolean`) con toggle en la cuadrícula y en la barra lateral.
+  4. **Pestaña "Fuente de datos" y Banco de Trabajo (`DataSourceWorkbench.tsx`):**
+     - Pestaña fija en la esquina inferior izquierda de `TabBar.tsx` (`[ 🗄️ Fuente de datos ] | [ 📊 Hoja 1 ] ...`).
+     - Tarjetas superiores para el Intérprete de Datos y los Filtros de Fuente de Datos con chips interactivos para editar o eliminar.
+     - Cuadrícula de previsualización en vivo (50 filas) con dropdown de tipos de dato por encabezado, menú de acciones contextual y buscador de columnas.
+  5. **Verificación:**
+     - 29/29 tests unitarios pasando en Vitest across 7 files (100% verde).
+     - Verificación estricta de TypeScript (`tsc --noEmit`) con 0 errores y 0 advertencias.
+     - Compilación estática de producción (`vite build`) limpia en 2.96s.
+     - Proceso activo en macOS respondiendo `HTTP 200 OK` en `http://127.0.0.1:5173`.
+- **Siguiente Paso:** Entregar confirmación al usuario e invitarlo a probar la pestaña "Fuente de datos", el Intérprete de datos y los filtros de fuente con sus archivos Excel.

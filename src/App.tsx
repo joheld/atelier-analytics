@@ -19,6 +19,7 @@ import { ShowMeDrawer } from './components/ShowMe/ShowMeDrawer';
 import { DataModelModal } from './components/DataModel/DataModelModal';
 import { StorageInspectorModal } from './components/Storage/StorageInspectorModal';
 import { StartPage } from './components/StartPage/StartPage';
+import { DataSourceWorkbench } from './components/DataSource/DataSourceWorkbench';
 import { Columns, Rows, Loader2, Sparkles, ArrowUpDown } from 'lucide-react';
 import { buildWorksheetAST } from './core/ast/builder';
 
@@ -124,6 +125,18 @@ export const App: React.FC = () => {
     isStartPageVisible,
     hideStartPage,
     toggleStartPage,
+
+    // Tableau Data Source Tab & Data Prep
+    isDataSourceTabActive,
+    setDataSourceTabActive,
+    toggleDataInterpreter,
+    addDataSourceFilter,
+    removeDataSourceFilter,
+    renameDatasetColumn,
+    changeDatasetColumnType,
+    splitDatasetColumn,
+    cleanDatasetColumn,
+    toggleHideDatasetColumn,
   } = useWorksheetStore();
 
   useEffect(() => {
@@ -216,6 +229,7 @@ export const App: React.FC = () => {
           onSelectDataset={selectDataset}
           onLoadAdditionalFile={(file) => void loadFile(file)}
           onOpenDataModelModal={openDataModelModal}
+          onOpenDataSource={() => setDataSourceTabActive(true)}
           parameters={parameters}
           calculatedFields={calculatedFields}
           analyticsLines={activeSheet?.analyticsLines}
@@ -238,6 +252,22 @@ export const App: React.FC = () => {
             <EmptyWorkspace
               onFileUpload={(file) => void loadFile(file)}
               isUploading={isExecuting}
+            />
+          ) : isDataSourceTabActive ? (
+            /* Tableau Data Source Page: Data Interpreter, Data Source Filters & Data Prep Grid */
+            <DataSourceWorkbench
+              currentDataset={currentDataset}
+              availableDatasets={availableDatasets}
+              onToggleDataInterpreter={toggleDataInterpreter}
+              onRemoveDataSourceFilter={removeDataSourceFilter}
+              onOpenFilterModal={(filter) => setActiveFilterModal(filter)}
+              onRenameColumn={renameDatasetColumn}
+              onChangeColumnType={changeDatasetColumnType}
+              onSplitColumn={splitDatasetColumn}
+              onCleanColumn={cleanDatasetColumn}
+              onToggleHideColumn={toggleHideDatasetColumn}
+              onOpenDataModelModal={openDataModelModal}
+              onGoToWorksheet={() => setDataSourceTabActive(false)}
             />
           ) : (
             <>
@@ -405,6 +435,8 @@ export const App: React.FC = () => {
             <TabBar
               sheets={sheets}
               activeTabId={activeTabId}
+              isDataSourceActive={isDataSourceTabActive}
+              onSelectDataSource={() => setDataSourceTabActive(true)}
               onSwitchTab={switchTab}
               onAddSheet={addSheet}
               onRenameTab={renameTab}
@@ -431,7 +463,9 @@ export const App: React.FC = () => {
           filter={activeFilterModal}
           tableName={currentDataset.tableName}
           onSave={(updated) => {
-            if (isDashboardTab) {
+            if (activeFilterModal.id.startsWith('ds_filter_')) {
+              void addDataSourceFilter(updated);
+            } else if (isDashboardTab) {
               updateDashboardFilter(activeSheet.id, updated);
             } else {
               upsertFilter(updated);
@@ -440,7 +474,9 @@ export const App: React.FC = () => {
           }}
           onClose={() => setActiveFilterModal(null)}
           onRemove={() => {
-            if (isDashboardTab) {
+            if (activeFilterModal.id.startsWith('ds_filter_')) {
+              void removeDataSourceFilter(activeFilterModal.id);
+            } else if (isDashboardTab) {
               removeDashboardFilter(activeSheet.id, activeFilterModal.id);
             } else {
               removeFilter(activeFilterModal.id);

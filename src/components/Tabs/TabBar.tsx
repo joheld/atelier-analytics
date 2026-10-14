@@ -8,11 +8,14 @@ import {
   X,
   Edit2,
   Check,
+  Database,
 } from 'lucide-react';
 
 interface TabBarProps {
   sheets: WorksheetTab[];
   activeTabId: string;
+  isDataSourceActive?: boolean;
+  onSelectDataSource?: () => void;
   onSwitchTab: (tabId: string) => void;
   onAddSheet: (type?: SheetType) => void;
   onRenameTab: (tabId: string, newName: string) => void;
@@ -23,6 +26,8 @@ interface TabBarProps {
 export const TabBar: React.FC<TabBarProps> = ({
   sheets,
   activeTabId,
+  isDataSourceActive = false,
+  onSelectDataSource,
   onSwitchTab,
   onAddSheet,
   onRenameTab,
@@ -56,8 +61,27 @@ export const TabBar: React.FC<TabBarProps> = ({
     <footer className="flex h-10 w-full items-center justify-between border-t border-stone-200/90 bg-stone-100/90 px-3 select-none dark:border-stone-800 dark:bg-stone-900/90">
       {/* Scrollable Tabs Container */}
       <div className="flex h-full items-center gap-1 overflow-x-auto no-scrollbar py-1">
+        {/* Tableau Data Source Tab */}
+        <button
+          type="button"
+          onClick={() => onSelectDataSource?.()}
+          className={`flex h-full items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold border transition-all cursor-pointer shrink-0 mr-1.5 ${
+            isDataSourceActive
+              ? 'bg-white border-stone-300 text-sky-700 shadow-xs dark:bg-stone-800 dark:border-stone-700 dark:text-sky-300 font-bold'
+              : 'border-transparent text-stone-600 hover:bg-stone-200/60 dark:text-stone-400 dark:hover:bg-stone-800/60'
+          }`}
+          title="Fuente de datos: Intérprete de datos, filtros de fuente y preparación"
+        >
+          <Database
+            className={`h-3.5 w-3.5 ${
+              isDataSourceActive ? 'text-sky-600 dark:text-sky-400' : 'text-stone-500 dark:text-stone-400'
+            }`}
+          />
+          <span>Fuente de datos</span>
+        </button>
+
         {sheets.map((tab) => {
-          const isActive = tab.id === activeTabId;
+          const isActive = !isDataSourceActive && tab.id === activeTabId;
           const isDashboard = tab.type === 'dashboard';
 
           return (

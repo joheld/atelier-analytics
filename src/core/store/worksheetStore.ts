@@ -17,6 +17,7 @@ import {
   AnalyticsLine,
   JoinRelationConfig,
   UnionConfig,
+  DataType,
 } from '../ast/types';
 import { buildWorksheetAST } from '../ast/builder';
 import { compileASTtoDuckDB, CompiledQuery } from '../compiler/sqlCompiler';
@@ -101,6 +102,19 @@ export interface WorksheetStore extends WorksheetState {
   loadFile: (file: File) => Promise<void>;
   closeDataset: () => void;
   selectDataset: (datasetId: string) => Promise<void>;
+
+  // Tableau Data Source Page & Prep Actions
+  isDataSourceTabActive: boolean;
+  setDataSourceTabActive: (active: boolean) => void;
+  toggleDataInterpreter: () => Promise<void>;
+  addDataSourceFilter: (filter: FilterExpression) => Promise<void>;
+  updateDataSourceFilter: (filter: FilterExpression) => Promise<void>;
+  removeDataSourceFilter: (filterId: string) => Promise<void>;
+  renameDatasetColumn: (oldName: string, newName: string) => Promise<void>;
+  changeDatasetColumnType: (columnName: string, newType: DataType) => Promise<void>;
+  splitDatasetColumn: (columnName: string, delimiter?: string) => Promise<void>;
+  cleanDatasetColumn: (columnName: string, cleanType: 'trim' | 'upper' | 'lower') => Promise<void>;
+  toggleHideDatasetColumn: (columnName: string) => void;
 
   // Actions - Shelves & Pills (apply to active worksheet)
   addPillToShelf: (shelf: ShelfId, pill: Pill) => void;
@@ -559,6 +573,7 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
       activeTabId: 'sheet_1',
       dashboardResults: {},
       isStartPageVisible: true,
+      isDataSourceTabActive: false,
     });
   },
 
@@ -584,6 +599,179 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
     });
 
     await get().executeCurrentState();
+  },
+
+  isDataSourceTabActive: false,
+  setDataSourceTabActive: (active: boolean) => set({ isDataSourceTabActive: active }),
+
+  toggleDataInterpreter: async () => {
+    const { currentDataset } = get();
+    if (!currentDataset) return;
+    try {
+      set({ isExecuting: true, engineError: null });
+      const newEnabled = !currentDataset.isDataInterpreterEnabled;
+      const updatedMeta = await duckdbEngine.setDataInterpreterEnabled(currentDataset.tableName, newEnabled);
+      const allDatasets = duckdbEngine.getAvailableDatasets();
+      set({
+        currentDataset: updatedMeta,
+        availableDatasets: allDatasets,
+        isExecuting: false,
+      });
+      await get().executeCurrentState();
+    } catch (err) {
+      set({
+        isExecuting: false,
+        engineError: err instanceof Error ? err.message : 'Error al alternar Intérprete de datos',
+      });
+    }
+  },
+
+  addDataSourceFilter: async (filter: FilterExpression) => {
+    const { currentDataset } = get();
+    if (!currentDataset) return;
+    try {
+      set({ isExecuting: true, engineError: null });
+      const existing = currentDataset.dataSourceFilters || [];
+      const updatedFilters = [...existing.filter((f) => f.id !== filter.id), filter];
+      const updatedMeta = await duckdbEngine.applyDataSourceFilters(currentDataset.tableName, updatedFilters);
+      const allDatasets = duckdbEngine.getAvailableDatasets();
+      set({
+        currentDataset: updatedMeta,
+        availableDatasets: allDatasets,
+        isExecuting: false,
+      });
+      await get().executeCurrentState();
+    } catch (err) {
+      set({
+        isExecuting: false,
+        engineError: err instanceof Error ? err.message : 'Error al aplicar filtro de fuente de datos',
+      });
+    }
+  },
+
+  updateDataSourceFilter: async (filter: FilterExpression) => {
+    await get().addDataSourceFilter(filter);
+  },
+
+  removeDataSourceFilter: async (filterId: string) => {
+    const { currentDataset } = get();
+    if (!currentDataset) return;
+    try {
+      set({ isExecuting: true, engineError: null });
+      const existing = currentDataset.dataSourceFilters || [];
+      const updatedFilters = existing.filter((f) => f.id !== filterId);
+      const updatedMeta = await duckdbEngine.applyDataSourceFilters(currentDataset.tableName, updatedFilters);
+      const allDatasets = duckdbEngine.getAvailableDatasets();
+      set({
+        currentDataset: updatedMeta,
+        availableDatasets: allDatasets,
+        isExecuting: false,
+      });
+      await get().executeCurrentState();
+    } catch (err) {
+      set({
+        isExecuting: false,
+        engineError: err instanceof Error ? err.message : 'Error al eliminar filtro de fuente de datos',
+      });
+    }
+  },
+
+  renameDatasetColumn: async (oldName: string, newName: string) => {
+    const { currentDataset } = get();
+    if (!currentDataset) return;
+    try {
+      set({ isExecuting: true, engineError: null });
+      const updatedMeta = await duckdbEngine.renameColumn(currentDataset.tableName, oldName, newName);
+      const allDatasets = duckdbEngine.getAvailableDatasets();
+      set({
+        currentDataset: updatedMeta,
+        availableDatasets: allDatasets,
+        isExecuting: false,
+      });
+      await get().executeCurrentState();
+    } catch (err) {
+      set({
+        isExecuting: false,
+        engineError: err instanceof Error ? err.message : 'Error al renombrar columna',
+      });
+    }
+  },
+
+  changeDatasetColumnType: async (columnName: string, newType: DataType) => {
+    const { currentDataset } = get();
+    if (!currentDataset) return;
+    try {
+      set({ isExecuting: true, engineError: null });
+      const updatedMeta = await duckdbEngine.castColumn(currentDataset.tableName, columnName, newType);
+      const allDatasets = duckdbEngine.getAvailableDatasets();
+      set({
+        currentDataset: updatedMeta,
+        availableDatasets: allDatasets,
+        isExecuting: false,
+      });
+      await get().executeCurrentState();
+    } catch (err) {
+      set({
+        isExecuting: false,
+        engineError: err instanceof Error ? err.message : 'Error al cambiar tipo de dato',
+      });
+    }
+  },
+
+  splitDatasetColumn: async (columnName: string, delimiter: string = ' ') => {
+    const { currentDataset } = get();
+    if (!currentDataset) return;
+    try {
+      set({ isExecuting: true, engineError: null });
+      const updatedMeta = await duckdbEngine.splitColumn(currentDataset.tableName, columnName, delimiter);
+      const allDatasets = duckdbEngine.getAvailableDatasets();
+      set({
+        currentDataset: updatedMeta,
+        availableDatasets: allDatasets,
+        isExecuting: false,
+      });
+      await get().executeCurrentState();
+    } catch (err) {
+      set({
+        isExecuting: false,
+        engineError: err instanceof Error ? err.message : 'Error al dividir columna',
+      });
+    }
+  },
+
+  cleanDatasetColumn: async (columnName: string, cleanType: 'trim' | 'upper' | 'lower') => {
+    const { currentDataset } = get();
+    if (!currentDataset) return;
+    try {
+      set({ isExecuting: true, engineError: null });
+      const updatedMeta = await duckdbEngine.cleanColumn(currentDataset.tableName, columnName, cleanType);
+      const allDatasets = duckdbEngine.getAvailableDatasets();
+      set({
+        currentDataset: updatedMeta,
+        availableDatasets: allDatasets,
+        isExecuting: false,
+      });
+      await get().executeCurrentState();
+    } catch (err) {
+      set({
+        isExecuting: false,
+        engineError: err instanceof Error ? err.message : 'Error al limpiar texto de columna',
+      });
+    }
+  },
+
+  toggleHideDatasetColumn: (columnName: string) => {
+    const { currentDataset, availableDatasets } = get();
+    if (!currentDataset) return;
+    const updatedCols = currentDataset.columns.map((c) =>
+      c.name === columnName ? { ...c, hidden: !c.hidden } : c
+    );
+    const updatedMeta = { ...currentDataset, columns: updatedCols };
+    const updatedAll = availableDatasets.map((d) => (d.id === updatedMeta.id ? updatedMeta : d));
+    set({
+      currentDataset: updatedMeta,
+      availableDatasets: updatedAll,
+    });
   },
 
   createJoinModel: async (config: JoinRelationConfig) => {
@@ -1109,6 +1297,7 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
       : get().currentDataset;
 
     set({
+      isDataSourceTabActive: false,
       activeTabId: tabId,
       currentDataset: targetDataset || get().currentDataset,
       datasetId: targetDataset ? targetDataset.id : get().datasetId,

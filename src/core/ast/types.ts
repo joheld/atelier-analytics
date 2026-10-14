@@ -40,6 +40,7 @@ export interface DatasetColumn {
   description?: string;
   isCalculated?: boolean;
   formula?: string;
+  hidden?: boolean; // Tableau "Ocultar campo"
 }
 
 export interface DatasetMeta {
@@ -50,6 +51,12 @@ export interface DatasetMeta {
   rowCount: number;
   columns: DatasetColumn[];
   sourceUrl?: string;
+  // Tableau Data Interpreter
+  isDataInterpreterAvailable?: boolean;
+  isDataInterpreterEnabled?: boolean;
+  dataInterpreterReport?: string;
+  // Tableau Data Source Filters
+  dataSourceFilters?: FilterExpression[];
 }
 
 export type QuickTableCalcType =
