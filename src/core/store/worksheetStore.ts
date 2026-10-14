@@ -23,6 +23,8 @@ import {
 import { buildWorksheetAST } from '../ast/builder';
 import { compileASTtoDuckDB, CompiledQuery } from '../compiler/sqlCompiler';
 import { duckdbEngine, QueryExecutionResult } from '../engine/duckdbClient';
+import { DbConnectionConfig, queryRelationalDb } from '../engine/relationalDbClient';
+import { parseTableauPackage } from '../engine/tableauIngestion';
 import {
   saveDatasetBlob,
   getAllDatasetBlobs,
@@ -78,6 +80,16 @@ export interface WorksheetStore extends WorksheetState {
   closeDataModelModal: () => void;
   createJoinModel: (config: JoinRelationConfig) => Promise<DatasetMeta>;
   createUnionModel: (config: UnionConfig) => Promise<DatasetMeta>;
+
+  // Relational Database Modal (PostgreSQL & MySQL)
+  isRelationalModalOpen: boolean;
+  openRelationalModal: () => void;
+  closeRelationalModal: () => void;
+  importRelationalData: (
+    dbType: 'postgres' | 'mysql' | 'sqlite',
+    config: DbConnectionConfig,
+    target: { table?: string; query?: string }
+  ) => Promise<void>;
 
   // Workbooks Management (Catálogo de Reportes & Storage Inspector)
   currentWorkbookId: string;
@@ -242,6 +254,10 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
   editingParameter: null,
   dashboardResults: {},
   isDataModelModalOpen: false,
+
+  isRelationalModalOpen: false,
+  openRelationalModal: () => set({ isRelationalModalOpen: true }),
+  closeRelationalModal: () => set({ isRelationalModalOpen: false }),
 
   currentWorkbookId: 'wb_default',
   currentWorkbookName: 'Reporte Principal',
@@ -517,8 +533,95 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
       // Persist the dataset in IndexedDB for resilience against accidental reloads
       await saveDatasetBlob(meta.id, file.name, file, meta);
 
-      // Incorporate any existing calculated fields into dataset metadata
+      // Extract calculated fields from Tableau packages (.twbx, .tdsx)
+      let importedCalculatedFields: CalculatedField[] = [];
+      const lowerName = file.name.toLowerCase();
+      if (lowerName.endsWith('.twbx') || lowerName.endsWith('.tdsx')) {
+        try {
+          const buffer = await file.arrayBuffer();
+          const pkg = await parseTableauPackage(buffer, meta.tableName, file.name);
+          if (pkg.metadata.calculatedFields.length > 0) {
+            importedCalculatedFields = pkg.metadata.calculatedFields.map((cf) => ({
+              id: `calc_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+              name: cf.name,
+              formula: cf.formula,
+              role: cf.role,
+              dataType: cf.dataType,
+            }));
+          }
+        } catch {
+          // Non-blocking
+        }
+      }
+
+      // Incorporate any existing or imported calculated fields into dataset metadata
       const { calculatedFields, sheets, activeTabId } = get();
+      const combinedCalculatedFields = [
+        ...calculatedFields,
+        ...importedCalculatedFields.filter((icf) => !calculatedFields.some((cf) => cf.name === icf.name)),
+      ];
+
+      if (combinedCalculatedFields.length > 0) {
+        const extraCols = combinedCalculatedFields.map((cf) => ({
+          name: cf.name,
+          dataType: cf.dataType,
+          role: cf.role,
+          isCalculated: true,
+          formula: cf.formula,
+        }));
+        meta.columns = [...meta.columns, ...extraCols];
+      }
+
+      const updatedSheets = sheets.map((s) =>
+        s.id === activeTabId ? { ...s, datasetId: meta.id, tableName: meta.tableName } : s
+      );
+      const activeSheet = updatedSheets.find((s) => s.id === activeTabId) || updatedSheets[0];
+
+      set({
+        availableDatasets: allDatasets,
+        currentDataset: meta,
+        datasetId: meta.id,
+        tableName: meta.tableName,
+        calculatedFields: combinedCalculatedFields,
+        sheets: updatedSheets,
+        columns: activeSheet.columns,
+        rows: activeSheet.rows,
+        filters: activeSheet.filters,
+        marks: activeSheet.marks,
+        isStartPageVisible: false,
+      });
+
+      await get().executeCurrentState();
+    } catch (err: unknown) {
+      set({
+        isExecuting: false,
+        engineError: err instanceof Error ? err.message : 'Error al cargar archivo en memoria',
+      });
+    }
+  },
+
+  importRelationalData: async (
+    dbType: 'postgres' | 'mysql' | 'sqlite',
+    config: DbConnectionConfig,
+    target: { table?: string; query?: string }
+  ) => {
+    try {
+      set({ isExecuting: true, engineError: null });
+      const queryResult = await queryRelationalDb(dbType, config, target);
+      const rawName = target.table || 'consulta_sql';
+      const cleanName = rawName.toLowerCase().replace(/[^a-z0-9_]/g, '_');
+      const tableName = `${dbType}_${cleanName}`;
+      const displayName = `${dbType === 'postgres' ? 'PostgreSQL' : 'MySQL'}: ${rawName}`;
+
+      const meta = await duckdbEngine.loadRelationalData(
+        tableName,
+        displayName,
+        queryResult.csv,
+        `Importado desde ${dbType.toUpperCase()} (${queryResult.rowCount.toLocaleString()} filas)`
+      );
+      const allDatasets = duckdbEngine.getAvailableDatasets();
+
+      const { sheets, activeTabId, calculatedFields } = get();
       if (calculatedFields.length > 0) {
         const extraCols = calculatedFields.map((cf) => ({
           name: cf.name,
@@ -546,14 +649,18 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
         filters: activeSheet.filters,
         marks: activeSheet.marks,
         isStartPageVisible: false,
+        isRelationalModalOpen: false,
+        isExecuting: false,
       });
 
       await get().executeCurrentState();
     } catch (err: unknown) {
+      console.error('[Store] Error al importar datos relacionales:', err);
       set({
         isExecuting: false,
-        engineError: err instanceof Error ? err.message : 'Error al cargar archivo en memoria',
+        engineError: err instanceof Error ? err.message : 'Error al importar datos relacionales',
       });
+      throw err;
     }
   },
 

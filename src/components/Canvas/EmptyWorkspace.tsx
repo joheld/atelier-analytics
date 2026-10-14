@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
-import { UploadCloud, FileSpreadsheet, ShieldCheck, Cpu } from 'lucide-react';
+import { UploadCloud, FileSpreadsheet, ShieldCheck, Cpu, Server } from 'lucide-react';
 
 interface EmptyWorkspaceProps {
   onFileUpload: (file: File) => void;
   isUploading: boolean;
+  onOpenRelationalModal?: () => void;
 }
 
 export const EmptyWorkspace: React.FC<EmptyWorkspaceProps> = ({
   onFileUpload,
   isUploading,
+  onOpenRelationalModal,
 }) => {
   const [isDragOver, setIsDragOver] = useState(false);
 
@@ -59,23 +61,37 @@ export const EmptyWorkspace: React.FC<EmptyWorkspaceProps> = ({
         </h2>
 
         <p className="mt-2 max-w-md text-xs leading-relaxed text-stone-500 dark:text-stone-400 font-sans">
-          Arrastra y suelta tu archivo <strong className="text-stone-800 dark:text-stone-200">.xlsx / .xls</strong>,{' '}
-          <strong className="text-stone-800 dark:text-stone-200">.parquet</strong>,{' '}
-          <strong className="text-stone-800 dark:text-stone-200">.csv</strong> o{' '}
-          <strong className="text-stone-800 dark:text-stone-200">.json</strong> aquí para analizarlo en memoria a cero latencia.
+          Arrastra y suelta tu archivo <strong className="text-stone-800 dark:text-stone-200">.xlsx</strong>,{' '}
+          <strong className="text-stone-800 dark:text-stone-200">.sqlite / .db</strong>,{' '}
+          <strong className="text-stone-800 dark:text-stone-200">.twbx</strong>,{' '}
+          <strong className="text-stone-800 dark:text-stone-200">.parquet</strong> o{' '}
+          <strong className="text-stone-800 dark:text-stone-200">.csv</strong> aquí para analizarlo en memoria a cero latencia.
         </p>
 
-        <label className="mt-6 inline-flex cursor-pointer items-center gap-2 rounded-xl bg-stone-900 px-5 py-2.5 text-xs font-semibold text-white shadow-md hover:bg-stone-800 focus:outline-none dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-white transition-all">
-          <FileSpreadsheet className="h-4 w-4" />
-          <span>{isUploading ? 'Procesando en DuckDB...' : 'Explorar Archivo Local'}</span>
-          <input
-            type="file"
-            accept=".parquet,.csv,.tsv,.json,.xlsx,.xls"
-            onChange={handleFileInputChange}
-            disabled={isUploading}
-            className="hidden"
-          />
-        </label>
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+          <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-stone-900 px-5 py-2.5 text-xs font-semibold text-white shadow-md hover:bg-stone-800 focus:outline-none dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-white transition-all">
+            <FileSpreadsheet className="h-4 w-4" />
+            <span>{isUploading ? 'Procesando en DuckDB...' : 'Explorar Archivo Local'}</span>
+            <input
+              type="file"
+              accept=".parquet,.csv,.tsv,.json,.ndjson,.xlsx,.xls,.sqlite,.db,.sqlite3,.twbx,.tdsx,.twb,.tds"
+              onChange={handleFileInputChange}
+              disabled={isUploading}
+              className="hidden"
+            />
+          </label>
+
+          {onOpenRelationalModal && (
+            <button
+              type="button"
+              onClick={onOpenRelationalModal}
+              className="inline-flex items-center gap-2 rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-xs font-semibold text-stone-700 shadow-2xs hover:bg-stone-50 hover:border-stone-300 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700 transition-all cursor-pointer"
+            >
+              <Server className="h-4 w-4 text-sky-600 dark:text-sky-400" />
+              <span>Conectar a Servidor SQL...</span>
+            </button>
+          )}
+        </div>
 
         {/* Value Prop Badges */}
         <div className="mt-8 grid grid-cols-2 gap-3 w-full border-t border-stone-100 pt-6 dark:border-stone-800">

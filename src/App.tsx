@@ -20,6 +20,7 @@ import { DataModelModal } from './components/DataModel/DataModelModal';
 import { StorageInspectorModal } from './components/Storage/StorageInspectorModal';
 import { StartPage } from './components/StartPage/StartPage';
 import { DataSourceWorkbench } from './components/DataSource/DataSourceWorkbench';
+import { RelationalDbModal } from './components/RelationalDb/RelationalDbModal';
 import { Columns, Rows, Loader2, Sparkles, ArrowUpDown } from 'lucide-react';
 import { buildWorksheetAST } from './core/ast/builder';
 
@@ -138,6 +139,12 @@ export const App: React.FC = () => {
     splitDatasetColumn,
     cleanDatasetColumn,
     toggleHideDatasetColumn,
+
+    // Relational Database Connector Modal
+    isRelationalModalOpen,
+    openRelationalModal,
+    closeRelationalModal,
+    importRelationalData,
   } = useWorksheetStore();
 
   useEffect(() => {
@@ -220,6 +227,7 @@ export const App: React.FC = () => {
           onFileUpload={(file) => void loadFile(file)}
           onImportProject={(file) => void importProjectFile(file)}
           onOpenStorageModal={openStorageModal}
+          onOpenRelationalModal={openRelationalModal}
         />
       ) : (
         <div className="flex flex-1 overflow-hidden">
@@ -227,39 +235,41 @@ export const App: React.FC = () => {
           <DataSidebar
             currentDataset={currentDataset}
             availableDatasets={availableDatasets}
-          onSelectDataset={selectDataset}
-          onLoadAdditionalFile={(file) => void loadFile(file)}
-          onOpenDataModelModal={openDataModelModal}
-          onOpenDataSource={() => setDataSourceTabActive(true)}
-          parameters={parameters}
-          calculatedFields={calculatedFields}
-          analyticsLines={activeSheet?.analyticsLines}
-          onAddPill={(shelf, pill) => addPillToShelf(shelf, pill)}
-          onOpenCalculatedFieldModal={openCalculatedFieldModal}
-          onDeleteCalculatedField={deleteCalculatedField}
-          onOpenParameterModal={openParameterModal}
-          onSetParameterValue={setParameterValue}
-          onToggleParameterControl={toggleParameterControl}
-          onDuplicateParameter={duplicateParameter}
-          onDeleteParameter={deleteParameter}
-          onAddAnalyticsLine={addAnalyticsLine}
-          onRemoveAnalyticsLine={removeAnalyticsLine}
-          onChangeColumnType={changeDatasetColumnType}
-          onChangeColumnRole={changeDatasetColumnRole}
-          onSplitColumn={splitDatasetColumn}
-          onCleanColumn={cleanDatasetColumn}
-          onToggleHideColumn={toggleHideDatasetColumn}
-        />
+            onSelectDataset={selectDataset}
+            onLoadAdditionalFile={(file) => void loadFile(file)}
+            onOpenDataModelModal={openDataModelModal}
+            onOpenDataSource={() => setDataSourceTabActive(true)}
+            onOpenRelationalModal={openRelationalModal}
+            parameters={parameters}
+            calculatedFields={calculatedFields}
+            analyticsLines={activeSheet?.analyticsLines}
+            onAddPill={(shelf, pill) => addPillToShelf(shelf, pill)}
+            onOpenCalculatedFieldModal={openCalculatedFieldModal}
+            onDeleteCalculatedField={deleteCalculatedField}
+            onOpenParameterModal={openParameterModal}
+            onSetParameterValue={setParameterValue}
+            onToggleParameterControl={toggleParameterControl}
+            onDuplicateParameter={duplicateParameter}
+            onDeleteParameter={deleteParameter}
+            onAddAnalyticsLine={addAnalyticsLine}
+            onRemoveAnalyticsLine={removeAnalyticsLine}
+            onChangeColumnType={changeDatasetColumnType}
+            onChangeColumnRole={changeDatasetColumnRole}
+            onSplitColumn={splitDatasetColumn}
+            onCleanColumn={cleanDatasetColumn}
+            onToggleHideColumn={toggleHideDatasetColumn}
+          />
 
-        {/* Center Analytical Workbench */}
-        <main className="flex flex-1 flex-col overflow-hidden bg-stone-50 dark:bg-stone-950">
-          {!currentDataset ? (
-            /* El ÚNICO lugar para cargar archivos en toda la app */
-            <EmptyWorkspace
-              onFileUpload={(file) => void loadFile(file)}
-              isUploading={isExecuting}
-            />
-          ) : isDataSourceTabActive ? (
+          {/* Center Analytical Workbench */}
+          <main className="flex flex-1 flex-col overflow-hidden bg-stone-50 dark:bg-stone-950">
+            {!currentDataset ? (
+              /* El ÚNICO lugar para cargar archivos en toda la app */
+              <EmptyWorkspace
+                onFileUpload={(file) => void loadFile(file)}
+                isUploading={isExecuting}
+                onOpenRelationalModal={openRelationalModal}
+              />
+            ) : isDataSourceTabActive ? (
             /* Tableau Data Source Page: Data Interpreter, Data Source Filters & Data Prep Grid */
             <DataSourceWorkbench
               currentDataset={currentDataset}
@@ -536,6 +546,13 @@ export const App: React.FC = () => {
         savedWorkbooksCount={savedWorkbooks.length}
         availableDatasets={availableDatasets}
         sheetsCount={sheets.length}
+      />
+
+      {/* Relational Database Connector Modal (PostgreSQL & MySQL) */}
+      <RelationalDbModal
+        isOpen={isRelationalModalOpen}
+        onClose={closeRelationalModal}
+        onImport={importRelationalData}
       />
     </div>
   );

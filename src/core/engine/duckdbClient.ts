@@ -3,6 +3,8 @@ import * as XLSX from 'xlsx';
 import { DatasetMeta, JoinType, DataType, FilterExpression } from '../ast/types';
 import { analyzeAndCleanSheet } from './dataInterpreter';
 import { compileFilter } from '../compiler/sqlCompiler';
+import { parseSqliteDatabase } from './sqliteIngestion';
+import { parseTableauPackage } from './tableauIngestion';
 
 export interface QueryExecutionResult {
   sql: string;
@@ -227,6 +229,78 @@ class DuckDBManager {
       return primaryMeta;
     }
 
+    // Handle SQLite database (.sqlite, .db, .sqlite3) files
+    if (extension === 'sqlite' || extension === 'db' || extension === 'sqlite3') {
+      const buffer = await file.arrayBuffer();
+      const sqliteResult = await parseSqliteDatabase(buffer, tableName, fileName);
+
+      let primaryMeta: DatasetMeta | null = null;
+      for (const t of sqliteResult.tables) {
+        const virtualFile = `${t.tableName}.csv`;
+        await db.registerFileText(virtualFile, t.csv);
+
+        await conn.query(`DROP VIEW IF EXISTS "${t.tableName}";`);
+        await conn.query(`DROP TABLE IF EXISTS "${t.tableName}_base";`);
+        await conn.query(`DROP TABLE IF EXISTS "${t.tableName}";`);
+
+        await conn.query(`CREATE TABLE "${t.tableName}_base" AS SELECT * FROM read_csv_auto('${virtualFile}');`);
+        await conn.query(`CREATE OR REPLACE VIEW "${t.tableName}" AS SELECT * FROM "${t.tableName}_base";`);
+
+        const meta = await this.introspectTable(
+          t.tableName,
+          t.displayName,
+          `${file.name} - Tabla SQLite: ${t.tableName}`
+        );
+        meta.dataSourceFilters = [];
+        if (!primaryMeta) {
+          primaryMeta = meta;
+        }
+      }
+
+      if (!primaryMeta) {
+        throw new Error(`No se pudieron extraer tablas válidas de la base de datos SQLite "${fileName}".`);
+      }
+
+      return primaryMeta;
+    }
+
+    // Handle Tableau Packaged Workbooks (.twbx) and Data Sources (.tdsx)
+    if (extension === 'twbx' || extension === 'tdsx') {
+      const buffer = await file.arrayBuffer();
+      const tableauResult = await parseTableauPackage(buffer, tableName, fileName);
+
+      if (tableauResult.tables.length === 0) {
+        throw new Error(
+          `El archivo de Tableau "${fileName}" no contiene datos embebidos legibles (.csv, .xlsx).`
+        );
+      }
+
+      let primaryMeta: DatasetMeta | null = null;
+      for (const t of tableauResult.tables) {
+        const virtualFile = `${t.tableName}.csv`;
+        await db.registerFileText(virtualFile, t.csv);
+
+        await conn.query(`DROP VIEW IF EXISTS "${t.tableName}";`);
+        await conn.query(`DROP TABLE IF EXISTS "${t.tableName}_base";`);
+        await conn.query(`DROP TABLE IF EXISTS "${t.tableName}";`);
+
+        await conn.query(`CREATE TABLE "${t.tableName}_base" AS SELECT * FROM read_csv_auto('${virtualFile}');`);
+        await conn.query(`CREATE OR REPLACE VIEW "${t.tableName}" AS SELECT * FROM "${t.tableName}_base";`);
+
+        const meta = await this.introspectTable(t.tableName, t.displayName, `${file.name} - Fuente Tableau`);
+        meta.dataSourceFilters = [];
+        if (!primaryMeta) {
+          primaryMeta = meta;
+        }
+      }
+
+      if (!primaryMeta) {
+        throw new Error(`No se pudieron extraer tablas válidas del archivo de Tableau "${fileName}".`);
+      }
+
+      return primaryMeta;
+    }
+
     // Register file handle inside DuckDB virtual filesystem for standard text/binary formats
     await db.registerFileHandle(fileName, file, duckdb.DuckDBDataProtocol.BROWSER_FILEREADER, true);
 
@@ -251,6 +325,34 @@ class DuckDBManager {
     const meta = await this.introspectTable(tableName, file.name);
     meta.isDataInterpreterAvailable = false;
     meta.isDataInterpreterEnabled = false;
+    meta.dataSourceFilters = [];
+    return meta;
+  }
+
+  /**
+   * Registers a dataset from an imported relational query (PostgreSQL, MySQL, SQLite) into DuckDB-WASM
+   */
+  public async loadRelationalData(
+    tableName: string,
+    displayName: string,
+    csvContent: string,
+    description?: string
+  ): Promise<DatasetMeta> {
+    const db = await this.getDB();
+    const conn = await this.getConnection();
+
+    const safeTable = tableName.replace(/"/g, '""');
+    const virtualFile = `${tableName}_import.csv`;
+    await db.registerFileText(virtualFile, csvContent);
+
+    await conn.query(`DROP VIEW IF EXISTS "${safeTable}";`);
+    await conn.query(`DROP TABLE IF EXISTS "${safeTable}_base";`);
+    await conn.query(`DROP TABLE IF EXISTS "${safeTable}";`);
+
+    await conn.query(`CREATE TABLE "${safeTable}_base" AS SELECT * FROM read_csv_auto('${virtualFile}');`);
+    await conn.query(`CREATE OR REPLACE VIEW "${safeTable}" AS SELECT * FROM "${safeTable}_base";`);
+
+    const meta = await this.introspectTable(tableName, displayName, description);
     meta.dataSourceFilters = [];
     return meta;
   }

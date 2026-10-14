@@ -137,6 +137,7 @@ gitGraph
     commit id: "data-interpreter-source-filters-and-prep" tag: "v2.4.0"
     commit id: "fix-data-type-casting-and-sidebar-popover" tag: "v2.4.1"
     commit id: "tableau-splits-trim-and-bidirectional-casts" tag: "v2.5.0"
+    commit id: "sqlite-tableau-packaged-and-relational-db-connectors" tag: "v2.6.0"
 ```
 
 ---
@@ -170,6 +171,7 @@ gitGraph
 | **CP-23** | Tableau Data Interpreter, Filtros de Fuente de Datos y Prelimpieza de Datos en Cuadrícula | **Completado** | 1) Data Interpreter (`dataInterpreter.ts`) con heurística de encabezados, detección de notas, metadatos y poda de subtotales/totales generales al pie; 2) Arquitectura física base + vista SQL en DuckDB (`CREATE OR REPLACE VIEW ... WHERE ...`) para Filtros de Fuente de Datos que gobiernan a nivel raíz antes de hojas y dashboards; 3) Prelimpieza de datos en cuadrícula (renombrado, TRY_CAST vectorial con EXCLUDE, SPLIT_PART por delimitador, TRIM/UPPER/LOWER y ocultamiento de campos); 4) Pestaña "Fuente de datos" en TabBar y banco de trabajo `DataSourceWorkbench.tsx`; 5) 29/29 tests unitarios pasando, 0 errores tsc, build limpio y HTTP 200. |
 | **CP-24** | Robustecimiento del Cambio de Tipos de Datos (Cast) y Popover Interactivo en Panel Lateral | **Completado** | 1) Auto-sanación en `castColumn`: verificación y creación dinámica de la tabla física base `_base` si no existe; 2) Expresiones SQL multi-formato con `COALESCE` para números (limpieza de `$`, `€`, comas de miles y espacios), fechas (`%Y-%m-%d`, `%d/%m/%Y`, `%m/%d/%Y`, etc.) y booleanos (reconociendo 'si', 'sí', 'verdadero', 'false', '0', etc.); 3) Preservación estricta del orden original de columnas en DuckDB y preservación del flag `hidden`; 4) Sincronización automática de pastillas en todas las hojas (`pills`) al cambiar tipos o roles para evitar fallos de ejecución; 5) Popover interactivo estilo Tableau Desktop en el panel lateral (`DataSidebar.tsx`): clic en el icono (`#`, `Abc`, `📅`, `T/F`) o clic derecho para cambiar tipo, convertir dimensión/medida u ocultar; 6) 31/31 tests pasando en Vitest, 0 errores tsc, build limpio y HTTP 200. |
 | **CP-25** | Emulación Tableau Desktop: División de Columnas (Split / Custom Split), Limpieza de Texto (TRIM / Case) y Conversión Bidireccional de Tipos | **Completado** | 1) Helper universal `ensureBaseTable` para auto-sanación de tablas físicas `_base` en todas las operaciones de preparación (rename, cast, split, clean); 2) División de columnas (`splitColumn`) con convención Tableau `[Field] - Split 1..N` deduplicada contra colisiones de catálogo y soporte de modos First N, Last N (indexación negativa DuckDB) y All (cálculo de tokens máximos); 3) Modal interactivo dedicado para División Personalizada en `DataSourceWorkbench.tsx` (delimitador, selector First/Last/All y N columnas); 4) Limpieza de texto (`cleanColumn`) blindada con `CAST(... AS VARCHAR)` para evitar excepciones de binder en columnas numéricas o fechas; 5) Conversiones bidireccionales completas de tipos (número ⇄ cadena sin trailing `.0` en enteros, string ⇄ número con monedas/porcentajes/contabilidad, número ⇄ fecha con años 4 dígitos y días seriales de Excel, fecha ⇄ número con año/epoch); 6) Menú de campo en `DataSidebar.tsx` con acceso rápido a división y trim; 7) 34/34 tests unitarios pasando, 0 errores tsc, build limpio y HTTP 200. |
+| **CP-26** | Soporte Nativo de Bases SQLite, Archivos Tableau (.twbx/.tdsx/.twb/.tds) y Servidores Relacionales (PostgreSQL / MySQL) | **Completado** | 1) Ingesta SQLite (`sqliteIngestion.ts`) mediante `sql.js` (WebAssembly) con introspección automática de tablas de usuario y serialización RFC 4180; 2) Ingesta Tableau Desktop (`tableauIngestion.ts`) para descompresión de `.twbx` y `.tdsx` con `JSZip`, parsing XML de `.twb` y extracción de campos calculados y fórmulas; 3) Conector y puente backend local (`relationalDbBridge.ts` + `relationalDbClient.ts`) con drivers `pg` y `mysql2` para prueba de conexión e importación directa a DuckDB-WASM; 4) Modal de conexión a servidor estilo Tableau Desktop (`RelationalDbModal.tsx`) con pestañas PostgreSQL/MySQL, credenciales, selector de tablas o SQL personalizado; 5) Conectores integrados en StartPage, EmptyWorkspace y DataSidebar; 6) 39/39 tests unitarios pasando, 0 errores tsc, build limpio en 3.3s y HTTP 200 OK. |
 
 ---
 
@@ -200,6 +202,11 @@ atelier-analytics/
     │   │   └── sqlCompiler.test.ts # Suite de pruebas unitarias (11/11 tests pasados, 100% verde)
     │   ├── engine/
     │   │   ├── duckdbClient.ts   # Conector DuckDB-WASM con vistas relacionales, tablas base + vistas de filtros de fuente y transformaciones
+    │   │   ├── sqliteIngestion.ts # Ingesta SQLite client-side con sql.js WASM e introspección de tablas
+    │   │   ├── sqliteIngestion.test.ts # Suite de pruebas unitarias de SQLite (3/3 pasados)
+    │   │   ├── tableauIngestion.ts # Extractor de libros Tableau (.twbx/.tdsx/.twb) con JSZip, parsing XML y fórmulas calculadas
+    │   │   ├── tableauIngestion.test.ts # Suite de pruebas de libros Tableau (2/2 pasados)
+    │   │   ├── relationalDbClient.ts # Cliente frontend para puente relacional y serialización CSV
     │   │   ├── dataInterpreter.ts # Motor Tableau Data Interpreter: detección de cabeceras, notas, metadatos y poda de subtotales
     │   │   ├── dataInterpreter.test.ts # Suite de pruebas del Data Interpreter (3/3 pasados)
     │   │   ├── dataModeling.test.ts # Suite de pruebas unitarias de modelado relacional (3/3 pasados)
@@ -209,11 +216,15 @@ atelier-analytics/
     │   │   └── indexedDBStorage.test.ts # Pruebas unitarias de serialización, recuperación de sesiones y catálogo de workbooks (3/3 pasados)
     │   └── store/
     │       └── worksheetStore.ts # Almacén Zustand reactivo con catálogo de reportes y acciones de preparación de datos
+    ├── server/
+    │   └── relationalDbBridge.ts # Middleware de servidor local Vite para probar y transmitir consultas a PostgreSQL y MySQL
     ├── components/
     │   ├── Header/
     │   │   └── Header.tsx        # Barra editorial con selector de reportes, renombrado en vivo, badge interactivo "Guardado en Mac" y tema
     │   ├── Storage/
     │   │   └── StorageInspectorModal.tsx # Modal de transparencia de almacenamiento local en macOS, métricas de uso y descarga de proyecto
+    │   ├── RelationalDb/
+    │   │   └── RelationalDbModal.tsx # Diálogo de conexión a servidores relacionales estilo Tableau Desktop (PostgreSQL / MySQL)
     │   ├── DataSidebar/
     │   │   └── DataSidebar.tsx   # Panel Tableau con selector de fuente activa, botón '+ Fuente', botón 'Preparar', botón 'Modelar' y filtro de campos ocultos
     │   ├── DataSource/
@@ -225,7 +236,7 @@ atelier-analytics/
     │   ├── ShowMe/
     │   │   └── ShowMeDrawer.tsx  # Galería inteligente Show Me (15 arquetipos visuales, evaluación de requisitos y recomendados)
     │   ├── Dashboard/
-    │   │   ├── DashboardGrid.tsx # Lienzo de Dashboard multi-fuente con badge de tabla de origen por tarjeta, filtros y parámetros
+    │   │   └── DashboardGrid.tsx # Lienzo de Dashboard multi-fuente con badge de tabla de origen por tarjeta, filtros y parámetros
     │   │   └── TargetSheetsModal.tsx # Modal Tableau "Aplicar a hojas de trabajo..."
     │   ├── CalculatedFields/
     │   │   └── CalculatedFieldModal.tsx # Editor de fórmulas con biblioteca de funciones y recetas analíticas
@@ -241,7 +252,7 @@ atelier-analytics/
     │   ├── Marks/
     │   │   └── MarksCard.tsx     # Tarjeta de marcas con 15 tipos de geometrías (Barras, Líneas, Boxplot, Histograma, Densidad, Hexbin, etc.)
     │   └── Canvas/
-    │       ├── EmptyWorkspace.tsx # Zona de bienvenida y drag & drop para archivos locales
+    │       ├── EmptyWorkspace.tsx # Zona de bienvenida y drag & drop para archivos locales y conexión a servidor
     │       ├── CanvasErrorBoundary.tsx # Error boundary que previene pantallas en blanco ante excepciones de renderizado
     │       ├── PlotRenderer.tsx  # Renderizador reactivo Observable Plot con todas las marcas avanzadas y marcas de análisis
     │       ├── TextTableRenderer.tsx # Tabla de texto / Cross-Tab profesional con sorting, filtro en vivo, totales y exportación TSV/CSV
@@ -253,23 +264,17 @@ atelier-analytics/
 
 ---
 
-- **Estado Actual:** Emulación de Tableau Desktop de División de Columnas (Split / Custom Split), Limpieza de Texto (TRIM / Case) y Conversión Bidireccional de Tipos de Datos (Checkpoint **CP-25**):
-  1. **Causas Raíz Resueltas:**
-     - Falta de tabla física base `_base`: Al dividir o limpiar texto en DuckDB, si la tabla no tenía creada su tabla base subyacente, la consulta fallaba con error de catálogo.
-     - Error de Binder en `SPLIT_PART` y `TRIM/UPPER/LOWER`: `SPLIT_PART` y las funciones de texto de DuckDB requieren argumentos de tipo `VARCHAR`. Si la columna era numérica o de fecha, DuckDB lanzaba una excepción irrecuperable.
-     - Fallo en re-ejecución innecesaria de hojas de trabajo: En `worksheetStore.ts`, `splitDatasetColumn`, `cleanDatasetColumn` y `renameDatasetColumn` invocaban `executeCurrentState()` incondicionalmente, causando fallos analíticos en segundo plano mientras el usuario estaba en la pestaña "Fuente de datos".
-     - Colisión de nombres de columnas divididas: Al dividir varias veces un campo, DuckDB arrojaba error de columna duplicada.
-     - Conversión bidireccional incompleta: Se requería convertir limpiamente números a cadenas (sin sufijo `.0` en enteros), cadenas a números (manejando monedas `$`, `€`, `£`, `¥`, comas de miles, formato contable con paréntesis `(100)` y porcentajes), números a fechas (manejando años de 4 dígitos como `2024` -> `2024-01-01` y fechas seriales de Excel como `45000`), y fechas a números (extrayendo año o epoch).
-  2. **Solución Implementada:**
-     - Helper universal `ensureBaseTable`: Detección y creación automática de `${tableName}_base` para todas las operaciones de preparación.
-     - División de columnas (`splitColumn`): Convención Tableau `[Field] - Split 1..N` con algoritmo de deduplicación de nombres, `CAST("${safeCol}" AS VARCHAR)` y soporte completo de modalidades `first` (primeras N), `last` (últimas N usando índices negativos en DuckDB `SPLIT_PART`) y `all` (todas las columnas inspeccionando el conteo máximo de tokens en la tabla).
-     - Modal interactivo de División Personalizada en `DataSourceWorkbench.tsx`: Diálogo nativo idéntico a Tableau Desktop para definir separador y alcance sin depender de `window.prompt`.
-     - Limpieza de texto (`cleanColumn`): `TRIM`, `UPPER` y `LOWER` ejecutados sobre `CAST("${safeCol}" AS VARCHAR)` con reconstrucción de orden original de columnas, permitiendo limpiar cualquier columna sin fallos.
-     - Conversión bidireccional exhaustiva (`castColumn`): Fórmulas SQL multi-expresión que manejan todos los casos de uso analíticos de Tableau Desktop.
-     - Acciones de split y trim añadidas también al menú contextual del panel lateral (`DataSidebar.tsx`).
-  3. **Verificación Zero-Defect:**
-     - 34/34 tests unitarios pasando en Vitest (100% verde).
+- **Estado Actual:** Conectores Nativos para SQLite, Libros de Tableau (.twbx/.tdsx/.twb/.tds) y Servidores Relacionales (PostgreSQL / MySQL) (Checkpoint **CP-26**):
+  1. **Funcionalidades Implementadas:**
+     - Ingestión de Bases de Datos SQLite (.sqlite, .db, .sqlite3): Motor WebAssembly `sql.js` ejecutado 100% en el cliente que inspecciona el catálogo `sqlite_master`, extrae las tablas de usuario y las registra como tablas vectoriales independientes en DuckDB-WASM.
+     - Ingestión de Libros y Fuentes Tableau (.twbx, .tdsx, .twb, .tds): Desempaquetador client-side con `JSZip` que extrae los datos embebidos (.csv, .xlsx) e interpreta el archivo XML (`.twb`/`.tds`) rescatando automáticamente los campos calculados, títulos y fórmulas definidas por el usuario para poblarlos en la barra lateral.
+     - Conexión a Servidores Relacionales (PostgreSQL & MySQL):
+       - Puente backend local (`relationalDbBridge.ts`) integrado en Vite que aprovecha los drivers nativos de Node/Bun (`pg` y `mysql2`).
+       - Modal de conexión estilo Tableau Desktop (`RelationalDbModal.tsx`) con pestañas para PostgreSQL y MySQL, parámetros de host, puerto, base de datos, usuario, contraseña, SSL, botón de "Probar Conexión", selector de tablas con conteo de registros o consulta SQL personalizada libre.
+     - Acceso Unificado en la UI: Opciones añadidas en la pantalla de bienvenida (`StartPage.tsx`), en la zona de drop (`EmptyWorkspace.tsx`) y en el panel lateral de campos (`DataSidebar.tsx`).
+  2. **Verificación Zero-Defect:**
+     - 39/39 tests unitarios pasando en Vitest (100% verde).
      - Tipado estricto (`tsc --noEmit`) con 0 errores y 0 advertencias.
-     - Compilación estática de producción (`vite build`) en 3.04s.
-     - Servidor activo en macOS respondiendo `HTTP 200 OK` en `http://127.0.0.1:5173`.
-- **Siguiente Paso:** Presentar al usuario la emulación de Tableau Desktop de split, custom split, trim y conversiones bidireccionales, e invitarlo a probarlas en vivo.
+     - Compilación estática de producción (`vite build`) en 3.3s limpia.
+     - Servidor activo en macOS respondiendo `HTTP 200 OK` en `http://localhost:5173`.
+- **Siguiente Paso:** Entregar al usuario la funcionalidad y guiarlo en el uso de los nuevos conectores de bases de datos relacionales, SQLite y libros Tableau.

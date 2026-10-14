@@ -3,6 +3,7 @@ import {
   FileSpreadsheet,
   Table as TableIcon,
   Database,
+  Server,
   Plus,
   ArrowRight,
   Clock,
@@ -33,6 +34,7 @@ interface StartPageProps {
   onFileUpload: (file: File) => void;
   onImportProject: (file: File) => void;
   onOpenStorageModal: () => void;
+  onOpenRelationalModal?: () => void;
 }
 
 export const StartPage: React.FC<StartPageProps> = ({
@@ -48,6 +50,7 @@ export const StartPage: React.FC<StartPageProps> = ({
   onFileUpload,
   onImportProject,
   onOpenStorageModal,
+  onOpenRelationalModal,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const projectInputRef = useRef<HTMLInputElement>(null);
@@ -109,7 +112,7 @@ export const StartPage: React.FC<StartPageProps> = ({
       <input
         ref={fileInputRef}
         type="file"
-        accept=".parquet,.csv,.tsv,.json,.xlsx,.xls"
+        accept=".parquet,.csv,.tsv,.json,.ndjson,.xlsx,.xls,.sqlite,.db,.sqlite3,.twbx,.tdsx,.twb,.tds"
         className="hidden"
         onChange={(e) => {
           const file = e.target.files?.[0];
@@ -153,10 +156,24 @@ export const StartPage: React.FC<StartPageProps> = ({
           {/* Section: Conectar a un Archivo */}
           <div className="space-y-2">
             <h2 className="text-xs font-bold uppercase tracking-wider text-stone-400 font-mono">
-              Conectar a datos
+              A un archivo
             </h2>
 
             <div className="space-y-1">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-xs font-medium text-stone-700 hover:bg-white hover:shadow-xs dark:text-stone-300 dark:hover:bg-stone-800/80 transition-all text-left"
+              >
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
+                  <TableIcon className="h-4 w-4" />
+                </div>
+                <div>
+                  <span className="block font-semibold">Microsoft Excel</span>
+                  <span className="block text-[10px] text-stone-400">.xlsx, .xls (Multi-Hoja)</span>
+                </div>
+              </button>
+
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
@@ -190,12 +207,26 @@ export const StartPage: React.FC<StartPageProps> = ({
                 onClick={() => fileInputRef.current?.click()}
                 className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-xs font-medium text-stone-700 hover:bg-white hover:shadow-xs dark:text-stone-300 dark:hover:bg-stone-800/80 transition-all text-left"
               >
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
-                  <TableIcon className="h-4 w-4" />
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-teal-100 text-teal-700 dark:bg-teal-950/60 dark:text-teal-300">
+                  <Database className="h-4 w-4" />
                 </div>
                 <div>
-                  <span className="block font-semibold">Microsoft Excel</span>
-                  <span className="block text-[10px] text-stone-400">.xlsx, .xls (Multi-Hoja)</span>
+                  <span className="block font-semibold">Base SQLite</span>
+                  <span className="block text-[10px] text-stone-400">.sqlite, .db, .sqlite3</span>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-xs font-medium text-stone-700 hover:bg-white hover:shadow-xs dark:text-stone-300 dark:hover:bg-stone-800/80 transition-all text-left"
+              >
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300">
+                  <Layers className="h-4 w-4" />
+                </div>
+                <div>
+                  <span className="block font-semibold">Tableau empaquetado</span>
+                  <span className="block text-[10px] text-stone-400">.twbx, .tdsx, .twb</span>
                 </div>
               </button>
 
@@ -210,6 +241,43 @@ export const StartPage: React.FC<StartPageProps> = ({
                 <div>
                   <span className="block font-semibold">Archivo JSON</span>
                   <span className="block text-[10px] text-stone-400">.json, .ndjson</span>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          {/* Section: Conectar a un Servidor (Tableau Desktop style) */}
+          <div className="space-y-2 pt-2 border-t border-stone-200/50 dark:border-stone-800/50">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-stone-400 font-mono">
+              A un servidor
+            </h2>
+
+            <div className="space-y-1">
+              <button
+                type="button"
+                onClick={onOpenRelationalModal}
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-xs font-medium text-stone-700 hover:bg-white hover:shadow-xs dark:text-stone-300 dark:hover:bg-stone-800/80 transition-all text-left"
+              >
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-sky-100 text-sky-800 dark:bg-sky-950/70 dark:text-sky-300">
+                  <Server className="h-4 w-4" />
+                </div>
+                <div>
+                  <span className="block font-semibold">PostgreSQL</span>
+                  <span className="block text-[10px] text-stone-400">Servidor relacional SQL</span>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={onOpenRelationalModal}
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-xs font-medium text-stone-700 hover:bg-white hover:shadow-xs dark:text-stone-300 dark:hover:bg-stone-800/80 transition-all text-left"
+              >
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-800 dark:bg-blue-950/70 dark:text-blue-300">
+                  <Database className="h-4 w-4" />
+                </div>
+                <div>
+                  <span className="block font-semibold">MySQL / MariaDB</span>
+                  <span className="block text-[10px] text-stone-400">Servidor relacional SQL</span>
                 </div>
               </button>
             </div>
