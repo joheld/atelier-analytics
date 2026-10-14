@@ -242,7 +242,7 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
             <input
               ref={fileInputRef}
               type="file"
-              accept=".csv,.parquet,.tsv,.json,.ndjson"
+              accept=".csv,.parquet,.tsv,.json,.ndjson,.xlsx,.xls"
               className="hidden"
               onChange={(e) => {
                 const file = e.target.files?.[0];
@@ -256,7 +256,7 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
               type="button"
               onClick={() => fileInputRef.current?.click()}
               className="flex items-center gap-1 rounded bg-stone-100 px-1.5 py-0.5 text-[10px] font-mono text-stone-700 hover:bg-stone-200 dark:bg-stone-800 dark:text-stone-300 dark:hover:bg-stone-700 cursor-pointer"
-              title="Cargar archivo adicional (CSV, Parquet, TSV, JSON) en DuckDB-WASM"
+              title="Cargar archivo adicional (Excel, CSV, Parquet, TSV, JSON) en DuckDB-WASM"
             >
               <Plus className="h-2.5 w-2.5" />
               <span>Fuente</span>

@@ -133,6 +133,7 @@ gitGraph
     commit id: "storage-transparency-and-multi-workbook-catalog" tag: "v2.1.0"
     commit id: "mac-desktop-launcher-path-fix" tag: "v2.1.1"
     commit id: "tableau-start-page-and-recent-workbooks" tag: "v2.2.0"
+    commit id: "excel-xlsx-xls-sheetjs-multi-sheet" tag: "v2.3.0"
 ```
 
 ---
@@ -162,6 +163,7 @@ gitGraph
 | **CP-19** | Transparencia de Almacenamiento Local y Catálogo de Reportes Múltiples | **Completado** | 1) Modal de Transparencia de Almacenamiento (`StorageInspectorModal.tsx`) accesible al pulsar el badge "Guardado en Mac" en el Header; muestra métricas de almacenamiento, arquitectura en capas, ubicación física en disco en macOS (`~/Library/Application Support/...`) y botón para exportar `.atelier` a `~/Downloads`; 2) Catálogo de Reportes Múltiples en el Header con selector de reporte activo, renombrado en tiempo real, creación de nuevos reportes independientes (`+ Nuevo Reporte en Blanco`) sin cerrar ni perder el trabajo activo y alternancia instantánea en 1 clic; 3) 19/19 tests unitarios pasando en Vitest, 0 errores de TypeScript, compilación de producción en 2.58s y HTTP 200 en http://127.0.0.1:5173. |
 | **CP-20** | Resolución de PATH en Launcher de Escritorio y Acceso Directo macOS | **Completado** | 1) Corrección de error `nohup: bun: No such file or directory` al abrir desde `Atelier Analytics.app` o `.command`; 2) Exportación explícita de `PATH` (`$HOME/.bun/bin:/opt/homebrew/bin:/usr/local/bin:$PATH`) en `run.sh`, `launch-desktop.sh` y `main.scpt`; 3) Resolución dinámica y portable de rutas sin hardcoding de `/Users/joe`; 4) Verificación empírica mediante `open` en macOS con inicio de servidor en 187ms y respuesta HTTP 200. |
 | **CP-21** | Página de Inicio Auténtica de Tableau Desktop (`StartPage.tsx`) con Libros Recientes y Muestras | **Completado** | 1) Pantalla de inicio Tableau Desktop (`StartPage.tsx`) activa al arrancar la app; 2) Panel izquierdo "Conectar": Excel, CSV, Parquet, JSON y fuentes de muestra con 1 clic (Superstore Sales y World Indicators); 3) Panel central "Libros de trabajo recientes": tarjetas con vista previa gráfica, fechas relativas, estado activo y banner de reanudación inmediata; 4) Toggle bidireccional mediante el logo de Atelier en el Header para alternar entre el Inicio y el Lienzo sin cerrar nada; 5) 19/19 tests unitarios pasando, 0 errores tsc, build limpio y HTTP 200 en http://127.0.0.1:5173. |
+| **CP-22** | Soporte Nativo de Archivos Microsoft Excel (.xlsx / .xls) Multi-Hoja con SheetJS y DuckDB-WASM | **Completado** | 1) Ingestión client-side de archivos Excel (.xlsx y .xls) mediante SheetJS (`xlsx@0.18.5`); 2) Preservación de precisión numérica con `rawNumbers: true` para evitar distorsiones por formatos de moneda o porcentajes; 3) Soporte multi-hoja completo estilo Tableau Desktop: cada hoja se carga como una tabla independiente en DuckDB y se registra en `availableDatasets`, permitiendo análisis directo y relaciones (JOIN/UNION); 4) Conector independiente "Microsoft Excel" en StartPage, EmptyWorkspace y barra lateral; 5) 23/23 tests pasando en Vitest, 0 errores tsc, build limpio y HTTP 200. |
 
 ---
 
@@ -242,11 +244,18 @@ atelier-analytics/
 
 ## 6. Estado de la Sesión
 
-- **Estado Actual:** Resuelto el problema de ejecución del acceso directo en macOS (`nohup: bun: No such file or directory`):
-  1. **Causa Raíz:** Al hacer doble clic en `Atelier Analytics.app` en el escritorio de macOS, el entorno GUI ejecuta el AppleScript bajo `/bin/sh` con un `$PATH` de sistema mínimo (`/usr/bin:/bin:/usr/sbin:/sbin`), el cual no incluye `~/.bun/bin`, `/opt/homebrew/bin` ni `/usr/local/bin`.
+- **Estado Actual:** Resuelta la carga de archivos de Microsoft Excel (.xlsx / .xls) mono y multi-hoja en DuckDB-WASM:
+  1. **Causa Raíz:** DuckDB-WASM carece de un lector binario nativo de hojas de cálculo Excel (`.xlsx` es un contenedor ZIP comprimido de archivos XML). Al no haber rama condicional para `.xlsx`/`.xls`, la función `loadUserFile` caía en el fallback por defecto de `read_csv_auto()`, provocando un fallo de parseo UTF-8 y fallando la carga de forma silenciosa. Además, los inputs de archivo en `EmptyWorkspace.tsx` y `DataSidebar.tsx` no incluían `.xlsx` ni `.xls` en su atributo `accept`.
   2. **Solución Implementada:**
-     - `run.sh` y `launch-desktop.sh`: Exportan explícitamente `$HOME/.bun/bin:/opt/homebrew/bin:/usr/local/bin` y detectan dinámicamente la ruta del ejecutable `bun`.
-     - `Atelier Analytics.app` (`main.scpt`): Recompilado con `osacompile` para exportar `PATH` y resolver dinámicamente `launch-desktop.sh` usando `POSIX path of (path to home folder)`.
-     - `Atelier Analytics.command`: Blindado con exportación de `PATH` y resolución con `$HOME`.
-  3. **Verificación:** Ejecutado `open "/Users/joe/Desktop/Atelier Analytics.app"`, levantando Vite en 187ms y confirmando `HTTP 200 OK` en `http://127.0.0.1:5173` sin alertas de error.
-- **Siguiente Paso:** Sistema 100% operativo, verificado y listo para el usuario.
+     - Integración de `xlsx` (SheetJS v0.18.5) para decodificar en memoria archivos `.xlsx` y `.xls` (BIFF8) a partir del `ArrayBuffer` del archivo del usuario.
+     - Conversión streaming a CSV mediante `XLSX.utils.sheet_to_csv` con `rawNumbers: true` (garantizando que precios o porcentajes con formato de moneda `$#,##0.00` se exporten como números decimales limpios y no como strings entrecomillados) y `blankrows: false`.
+     - Registro dinámico en el sistema de archivos virtual de DuckDB (`db.registerFileText`) y creación de tablas SQL independientes por cada hoja.
+     - Soporte multi-hoja estilo Tableau Desktop: la hoja principal se asigna al lienzo activo y las hojas secundarias se registran en `availableDatasets`, listas para ser inspeccionadas o vinculadas mediante relaciones (`JOIN`) y uniones (`UNION`).
+     - Creación del método unificado `introspectTable` en `duckdbClient.ts` para deduplicar la inferencia de esquemas.
+     - Actualización de los selectores de archivo (`accept`) y conectores en `StartPage.tsx`, `EmptyWorkspace.tsx` y `DataSidebar.tsx`.
+  3. **Verificación:**
+     - Suite completa de 23 tests unitarios pasando (`bun test` y `vitest run`).
+     - Verificación estricta de TypeScript (`tsc --noEmit`) con 0 errores.
+     - Compilación estática de producción (`vite build`) limpia en 2.77s.
+     - Servicio activo en macOS respondiendo `HTTP 200 OK` en `http://127.0.0.1:5173`.
+- **Siguiente Paso:** Entregar confirmación al usuario y probar con sus archivos Excel.

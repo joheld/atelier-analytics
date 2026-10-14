@@ -59,7 +59,8 @@ export const EmptyWorkspace: React.FC<EmptyWorkspaceProps> = ({
         </h2>
 
         <p className="mt-2 max-w-md text-xs leading-relaxed text-stone-500 dark:text-stone-400 font-sans">
-          Arrastra y suelta tu archivo <strong className="text-stone-800 dark:text-stone-200">.parquet</strong>,{' '}
+          Arrastra y suelta tu archivo <strong className="text-stone-800 dark:text-stone-200">.xlsx / .xls</strong>,{' '}
+          <strong className="text-stone-800 dark:text-stone-200">.parquet</strong>,{' '}
           <strong className="text-stone-800 dark:text-stone-200">.csv</strong> o{' '}
           <strong className="text-stone-800 dark:text-stone-200">.json</strong> aquí para analizarlo en memoria a cero latencia.
         </p>
@@ -69,7 +70,7 @@ export const EmptyWorkspace: React.FC<EmptyWorkspaceProps> = ({
           <span>{isUploading ? 'Procesando en DuckDB...' : 'Explorar Archivo Local'}</span>
           <input
             type="file"
-            accept=".parquet,.csv,.tsv,.json"
+            accept=".parquet,.csv,.tsv,.json,.xlsx,.xls"
             onChange={handleFileInputChange}
             disabled={isUploading}
             className="hidden"

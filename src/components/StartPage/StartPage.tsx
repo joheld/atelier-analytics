@@ -194,8 +194,22 @@ export const StartPage: React.FC<StartPageProps> = ({
                   <TableIcon className="h-4 w-4" />
                 </div>
                 <div>
-                  <span className="block font-semibold">Microsoft Excel / JSON</span>
-                  <span className="block text-[10px] text-stone-400">.xlsx, .json</span>
+                  <span className="block font-semibold">Microsoft Excel</span>
+                  <span className="block text-[10px] text-stone-400">.xlsx, .xls (Multi-Hoja)</span>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-xs font-medium text-stone-700 hover:bg-white hover:shadow-xs dark:text-stone-300 dark:hover:bg-stone-800/80 transition-all text-left"
+              >
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300">
+                  <Database className="h-4 w-4" />
+                </div>
+                <div>
+                  <span className="block font-semibold">Archivo JSON</span>
+                  <span className="block text-[10px] text-stone-400">.json, .ndjson</span>
                 </div>
               </button>
             </div>

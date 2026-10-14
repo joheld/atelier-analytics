@@ -1,4 +1,5 @@
 import * as duckdb from '@duckdb/duckdb-wasm';
+import * as XLSX from 'xlsx';
 import { DatasetMeta, JoinType } from '../ast/types';
 
 export interface QueryExecutionResult {
@@ -86,39 +87,12 @@ class DuckDBManager {
   }
 
   /**
-   * Loads a user file (Parquet, CSV, TSV, or JSON) directly into DuckDB in-memory columnar storage.
-   * Leverages browser FileReader protocol and native DuckDB readers.
+   * Introspects table schema dynamically and registers dataset metadata
    */
-  public async loadUserFile(file: File): Promise<DatasetMeta> {
-    const db = await this.getDB();
+  public async introspectTable(tableName: string, displayName: string, description?: string): Promise<DatasetMeta> {
     const conn = await this.getConnection();
-
-    const fileName = file.name;
-    const extension = fileName.split('.').pop()?.toLowerCase() || '';
-    const baseName = fileName.replace(/\.[^/.]+$/, '').toLowerCase().replace(/[^a-z0-9_]/g, '_');
-    const tableName = baseName || 'dataset';
-
-    // Register file handle inside DuckDB virtual filesystem
-    await db.registerFileHandle(fileName, file, duckdb.DuckDBDataProtocol.BROWSER_FILEREADER, true);
-
-    // Drop table if reloaded
-    await conn.query(`DROP TABLE IF EXISTS "${tableName}";`);
-
-    // Determine reader function by extension
-    if (extension === 'parquet' || fileName.endsWith('.parquet.snappy')) {
-      await conn.query(`CREATE TABLE "${tableName}" AS SELECT * FROM read_parquet('${fileName}');`);
-    } else if (extension === 'tsv') {
-      await conn.query(`CREATE TABLE "${tableName}" AS SELECT * FROM read_csv_auto('${fileName}', delim='\\t');`);
-    } else if (extension === 'json' || extension === 'ndjson') {
-      await conn.query(`CREATE TABLE "${tableName}" AS SELECT * FROM read_json_auto('${fileName}');`);
-    } else {
-      // Default to auto-detecting CSV
-      await conn.query(`CREATE TABLE "${tableName}" AS SELECT * FROM read_csv_auto('${fileName}');`);
-    }
-
-    // Introspect table schema dynamically
-    const schemaResult = await conn.query(`DESCRIBE "${tableName}";`);
-    const countResult = await conn.query(`SELECT COUNT(*) AS total FROM "${tableName}";`);
+    const schemaResult = await conn.query(`DESCRIBE "${tableName.replace(/"/g, '""')}";`);
+    const countResult = await conn.query(`SELECT COUNT(*) AS total FROM "${tableName.replace(/"/g, '""')}";`);
     const count = Number(countResult.toArray()[0]?.toJSON()?.total ?? 0);
 
     const columns: DatasetMeta['columns'] = [];
@@ -136,7 +110,8 @@ class DuckDBManager {
         colType.includes('FLOAT') ||
         colType.includes('DECIMAL') ||
         colType.includes('NUMERIC') ||
-        colType.includes('REAL')
+        colType.includes('REAL') ||
+        colType.includes('HUGEINT')
       ) {
         dataType = 'number';
         role = 'measure';
@@ -156,15 +131,103 @@ class DuckDBManager {
 
     const meta: DatasetMeta = {
       id: tableName,
-      name: file.name,
+      name: displayName,
       tableName,
-      description: `${file.name} (${count.toLocaleString()} filas)`,
+      description: description || `${displayName} (${count.toLocaleString()} filas)`,
       rowCount: count,
       columns,
     };
 
     this.activeDatasets.set(tableName, meta);
     return meta;
+  }
+
+  /**
+   * Loads a user file (Parquet, CSV, TSV, JSON, or Excel .xlsx/.xls) directly into DuckDB in-memory columnar storage.
+   * For Excel files, parses sheets via SheetJS, converts them to clean tabular CSV, and registers all sheets.
+   */
+  public async loadUserFile(file: File): Promise<DatasetMeta> {
+    const db = await this.getDB();
+    const conn = await this.getConnection();
+
+    const fileName = file.name;
+    const extension = fileName.split('.').pop()?.toLowerCase() || '';
+    const baseName = fileName.replace(/\.[^/.]+$/, '').toLowerCase().replace(/[^a-z0-9_]/g, '_');
+    const tableName = baseName || 'dataset';
+
+    // Handle Microsoft Excel (.xlsx, .xls) files
+    if (extension === 'xlsx' || extension === 'xls') {
+      const buffer = await file.arrayBuffer();
+      const workbook = XLSX.read(buffer, { type: 'array', cellDates: true });
+
+      const sheetNames = workbook.SheetNames || [];
+      if (sheetNames.length === 0) {
+        throw new Error(`El archivo Excel "${fileName}" no contiene hojas de cálculo con datos.`);
+      }
+
+      let primaryMeta: DatasetMeta | null = null;
+
+      for (let i = 0; i < sheetNames.length; i++) {
+        const sheetName = sheetNames[i];
+        const worksheet = workbook.Sheets[sheetName];
+        if (!worksheet) continue;
+
+        // Convert worksheet to clean CSV preserving raw numbers and removing empty rows
+        const csv = XLSX.utils.sheet_to_csv(worksheet, { blankrows: false, rawNumbers: true });
+        if (!csv.trim() && sheetNames.length > 1) {
+          continue; // skip empty secondary sheets
+        }
+
+        const cleanSheetName = sheetName.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_');
+        const sheetTableName =
+          sheetNames.length === 1 && (cleanSheetName === 'sheet1' || cleanSheetName === 'hoja1' || cleanSheetName === '')
+            ? tableName
+            : `${tableName}_${cleanSheetName || `sheet${i + 1}`}`;
+
+        const virtualCsvFileName = `${sheetTableName}.csv`;
+        await db.registerFileText(virtualCsvFileName, csv);
+
+        await conn.query(`DROP TABLE IF EXISTS "${sheetTableName}";`);
+        await conn.query(`CREATE TABLE "${sheetTableName}" AS SELECT * FROM read_csv_auto('${virtualCsvFileName}');`);
+
+        const displayName = sheetNames.length === 1 ? file.name : `${file.name} [${sheetName}]`;
+        const sheetMeta = await this.introspectTable(
+          sheetTableName,
+          displayName,
+          sheetNames.length === 1 ? undefined : `${file.name} - Hoja: ${sheetName}`
+        );
+
+        if (!primaryMeta) {
+          primaryMeta = sheetMeta;
+        }
+      }
+
+      if (!primaryMeta) {
+        throw new Error(`No se pudieron extraer datos válidos del archivo Excel "${fileName}".`);
+      }
+
+      return primaryMeta;
+    }
+
+    // Register file handle inside DuckDB virtual filesystem for standard text/binary formats
+    await db.registerFileHandle(fileName, file, duckdb.DuckDBDataProtocol.BROWSER_FILEREADER, true);
+
+    // Drop table if reloaded
+    await conn.query(`DROP TABLE IF EXISTS "${tableName}";`);
+
+    // Determine reader function by extension
+    if (extension === 'parquet' || fileName.endsWith('.parquet.snappy')) {
+      await conn.query(`CREATE TABLE "${tableName}" AS SELECT * FROM read_parquet('${fileName}');`);
+    } else if (extension === 'tsv') {
+      await conn.query(`CREATE TABLE "${tableName}" AS SELECT * FROM read_csv_auto('${fileName}', delim='\\t');`);
+    } else if (extension === 'json' || extension === 'ndjson') {
+      await conn.query(`CREATE TABLE "${tableName}" AS SELECT * FROM read_json_auto('${fileName}');`);
+    } else {
+      // Default to auto-detecting CSV
+      await conn.query(`CREATE TABLE "${tableName}" AS SELECT * FROM read_csv_auto('${fileName}');`);
+    }
+
+    return await this.introspectTable(tableName, file.name);
   }
 
   public getAvailableDatasets(): DatasetMeta[] {
@@ -224,55 +287,11 @@ class DuckDBManager {
 
     await conn.query(sql);
 
-    // Introspect resulting view
-    const viewSchema = await conn.query(`DESCRIBE "${safeViewName}";`);
-    const countResult = await conn.query(`SELECT COUNT(*) AS total FROM "${safeViewName}";`);
-    const count = Number(countResult.toArray()[0]?.toJSON()?.total ?? 0);
-
-    const columns: DatasetMeta['columns'] = [];
-    for (const row of viewSchema.toArray()) {
-      const col = row.toJSON();
-      const colName = String(col.column_name);
-      const colType = String(col.column_type).toUpperCase();
-
-      let dataType: 'string' | 'number' | 'date' | 'boolean' = 'string';
-      let role: 'dimension' | 'measure' = 'dimension';
-
-      if (
-        colType.includes('INT') ||
-        colType.includes('DOUBLE') ||
-        colType.includes('FLOAT') ||
-        colType.includes('DECIMAL') ||
-        colType.includes('NUMERIC') ||
-        colType.includes('REAL')
-      ) {
-        dataType = 'number';
-        role = 'measure';
-      } else if (colType.includes('DATE') || colType.includes('TIMESTAMP') || colType.includes('TIME')) {
-        dataType = 'date';
-        role = 'dimension';
-      } else if (colType.includes('BOOL')) {
-        dataType = 'boolean';
-        role = 'dimension';
-      } else {
-        dataType = 'string';
-        role = 'dimension';
-      }
-
-      columns.push({ name: colName, dataType, role });
-    }
-
-    const meta: DatasetMeta = {
-      id: safeViewName,
-      name: `${viewName} (${joinType} JOIN)`,
-      tableName: safeViewName,
-      description: `${joinType} JOIN entre ${leftTable} y ${rightTable} (${count.toLocaleString()} filas)`,
-      rowCount: count,
-      columns,
-    };
-
-    this.activeDatasets.set(safeViewName, meta);
-    return meta;
+    return await this.introspectTable(
+      safeViewName,
+      `${viewName} (${joinType} JOIN)`,
+      `${joinType} JOIN entre ${leftTable} y ${rightTable}`
+    );
   }
 
   /**
@@ -298,55 +317,11 @@ class DuckDBManager {
 
     await conn.query(sql);
 
-    // Introspect resulting view
-    const viewSchema = await conn.query(`DESCRIBE "${safeViewName}";`);
-    const countResult = await conn.query(`SELECT COUNT(*) AS total FROM "${safeViewName}";`);
-    const count = Number(countResult.toArray()[0]?.toJSON()?.total ?? 0);
-
-    const columns: DatasetMeta['columns'] = [];
-    for (const row of viewSchema.toArray()) {
-      const col = row.toJSON();
-      const colName = String(col.column_name);
-      const colType = String(col.column_type).toUpperCase();
-
-      let dataType: 'string' | 'number' | 'date' | 'boolean' = 'string';
-      let role: 'dimension' | 'measure' = 'dimension';
-
-      if (
-        colType.includes('INT') ||
-        colType.includes('DOUBLE') ||
-        colType.includes('FLOAT') ||
-        colType.includes('DECIMAL') ||
-        colType.includes('NUMERIC') ||
-        colType.includes('REAL')
-      ) {
-        dataType = 'number';
-        role = 'measure';
-      } else if (colType.includes('DATE') || colType.includes('TIMESTAMP') || colType.includes('TIME')) {
-        dataType = 'date';
-        role = 'dimension';
-      } else if (colType.includes('BOOL')) {
-        dataType = 'boolean';
-        role = 'dimension';
-      } else {
-        dataType = 'string';
-        role = 'dimension';
-      }
-
-      columns.push({ name: colName, dataType, role });
-    }
-
-    const meta: DatasetMeta = {
-      id: safeViewName,
-      name: `${viewName} (UNION)`,
-      tableName: safeViewName,
-      description: `Unión apilada de ${tableNames.join(', ')} (${count.toLocaleString()} filas)`,
-      rowCount: count,
-      columns,
-    };
-
-    this.activeDatasets.set(safeViewName, meta);
-    return meta;
+    return await this.introspectTable(
+      safeViewName,
+      `${viewName} (UNION)`,
+      `Unión apilada de ${tableNames.join(', ')}`
+    );
   }
 
   /**

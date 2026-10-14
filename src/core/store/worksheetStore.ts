@@ -405,7 +405,10 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
           }
 
           const allDatasets = duckdbEngine.getAvailableDatasets();
-          const primaryMeta = activeMeta || allDatasets[0];
+          const primaryMeta =
+            (session?.currentDatasetId ? allDatasets.find((d) => d.id === session.currentDatasetId) : null) ||
+            activeMeta ||
+            allDatasets[0];
 
           if (session && primaryMeta) {
             // Re-merge calculated fields into dataset columns if present
