@@ -114,7 +114,12 @@ export interface WorksheetStore extends WorksheetState {
   renameDatasetColumn: (oldName: string, newName: string) => Promise<void>;
   changeDatasetColumnType: (columnName: string, newType: DataType) => Promise<void>;
   changeDatasetColumnRole: (columnName: string, newRole: FieldRole) => Promise<void>;
-  splitDatasetColumn: (columnName: string, delimiter?: string) => Promise<void>;
+  splitDatasetColumn: (
+    columnName: string,
+    delimiter?: string,
+    mode?: 'first' | 'last' | 'all',
+    count?: number
+  ) => Promise<void>;
   cleanDatasetColumn: (columnName: string, cleanType: 'trim' | 'upper' | 'lower') => Promise<void>;
   toggleHideDatasetColumn: (columnName: string) => void;
 
@@ -690,8 +695,11 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
         availableDatasets: allDatasets,
         isExecuting: false,
       });
-      await get().executeCurrentState();
+      if (!get().isDataSourceTabActive) {
+        await get().executeCurrentState();
+      }
     } catch (err) {
+      console.error('[Store] Error al renombrar columna:', err);
       set({
         isExecuting: false,
         engineError: err instanceof Error ? err.message : 'Error al renombrar columna',
@@ -815,20 +823,34 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
     }
   },
 
-  splitDatasetColumn: async (columnName: string, delimiter: string = ' ') => {
+  splitDatasetColumn: async (
+    columnName: string,
+    delimiter: string = ' ',
+    mode: 'first' | 'last' | 'all' = 'first',
+    count: number = 2
+  ) => {
     const { currentDataset } = get();
     if (!currentDataset) return;
     try {
       set({ isExecuting: true, engineError: null });
-      const updatedMeta = await duckdbEngine.splitColumn(currentDataset.tableName, columnName, delimiter);
+      const updatedMeta = await duckdbEngine.splitColumn(
+        currentDataset.tableName,
+        columnName,
+        delimiter,
+        mode,
+        count
+      );
       const allDatasets = duckdbEngine.getAvailableDatasets();
       set({
         currentDataset: updatedMeta,
         availableDatasets: allDatasets,
         isExecuting: false,
       });
-      await get().executeCurrentState();
+      if (!get().isDataSourceTabActive) {
+        await get().executeCurrentState();
+      }
     } catch (err) {
+      console.error('[Store] Error al dividir columna:', err);
       set({
         isExecuting: false,
         engineError: err instanceof Error ? err.message : 'Error al dividir columna',
@@ -848,8 +870,11 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
         availableDatasets: allDatasets,
         isExecuting: false,
       });
-      await get().executeCurrentState();
+      if (!get().isDataSourceTabActive) {
+        await get().executeCurrentState();
+      }
     } catch (err) {
+      console.error('[Store] Error al limpiar texto de columna:', err);
       set({
         isExecuting: false,
         engineError: err instanceof Error ? err.message : 'Error al limpiar texto de columna',

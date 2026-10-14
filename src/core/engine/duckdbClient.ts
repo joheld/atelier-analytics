@@ -341,12 +341,57 @@ class DuckDBManager {
   }
 
   /**
+   * Helper to ensure the physical base table exists for any prep operation
+   */
+  private async ensureBaseTable(conn: duckdb.AsyncDuckDBConnection, tableName: string): Promise<void> {
+    const safeBaseTable = `${tableName}_base`.replace(/"/g, '""');
+    const safeTable = tableName.replace(/"/g, '""');
+    const checkBaseRes = await conn.query(`
+      SELECT table_name FROM information_schema.tables WHERE table_name = '${safeBaseTable}';
+    `);
+    if (checkBaseRes.numRows === 0) {
+      await conn.query(`CREATE TABLE "${safeBaseTable}" AS SELECT * FROM "${safeTable}";`);
+      await conn.query(`CREATE OR REPLACE VIEW "${safeTable}" AS SELECT * FROM "${safeBaseTable}";`);
+    }
+  }
+
+  /**
+   * Generates unique column names for Tableau-style splits: [Field] - Split 1, [Field] - Split 2, etc.
+   */
+  private generateUniqueSplitNames(
+    existingColumns: { name: string }[],
+    baseColName: string,
+    count: number
+  ): string[] {
+    const existing = new Set(existingColumns.map((c) => c.name.toLowerCase()));
+    const results: string[] = [];
+    for (let i = 1; i <= count; i++) {
+      let candidate = `${baseColName} - Split ${i}`;
+      if (!existing.has(candidate.toLowerCase())) {
+        results.push(candidate);
+        existing.add(candidate.toLowerCase());
+      } else {
+        let suffix = i + 1;
+        while (existing.has(`${baseColName} - Split ${suffix}`.toLowerCase())) {
+          suffix++;
+        }
+        const name = `${baseColName} - Split ${suffix}`;
+        results.push(name);
+        existing.add(name.toLowerCase());
+      }
+    }
+    return results;
+  }
+
+  /**
    * Renames a column in the base table and updates views
    */
   public async renameColumn(tableName: string, oldName: string, newName: string): Promise<DatasetMeta> {
     const conn = await this.getConnection();
     const meta = this.activeDatasets.get(tableName);
     if (!meta) throw new Error(`Dataset no encontrado: ${tableName}`);
+
+    await this.ensureBaseTable(conn, tableName);
 
     const safeBaseTable = `${tableName}_base`.replace(/"/g, '""');
     const safeOld = oldName.replace(/"/g, '""');
@@ -363,34 +408,65 @@ class DuckDBManager {
 
   /**
    * Changes column data type (Cast) using safe multi-format TRY_CAST in DuckDB
+   * Tableau Desktop emulation: bidirectional conversions between Number, String, Date and Boolean.
    */
   public async castColumn(tableName: string, columnName: string, newType: DataType): Promise<DatasetMeta> {
     const conn = await this.getConnection();
     const meta = this.activeDatasets.get(tableName);
     if (!meta) throw new Error(`Dataset no encontrado: ${tableName}`);
 
-    const safeBaseTable = `${tableName}_base`.replace(/"/g, '""');
-    const safeTable = tableName.replace(/"/g, '""');
-    const safeCol = columnName.replace(/"/g, '""');
+    await this.ensureBaseTable(conn, tableName);
 
-    // Auto-heal: verify if base table exists; if not, create it from tableName
-    const checkBaseRes = await conn.query(`
-      SELECT table_name FROM information_schema.tables WHERE table_name = '${safeBaseTable}';
-    `);
-    if (checkBaseRes.numRows === 0) {
-      await conn.query(`CREATE TABLE "${safeBaseTable}" AS SELECT * FROM "${safeTable}";`);
-      await conn.query(`CREATE OR REPLACE VIEW "${safeTable}" AS SELECT * FROM "${safeBaseTable}";`);
-    }
+    const safeBaseTable = `${tableName}_base`.replace(/"/g, '""');
+    const safeCol = columnName.replace(/"/g, '""');
 
     let castExpr = `TRY_CAST("${safeCol}" AS VARCHAR)`;
     if (newType === 'number') {
       castExpr = `COALESCE(
         TRY_CAST("${safeCol}" AS DOUBLE),
-        TRY_CAST(REPLACE(REPLACE(REPLACE(REPLACE(CAST("${safeCol}" AS VARCHAR), '$', ''), '€', ''), ',', ''), ' ', '') AS DOUBLE)
+        -- If it was a date or timestamp, extract the 4-digit year
+        CASE
+          WHEN TRY_CAST("${safeCol}" AS DATE) IS NOT NULL
+            THEN CAST(EXTRACT(YEAR FROM TRY_CAST("${safeCol}" AS DATE)) AS DOUBLE)
+          ELSE NULL
+        END,
+        -- Accounting format: (123.45) -> -123.45
+        CASE
+          WHEN TRIM(CAST("${safeCol}" AS VARCHAR)) LIKE '(%)'
+            THEN -1.0 * TRY_CAST(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(TRIM(CAST("${safeCol}" AS VARCHAR)), '(', ''), ')', ''), '$', ''), '€', ''), '£', ''), ',', ''), ' ', '') AS DOUBLE)
+          ELSE NULL
+        END,
+        -- Percentages: '45%' -> 45
+        TRY_CAST(REPLACE(REPLACE(TRIM(CAST("${safeCol}" AS VARCHAR)), '%', ''), ' ', '') AS DOUBLE),
+        -- Common currencies, thousand commas and spaces: '$ 1,234.50' -> 1234.5
+        TRY_CAST(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(CAST("${safeCol}" AS VARCHAR), '$', ''), '€', ''), '£', ''), '¥', ''), ',', ''), ' ', '') AS DOUBLE),
+        -- European notation: '1.234,56' -> 1234.56
+        TRY_CAST(REPLACE(REPLACE(REPLACE(CAST("${safeCol}" AS VARCHAR), '.', ''), ',', '.'), ' ', '') AS DOUBLE),
+        -- Extract numeric digits using regex
+        TRY_CAST(REGEXP_EXTRACT(CAST("${safeCol}" AS VARCHAR), '[-+]?[0-9]+(?:\\.[0-9]+)?') AS DOUBLE)
       )`;
     } else if (newType === 'date') {
       castExpr = `COALESCE(
         TRY_CAST("${safeCol}" AS DATE),
+        -- Number as 4-digit Year: 2024 -> 2024-01-01
+        CASE
+          WHEN TRY_CAST("${safeCol}" AS INTEGER) BETWEEN 1800 AND 2200
+            THEN TRY_STRPTIME(CAST(CAST("${safeCol}" AS INTEGER) AS VARCHAR) || '-01-01', '%Y-%m-%d')::DATE
+          ELSE NULL
+        END,
+        -- Number as Excel Serial Days: 45000 -> Excel Date
+        CASE
+          WHEN TRY_CAST("${safeCol}" AS INTEGER) BETWEEN 10000 AND 80000
+            THEN DATE '1899-12-30' + (TRY_CAST("${safeCol}" AS INTEGER) * INTERVAL '1' DAY)
+          ELSE NULL
+        END,
+        -- Number as Unix Epoch Seconds
+        CASE
+          WHEN TRY_CAST("${safeCol}" AS BIGINT) BETWEEN 100000000 AND 3000000000
+            THEN TO_TIMESTAMP(TRY_CAST("${safeCol}" AS BIGINT))::DATE
+          ELSE NULL
+        END,
+        -- Standard date and timestamp string patterns
         TRY_STRPTIME(CAST("${safeCol}" AS VARCHAR), '%Y-%m-%d')::DATE,
         TRY_STRPTIME(CAST("${safeCol}" AS VARCHAR), '%d/%m/%Y')::DATE,
         TRY_STRPTIME(CAST("${safeCol}" AS VARCHAR), '%m/%d/%Y')::DATE,
@@ -411,7 +487,14 @@ class DuckDBManager {
         END
       )`;
     } else if (newType === 'string') {
-      castExpr = `CAST("${safeCol}" AS VARCHAR)`;
+      castExpr = `CASE
+        WHEN typeof("${safeCol}") IN ('BOOLEAN', 'BOOL')
+          THEN CASE WHEN "${safeCol}" IS TRUE THEN 'true' WHEN "${safeCol}" IS FALSE THEN 'false' ELSE NULL END
+        -- If it is a whole number (e.g. 2024.0 or 1001.0), remove trailing .0
+        WHEN TRY_CAST("${safeCol}" AS DOUBLE) IS NOT NULL AND "${safeCol}" = FLOOR("${safeCol}") AND ABS("${safeCol}") < 9223372036854775807
+          THEN CAST(CAST("${safeCol}" AS BIGINT) AS VARCHAR)
+        ELSE CAST("${safeCol}" AS VARCHAR)
+      END`;
     }
 
     // Preserve exact original column order in the table
@@ -437,24 +520,72 @@ class DuckDBManager {
   }
 
   /**
-   * Splits a column into two separate columns using DuckDB SPLIT_PART
+   * Splits a column into separate columns using DuckDB SPLIT_PART / STR_SPLIT
+   * Follows Tableau Desktop conventions: [Field] - Split 1, [Field] - Split 2, etc.
+   * Supports 'first', 'last', and 'all' split modes.
    */
-  public async splitColumn(tableName: string, columnName: string, delimiter: string = ' '): Promise<DatasetMeta> {
+  public async splitColumn(
+    tableName: string,
+    columnName: string,
+    delimiter: string = ' ',
+    mode: 'first' | 'last' | 'all' = 'first',
+    count: number = 2
+  ): Promise<DatasetMeta> {
     const conn = await this.getConnection();
     const meta = this.activeDatasets.get(tableName);
     if (!meta) throw new Error(`Dataset no encontrado: ${tableName}`);
 
+    await this.ensureBaseTable(conn, tableName);
+
     const safeBaseTable = `${tableName}_base`.replace(/"/g, '""');
     const safeCol = columnName.replace(/"/g, '""');
     const safeDelim = delimiter.replace(/'/g, "''");
-    const col1 = `${columnName} (1)`.replace(/"/g, '""');
-    const col2 = `${columnName} (2)`.replace(/"/g, '""');
+
+    let totalParts = 2;
+    if (mode === 'all') {
+      try {
+        const maxRes = await conn.query(`
+          SELECT COALESCE(MAX(ARRAY_LENGTH(STR_SPLIT(CAST("${safeCol}" AS VARCHAR), '${safeDelim}'))), 2) AS max_p
+          FROM "${safeBaseTable}";
+        `);
+        const p = Number(maxRes.toArray()[0]?.toJSON()?.max_p);
+        if (Number.isFinite(p) && p > 1) {
+          totalParts = Math.min(Math.max(p, 2), 10);
+        }
+      } catch {
+        totalParts = 2;
+      }
+    } else {
+      totalParts = Math.min(Math.max(count || 1, 1), 10);
+    }
+
+    const uniqueNames = this.generateUniqueSplitNames(meta.columns, columnName, totalParts);
+    const splitExprs: string[] = [];
+
+    if (mode === 'last') {
+      // Last N parts: in DuckDB split_part with negative index counts from right (-1 is last part)
+      for (let i = 0; i < totalParts; i++) {
+        const negativeIdx = -(totalParts - i);
+        const colAlias = uniqueNames[i].replace(/"/g, '""');
+        splitExprs.push(
+          `NULLIF(TRIM(SPLIT_PART(CAST("${safeCol}" AS VARCHAR), '${safeDelim}', ${negativeIdx})), '') AS "${colAlias}"`
+        );
+      }
+    } else {
+      // First N parts or All parts: 1-indexed from left
+      for (let i = 0; i < totalParts; i++) {
+        const partIdx = i + 1;
+        const colAlias = uniqueNames[i].replace(/"/g, '""');
+        splitExprs.push(
+          `NULLIF(TRIM(SPLIT_PART(CAST("${safeCol}" AS VARCHAR), '${safeDelim}', ${partIdx})), '') AS "${colAlias}"`
+        );
+      }
+    }
 
     await conn.query(`
       CREATE OR REPLACE TABLE "${safeBaseTable}" AS
       SELECT *,
-        NULLIF(TRIM(SPLIT_PART("${safeCol}", '${safeDelim}', 1)), '') AS "${col1}",
-        NULLIF(TRIM(SPLIT_PART("${safeCol}", '${safeDelim}', 2)), '') AS "${col2}"
+        ${splitExprs.join(',\n        ')}
       FROM "${safeBaseTable}";
     `);
 
@@ -467,6 +598,7 @@ class DuckDBManager {
 
   /**
    * Cleans text column values (TRIM, UPPER, LOWER)
+   * Safely casts to VARCHAR if necessary and preserves column order.
    */
   public async cleanColumn(
     tableName: string,
@@ -477,17 +609,27 @@ class DuckDBManager {
     const meta = this.activeDatasets.get(tableName);
     if (!meta) throw new Error(`Dataset no encontrado: ${tableName}`);
 
+    await this.ensureBaseTable(conn, tableName);
+
     const safeBaseTable = `${tableName}_base`.replace(/"/g, '""');
     const safeCol = columnName.replace(/"/g, '""');
 
-    let sqlFunc = `TRIM("${safeCol}")`;
-    if (cleanType === 'upper') sqlFunc = `UPPER("${safeCol}")`;
-    else if (cleanType === 'lower') sqlFunc = `LOWER("${safeCol}")`;
+    let sqlFunc = `TRIM(CAST("${safeCol}" AS VARCHAR))`;
+    if (cleanType === 'upper') sqlFunc = `UPPER(CAST("${safeCol}" AS VARCHAR))`;
+    else if (cleanType === 'lower') sqlFunc = `LOWER(CAST("${safeCol}" AS VARCHAR))`;
+
+    const colExprs = meta.columns.map((c) => {
+      const sName = c.name.replace(/"/g, '""');
+      if (c.name === columnName) {
+        return `${sqlFunc} AS "${sName}"`;
+      }
+      return `"${sName}"`;
+    });
 
     await conn.query(`
-      UPDATE "${safeBaseTable}"
-      SET "${safeCol}" = ${sqlFunc}
-      WHERE "${safeCol}" IS NOT NULL;
+      CREATE OR REPLACE TABLE "${safeBaseTable}" AS
+      SELECT ${colExprs.join(', ')}
+      FROM "${safeBaseTable}";
     `);
 
     await this.reapplyDataSourceFiltersView(tableName, meta.dataSourceFilters || []);

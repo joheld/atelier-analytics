@@ -246,6 +246,8 @@ export const App: React.FC = () => {
           onRemoveAnalyticsLine={removeAnalyticsLine}
           onChangeColumnType={changeDatasetColumnType}
           onChangeColumnRole={changeDatasetColumnRole}
+          onSplitColumn={splitDatasetColumn}
+          onCleanColumn={cleanDatasetColumn}
           onToggleHideColumn={toggleHideDatasetColumn}
         />
 

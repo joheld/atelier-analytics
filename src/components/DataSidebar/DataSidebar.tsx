@@ -24,6 +24,7 @@ import {
   Check,
   ArrowRightLeft,
   MoreVertical,
+  Split,
 } from 'lucide-react';
 
 interface DataSidebarProps {
@@ -48,6 +49,13 @@ interface DataSidebarProps {
   onRemoveAnalyticsLine?: (lineId: string) => void;
   onChangeColumnType?: (columnName: string, newType: DataType) => Promise<void>;
   onChangeColumnRole?: (columnName: string, newRole: FieldRole) => Promise<void>;
+  onSplitColumn?: (
+    columnName: string,
+    delimiter?: string,
+    mode?: 'first' | 'last' | 'all',
+    count?: number
+  ) => Promise<void>;
+  onCleanColumn?: (columnName: string, cleanType: 'trim' | 'upper' | 'lower') => Promise<void>;
   onToggleHideColumn?: (columnName: string) => void;
 }
 
@@ -73,6 +81,8 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
   onRemoveAnalyticsLine,
   onChangeColumnType,
   onChangeColumnRole,
+  onSplitColumn,
+  onCleanColumn,
   onToggleHideColumn,
 }) => {
   const [sidebarTab, setSidebarTab] = useState<'data' | 'analytics'>('data');
@@ -309,6 +319,34 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
             </button>
 
             <div className="border-t border-stone-100 dark:border-stone-800 my-1"></div>
+
+            {onSplitColumn && (
+              <button
+                type="button"
+                onClick={() => {
+                  void onSplitColumn(col.name, ' ', 'first', 2);
+                  setActiveColumnMenu(null);
+                }}
+                className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-stone-700 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800 cursor-pointer"
+              >
+                <Split className="h-3.5 w-3.5 text-stone-400" />
+                <span>Dividir por espacio</span>
+              </button>
+            )}
+
+            {onCleanColumn && (
+              <button
+                type="button"
+                onClick={() => {
+                  void onCleanColumn(col.name, 'trim');
+                  setActiveColumnMenu(null);
+                }}
+                className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-stone-700 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800 cursor-pointer"
+              >
+                <Type className="h-3.5 w-3.5 text-stone-400" />
+                <span>Recortar espacios (TRIM)</span>
+              </button>
+            )}
 
             {onChangeColumnRole && (
               <button

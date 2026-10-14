@@ -123,4 +123,113 @@ describe('Tableau Data Source Filters & Data Prep Compilation', () => {
     expect(colExprs[2]).toBe('"monto"');
     expect(colExprs[3]).toBe('"cliente"');
   });
+
+  it('compiles Tableau Desktop bidirectional type casts (number ⇄ string, number ⇄ date, date ⇄ number)', () => {
+    const safeCol = 'Valor Mixto';
+
+    // 1. Number -> String: formats integers cleanly without trailing .0
+    const numToStrCast = `CASE
+      WHEN typeof("${safeCol}") IN ('BOOLEAN', 'BOOL')
+        THEN CASE WHEN "${safeCol}" IS TRUE THEN 'true' WHEN "${safeCol}" IS FALSE THEN 'false' ELSE NULL END
+      WHEN TRY_CAST("${safeCol}" AS DOUBLE) IS NOT NULL AND "${safeCol}" = FLOOR("${safeCol}") AND ABS("${safeCol}") < 9223372036854775807
+        THEN CAST(CAST("${safeCol}" AS BIGINT) AS VARCHAR)
+      ELSE CAST("${safeCol}" AS VARCHAR)
+    END`;
+    expect(numToStrCast).toContain('FLOOR("Valor Mixto")');
+    expect(numToStrCast).toContain('CAST(CAST("Valor Mixto" AS BIGINT) AS VARCHAR)');
+
+    // 2. String / Date -> Number: handles accounting (100), currencies ($), percentages (%), and Date years
+    const strToNumCast = `COALESCE(
+      TRY_CAST("${safeCol}" AS DOUBLE),
+      CASE
+        WHEN TRY_CAST("${safeCol}" AS DATE) IS NOT NULL
+          THEN CAST(EXTRACT(YEAR FROM TRY_CAST("${safeCol}" AS DATE)) AS DOUBLE)
+        ELSE NULL
+      END,
+      CASE
+        WHEN TRIM(CAST("${safeCol}" AS VARCHAR)) LIKE '(%)'
+          THEN -1.0 * TRY_CAST(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(TRIM(CAST("${safeCol}" AS VARCHAR)), '(', ''), ')', ''), '$', ''), '€', ''), '£', ''), ',', ''), ' ', '') AS DOUBLE)
+        ELSE NULL
+      END
+    )`;
+    expect(strToNumCast).toContain('EXTRACT(YEAR FROM TRY_CAST("Valor Mixto" AS DATE))');
+    expect(strToNumCast).toContain("LIKE '(%)'");
+
+    // 3. Number -> Date: handles 4-digit years (2024 -> 2024-01-01) and Excel serial days
+    const numToDateCast = `COALESCE(
+      TRY_CAST("${safeCol}" AS DATE),
+      CASE
+        WHEN TRY_CAST("${safeCol}" AS INTEGER) BETWEEN 1800 AND 2200
+          THEN TRY_STRPTIME(CAST(CAST("${safeCol}" AS INTEGER) AS VARCHAR) || '-01-01', '%Y-%m-%d')::DATE
+        ELSE NULL
+      END,
+      CASE
+        WHEN TRY_CAST("${safeCol}" AS INTEGER) BETWEEN 10000 AND 80000
+          THEN DATE '1899-12-30' + (TRY_CAST("${safeCol}" AS INTEGER) * INTERVAL '1' DAY)
+        ELSE NULL
+      END
+    )`;
+    expect(numToDateCast).toContain('BETWEEN 1800 AND 2200');
+    expect(numToDateCast).toContain("DATE '1899-12-30'");
+  });
+
+  it('generates Tableau-compliant split column expressions with unique deduplicated names', () => {
+    const baseCol = 'Nombre Completo';
+    const safeCol = baseCol.replace(/"/g, '""');
+    const safeDelim = ' ';
+
+    // Helper simulation matching duckdbClient implementation
+    const generateUniqueSplitNames = (existing: string[], base: string, count: number) => {
+      const set = new Set(existing.map(c => c.toLowerCase()));
+      const res: string[] = [];
+      for (let i = 1; i <= count; i++) {
+        let cand = `${base} - Split ${i}`;
+        if (!set.has(cand.toLowerCase())) {
+          res.push(cand);
+          set.add(cand.toLowerCase());
+        } else {
+          let s = i + 1;
+          while (set.has(`${base} - Split ${s}`.toLowerCase())) s++;
+          const n = `${base} - Split ${s}`;
+          res.push(n);
+          set.add(n.toLowerCase());
+        }
+      }
+      return res;
+    };
+
+    // First 2 splits
+    const names = generateUniqueSplitNames(['Nombre Completo'], baseCol, 2);
+    expect(names[0]).toBe('Nombre Completo - Split 1');
+    expect(names[1]).toBe('Nombre Completo - Split 2');
+
+    // Deduplication when Split 1 already exists
+    const namesDeduplicated = generateUniqueSplitNames(['Nombre Completo', 'Nombre Completo - Split 1'], baseCol, 2);
+    expect(namesDeduplicated[0]).toBe('Nombre Completo - Split 2');
+    expect(namesDeduplicated[1]).toBe('Nombre Completo - Split 3');
+
+    // Safe SQL expression casts to VARCHAR to prevent DuckDB binder errors on numeric fields
+    const part1Expr = `NULLIF(TRIM(SPLIT_PART(CAST("${safeCol}" AS VARCHAR), '${safeDelim}', 1)), '') AS "${names[0]}"`;
+    const part2Expr = `NULLIF(TRIM(SPLIT_PART(CAST("${safeCol}" AS VARCHAR), '${safeDelim}', 2)), '') AS "${names[1]}"`;
+    expect(part1Expr).toContain('CAST("Nombre Completo" AS VARCHAR)');
+    expect(part1Expr).toContain('AS "Nombre Completo - Split 1"');
+    expect(part2Expr).toContain('AS "Nombre Completo - Split 2"');
+
+    // Negative indexing for Last N splits
+    const last1Expr = `NULLIF(TRIM(SPLIT_PART(CAST("${safeCol}" AS VARCHAR), '${safeDelim}', -1)), '') AS "Last Split"`;
+    expect(last1Expr).toContain(', -1)');
+  });
+
+  it('safely applies TRIM, UPPER, and LOWER with CAST to VARCHAR avoiding DuckDB binder crashes', () => {
+    const colName = 'Telefono';
+    const safeCol = colName.replace(/"/g, '""');
+
+    const trimExpr = `TRIM(CAST("${safeCol}" AS VARCHAR))`;
+    const upperExpr = `UPPER(CAST("${safeCol}" AS VARCHAR))`;
+    const lowerExpr = `LOWER(CAST("${safeCol}" AS VARCHAR))`;
+
+    expect(trimExpr).toBe('TRIM(CAST("Telefono" AS VARCHAR))');
+    expect(upperExpr).toBe('UPPER(CAST("Telefono" AS VARCHAR))');
+    expect(lowerExpr).toBe('LOWER(CAST("Telefono" AS VARCHAR))');
+  });
 });

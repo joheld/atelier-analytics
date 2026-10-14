@@ -29,7 +29,12 @@ interface DataSourceWorkbenchProps {
   onRenameColumn: (oldName: string, newName: string) => Promise<void>;
   onChangeColumnType: (columnName: string, newType: DataType) => Promise<void>;
   onChangeColumnRole?: (columnName: string, newRole: FieldRole) => Promise<void>;
-  onSplitColumn: (columnName: string, delimiter?: string) => Promise<void>;
+  onSplitColumn: (
+    columnName: string,
+    delimiter?: string,
+    mode?: 'first' | 'last' | 'all',
+    count?: number
+  ) => Promise<void>;
   onCleanColumn: (columnName: string, cleanType: 'trim' | 'upper' | 'lower') => Promise<void>;
   onToggleHideColumn: (columnName: string) => void;
   onOpenDataModelModal: () => void;
@@ -59,6 +64,21 @@ export const DataSourceWorkbench: React.FC<DataSourceWorkbenchProps> = ({
   const [showHiddenColumns, setShowHiddenColumns] = useState<boolean>(false);
   const [searchFilter, setSearchFilter] = useState<string>('');
   const [isAddingFilter, setIsAddingFilter] = useState<boolean>(false);
+  const [customSplit, setCustomSplit] = useState<{
+    isOpen: boolean;
+    columnName: string;
+    delimiter: string;
+    mode: 'first' | 'last' | 'all';
+    count: number;
+    isSubmitting: boolean;
+  }>({
+    isOpen: false,
+    columnName: '',
+    delimiter: ' ',
+    mode: 'first',
+    count: 2,
+    isSubmitting: false,
+  });
 
   // Load preview data from DuckDB-WASM
   useEffect(() => {
@@ -136,11 +156,15 @@ export const DataSourceWorkbench: React.FC<DataSourceWorkbenchProps> = ({
     onOpenFilterModal(newFilter);
   };
 
-  const handleCustomSplit = async (colName: string) => {
-    const delimiter = window.prompt(`Ingresa el delimitador para dividir la columna "${colName}":`, ',');
-    if (delimiter !== null) {
-      await onSplitColumn(colName, delimiter || ' ');
-    }
+  const handleOpenCustomSplit = (colName: string) => {
+    setCustomSplit({
+      isOpen: true,
+      columnName: colName,
+      delimiter: ' ',
+      mode: 'first',
+      count: 2,
+      isSubmitting: false,
+    });
     setActiveMenuCol(null);
   };
 
@@ -420,10 +444,10 @@ export const DataSourceWorkbench: React.FC<DataSourceWorkbenchProps> = ({
                                 <button
                                   type="button"
                                   onClick={() => {
-                                    void onSplitColumn(col.name, ' ');
+                                    void onSplitColumn(col.name, ' ', 'first', 2);
                                     setActiveMenuCol(null);
                                   }}
-                                  className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-stone-700 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-700"
+                                  className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-stone-700 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-700 cursor-pointer"
                                 >
                                   <Split className="h-3 w-3 text-stone-400" />
                                   <span>Dividir por espacio</span>
@@ -431,8 +455,8 @@ export const DataSourceWorkbench: React.FC<DataSourceWorkbenchProps> = ({
 
                                 <button
                                   type="button"
-                                  onClick={() => void handleCustomSplit(col.name)}
-                                  className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-stone-700 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-700"
+                                  onClick={() => handleOpenCustomSplit(col.name)}
+                                  className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-stone-700 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-700 cursor-pointer"
                                 >
                                   <Split className="h-3 w-3 text-stone-400" />
                                   <span>División personalizada...</span>
@@ -600,6 +624,145 @@ export const DataSourceWorkbench: React.FC<DataSourceWorkbenchProps> = ({
           )}
         </div>
       </section>
+
+      {/* 4. TABLEAU CUSTOM SPLIT MODAL */}
+      {customSplit.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/50 backdrop-blur-xs p-4">
+          <div className="w-full max-w-md rounded-2xl border border-stone-200 bg-white p-6 shadow-2xl dark:border-stone-800 dark:bg-stone-900 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-3 border-b border-stone-200 dark:border-stone-800">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-100 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300">
+                  <Split className="h-4 w-4" />
+                </div>
+                <div>
+                  <h3 className="font-editorial text-sm font-bold text-stone-900 dark:text-stone-100">
+                    División personalizada
+                  </h3>
+                  <p className="text-[11px] text-stone-500 dark:text-stone-400">
+                    Dividir valores del campo <strong className="font-semibold text-stone-700 dark:text-stone-300">"{customSplit.columnName}"</strong>
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCustomSplit({ ...customSplit, isOpen: false })}
+                className="rounded p-1 text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 cursor-pointer"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-4">
+              {/* Separator Input */}
+              <div>
+                <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
+                  Usar el separador:
+                </label>
+                <input
+                  type="text"
+                  value={customSplit.delimiter}
+                  onChange={(e) => setCustomSplit({ ...customSplit, delimiter: e.target.value })}
+                  placeholder="Espacio, coma, guión, etc."
+                  className="w-full rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-xs text-stone-900 shadow-2xs focus:border-sky-500 focus:outline-none dark:border-stone-700 dark:bg-stone-800 dark:text-stone-100 font-mono"
+                  autoFocus
+                />
+                <span className="text-[10px] text-stone-400 mt-0.5 block">
+                  Escribe un espacio, coma (,), guión (-), barra (/), o cualquier texto delimitador.
+                </span>
+              </div>
+
+              {/* Split Off Radio Options */}
+              <div>
+                <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-2">
+                  Dividir:
+                </label>
+                <div className="space-y-2.5">
+                  <label className="flex items-center gap-2.5 text-xs text-stone-800 dark:text-stone-200 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="splitMode"
+                      checked={customSplit.mode === 'first'}
+                      onChange={() => setCustomSplit({ ...customSplit, mode: 'first' })}
+                      className="text-sky-600 focus:ring-sky-500"
+                    />
+                    <span className="w-16">Primeras</span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={10}
+                      value={customSplit.mode === 'first' ? customSplit.count : 2}
+                      disabled={customSplit.mode !== 'first'}
+                      onChange={(e) => setCustomSplit({ ...customSplit, count: Math.max(1, parseInt(e.target.value, 10) || 1) })}
+                      className="w-16 rounded border border-stone-300 bg-white px-2 py-0.5 text-xs text-center font-mono disabled:opacity-40 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200"
+                    />
+                    <span className="text-stone-500 dark:text-stone-400 text-xs">columnas</span>
+                  </label>
+
+                  <label className="flex items-center gap-2.5 text-xs text-stone-800 dark:text-stone-200 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="splitMode"
+                      checked={customSplit.mode === 'last'}
+                      onChange={() => setCustomSplit({ ...customSplit, mode: 'last' })}
+                      className="text-sky-600 focus:ring-sky-500"
+                    />
+                    <span className="w-16">Últimas</span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={10}
+                      value={customSplit.mode === 'last' ? customSplit.count : 1}
+                      disabled={customSplit.mode !== 'last'}
+                      onChange={(e) => setCustomSplit({ ...customSplit, count: Math.max(1, parseInt(e.target.value, 10) || 1) })}
+                      className="w-16 rounded border border-stone-300 bg-white px-2 py-0.5 text-xs text-center font-mono disabled:opacity-40 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200"
+                    />
+                    <span className="text-stone-500 dark:text-stone-400 text-xs">columnas</span>
+                  </label>
+
+                  <label className="flex items-center gap-2.5 text-xs text-stone-800 dark:text-stone-200 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="splitMode"
+                      checked={customSplit.mode === 'all'}
+                      onChange={() => setCustomSplit({ ...customSplit, mode: 'all' })}
+                      className="text-sky-600 focus:ring-sky-500"
+                    />
+                    <span className="flex-1">Todas las columnas</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 flex items-center justify-end gap-2 pt-3 border-t border-stone-200 dark:border-stone-800">
+              <button
+                type="button"
+                onClick={() => setCustomSplit({ ...customSplit, isOpen: false })}
+                className="rounded-lg border border-stone-300 px-3 py-1.5 text-xs font-semibold text-stone-700 hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-300 dark:hover:bg-stone-700 cursor-pointer transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={customSplit.isSubmitting}
+                onClick={async () => {
+                  try {
+                    setCustomSplit((prev) => ({ ...prev, isSubmitting: true }));
+                    const delim = customSplit.delimiter === '' ? ' ' : customSplit.delimiter;
+                    await onSplitColumn(customSplit.columnName, delim, customSplit.mode, customSplit.count);
+                    setCustomSplit((prev) => ({ ...prev, isOpen: false, isSubmitting: false }));
+                  } catch (e) {
+                    setCustomSplit((prev) => ({ ...prev, isSubmitting: false }));
+                  }
+                }}
+                className="flex items-center gap-1.5 rounded-lg bg-sky-600 px-4 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-sky-500 cursor-pointer transition-colors disabled:opacity-50"
+              >
+                {customSplit.isSubmitting && <RefreshCw className="h-3 w-3 animate-spin" />}
+                <span>{customSplit.isSubmitting ? 'Dividiendo...' : 'Aceptar'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

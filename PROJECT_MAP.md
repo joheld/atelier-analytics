@@ -136,6 +136,7 @@ gitGraph
     commit id: "excel-xlsx-xls-sheetjs-multi-sheet" tag: "v2.3.0"
     commit id: "data-interpreter-source-filters-and-prep" tag: "v2.4.0"
     commit id: "fix-data-type-casting-and-sidebar-popover" tag: "v2.4.1"
+    commit id: "tableau-splits-trim-and-bidirectional-casts" tag: "v2.5.0"
 ```
 
 ---
@@ -168,6 +169,7 @@ gitGraph
 | **CP-22** | Soporte Nativo de Archivos Microsoft Excel (.xlsx / .xls) Multi-Hoja con SheetJS y DuckDB-WASM | **Completado** | 1) Ingestión client-side de archivos Excel (.xlsx y .xls) mediante SheetJS (`xlsx@0.18.5`); 2) Preservación de precisión numérica con `rawNumbers: true` para evitar distorsiones por formatos de moneda o porcentajes; 3) Soporte multi-hoja completo estilo Tableau Desktop: cada hoja se carga como una tabla independiente en DuckDB y se registra en `availableDatasets`, permitiendo análisis directo y relaciones (JOIN/UNION); 4) Conector independiente "Microsoft Excel" en StartPage, EmptyWorkspace y barra lateral; 5) 23/23 tests pasando en Vitest, 0 errores tsc, build limpio y HTTP 200. |
 | **CP-23** | Tableau Data Interpreter, Filtros de Fuente de Datos y Prelimpieza de Datos en Cuadrícula | **Completado** | 1) Data Interpreter (`dataInterpreter.ts`) con heurística de encabezados, detección de notas, metadatos y poda de subtotales/totales generales al pie; 2) Arquitectura física base + vista SQL en DuckDB (`CREATE OR REPLACE VIEW ... WHERE ...`) para Filtros de Fuente de Datos que gobiernan a nivel raíz antes de hojas y dashboards; 3) Prelimpieza de datos en cuadrícula (renombrado, TRY_CAST vectorial con EXCLUDE, SPLIT_PART por delimitador, TRIM/UPPER/LOWER y ocultamiento de campos); 4) Pestaña "Fuente de datos" en TabBar y banco de trabajo `DataSourceWorkbench.tsx`; 5) 29/29 tests unitarios pasando, 0 errores tsc, build limpio y HTTP 200. |
 | **CP-24** | Robustecimiento del Cambio de Tipos de Datos (Cast) y Popover Interactivo en Panel Lateral | **Completado** | 1) Auto-sanación en `castColumn`: verificación y creación dinámica de la tabla física base `_base` si no existe; 2) Expresiones SQL multi-formato con `COALESCE` para números (limpieza de `$`, `€`, comas de miles y espacios), fechas (`%Y-%m-%d`, `%d/%m/%Y`, `%m/%d/%Y`, etc.) y booleanos (reconociendo 'si', 'sí', 'verdadero', 'false', '0', etc.); 3) Preservación estricta del orden original de columnas en DuckDB y preservación del flag `hidden`; 4) Sincronización automática de pastillas en todas las hojas (`pills`) al cambiar tipos o roles para evitar fallos de ejecución; 5) Popover interactivo estilo Tableau Desktop en el panel lateral (`DataSidebar.tsx`): clic en el icono (`#`, `Abc`, `📅`, `T/F`) o clic derecho para cambiar tipo, convertir dimensión/medida u ocultar; 6) 31/31 tests pasando en Vitest, 0 errores tsc, build limpio y HTTP 200. |
+| **CP-25** | Emulación Tableau Desktop: División de Columnas (Split / Custom Split), Limpieza de Texto (TRIM / Case) y Conversión Bidireccional de Tipos | **Completado** | 1) Helper universal `ensureBaseTable` para auto-sanación de tablas físicas `_base` en todas las operaciones de preparación (rename, cast, split, clean); 2) División de columnas (`splitColumn`) con convención Tableau `[Field] - Split 1..N` deduplicada contra colisiones de catálogo y soporte de modos First N, Last N (indexación negativa DuckDB) y All (cálculo de tokens máximos); 3) Modal interactivo dedicado para División Personalizada en `DataSourceWorkbench.tsx` (delimitador, selector First/Last/All y N columnas); 4) Limpieza de texto (`cleanColumn`) blindada con `CAST(... AS VARCHAR)` para evitar excepciones de binder en columnas numéricas o fechas; 5) Conversiones bidireccionales completas de tipos (número ⇄ cadena sin trailing `.0` en enteros, string ⇄ número con monedas/porcentajes/contabilidad, número ⇄ fecha con años 4 dígitos y días seriales de Excel, fecha ⇄ número con año/epoch); 6) Menú de campo en `DataSidebar.tsx` con acceso rápido a división y trim; 7) 34/34 tests unitarios pasando, 0 errores tsc, build limpio y HTTP 200. |
 
 ---
 
@@ -251,22 +253,23 @@ atelier-analytics/
 
 ---
 
-- **Estado Actual:** Resuelta y robustecida la modificación de tipos de datos en DuckDB-WASM y panel lateral Tableau (Checkpoint **CP-24**):
-  1. **Causa Raíz:**
-     - Falta de interactividad en el panel lateral de datos (`DataSidebar.tsx`): los iconos de tipo (`#`, `Abc`, `📅`) eran estáticos y el componente no recibía `onChangeColumnType`. En Tableau Desktop, los analistas esperan cambiar el tipo de dato y alternar entre dimensión/métrica directamente en el panel lateral de cualquier hoja.
-     - En `castColumn` de DuckDB: Si la tabla fue cargada sin el sufijo `_base` (por ejemplo, en sesiones anteriores o datasets de muestra), la consulta fallaba con error de catálogo.
-     - Fragilidad de formato: `TRY_CAST("col" AS DATE)` devolvía `NULL` para fechas comunes con barras (`DD/MM/YYYY`, `MM/DD/YYYY`), y para números con símbolos de moneda (`$`, `€`), comas de miles o espacios.
-     - Desincronización de pastillas (`pills`): Al cambiar el tipo de dato de una columna ya colocada en estantes (Columns/Rows), las pastillas conservaban tipos y agregaciones incompatibles (ej. `SUM(VARCHAR)`), provocando un fallo en DuckDB.
-     - Desconexión del refresco de la cuadrícula: La vista previa de `DataSourceWorkbench.tsx` no reaccionaba a los cambios de tipos en sus dependencias de `useEffect`.
+- **Estado Actual:** Emulación de Tableau Desktop de División de Columnas (Split / Custom Split), Limpieza de Texto (TRIM / Case) y Conversión Bidireccional de Tipos de Datos (Checkpoint **CP-25**):
+  1. **Causas Raíz Resueltas:**
+     - Falta de tabla física base `_base`: Al dividir o limpiar texto en DuckDB, si la tabla no tenía creada su tabla base subyacente, la consulta fallaba con error de catálogo.
+     - Error de Binder en `SPLIT_PART` y `TRIM/UPPER/LOWER`: `SPLIT_PART` y las funciones de texto de DuckDB requieren argumentos de tipo `VARCHAR`. Si la columna era numérica o de fecha, DuckDB lanzaba una excepción irrecuperable.
+     - Fallo en re-ejecución innecesaria de hojas de trabajo: En `worksheetStore.ts`, `splitDatasetColumn`, `cleanDatasetColumn` y `renameDatasetColumn` invocaban `executeCurrentState()` incondicionalmente, causando fallos analíticos en segundo plano mientras el usuario estaba en la pestaña "Fuente de datos".
+     - Colisión de nombres de columnas divididas: Al dividir varias veces un campo, DuckDB arrojaba error de columna duplicada.
+     - Conversión bidireccional incompleta: Se requería convertir limpiamente números a cadenas (sin sufijo `.0` en enteros), cadenas a números (manejando monedas `$`, `€`, `£`, `¥`, comas de miles, formato contable con paréntesis `(100)` y porcentajes), números a fechas (manejando años de 4 dígitos como `2024` -> `2024-01-01` y fechas seriales de Excel como `45000`), y fechas a números (extrayendo año o epoch).
   2. **Solución Implementada:**
-     - Auto-sanación en `castColumn`: detección y creación transparente de la tabla base `${tableName}_base` si no existe.
-     - Casting resiliente multi-formato con `COALESCE`: soporte para formatos numéricos con moneda/comas, formatos de fecha internacionales y locales (`%d/%m/%Y`, `%m/%d/%Y`, ISO), y valores booleanos en español e inglés.
-     - Preservación del orden original de columnas y atributos (`hidden`).
-     - Sincronización transversal de pastillas en todas las hojas en `changeDatasetColumnType` y nueva acción `changeDatasetColumnRole` ("Convertir a dimensión / medida").
-     - Menú contextual y popover interactivo en `DataSidebar.tsx` al hacer clic en el icono del tipo o clic derecho sobre cualquier campo.
-  3. **Verificación:**
-     - 31/31 tests unitarios pasando en Vitest (100% verde).
-     - Verificación estricta de TypeScript (`tsc --noEmit`) con 0 errores y 0 advertencias.
-     - Compilación estática de producción (`vite build`) limpia en 2.73s.
+     - Helper universal `ensureBaseTable`: Detección y creación automática de `${tableName}_base` para todas las operaciones de preparación.
+     - División de columnas (`splitColumn`): Convención Tableau `[Field] - Split 1..N` con algoritmo de deduplicación de nombres, `CAST("${safeCol}" AS VARCHAR)` y soporte completo de modalidades `first` (primeras N), `last` (últimas N usando índices negativos en DuckDB `SPLIT_PART`) y `all` (todas las columnas inspeccionando el conteo máximo de tokens en la tabla).
+     - Modal interactivo de División Personalizada en `DataSourceWorkbench.tsx`: Diálogo nativo idéntico a Tableau Desktop para definir separador y alcance sin depender de `window.prompt`.
+     - Limpieza de texto (`cleanColumn`): `TRIM`, `UPPER` y `LOWER` ejecutados sobre `CAST("${safeCol}" AS VARCHAR)` con reconstrucción de orden original de columnas, permitiendo limpiar cualquier columna sin fallos.
+     - Conversión bidireccional exhaustiva (`castColumn`): Fórmulas SQL multi-expresión que manejan todos los casos de uso analíticos de Tableau Desktop.
+     - Acciones de split y trim añadidas también al menú contextual del panel lateral (`DataSidebar.tsx`).
+  3. **Verificación Zero-Defect:**
+     - 34/34 tests unitarios pasando en Vitest (100% verde).
+     - Tipado estricto (`tsc --noEmit`) con 0 errores y 0 advertencias.
+     - Compilación estática de producción (`vite build`) en 3.04s.
      - Servidor activo en macOS respondiendo `HTTP 200 OK` en `http://127.0.0.1:5173`.
-- **Siguiente Paso:** Entregar confirmación al usuario e invitarlo a probar el cambio de tipo de datos tanto en el panel lateral como en la página de fuente de datos.
+- **Siguiente Paso:** Presentar al usuario la emulación de Tableau Desktop de split, custom split, trim y conversiones bidireccionales, e invitarlo a probarlas en vivo.
