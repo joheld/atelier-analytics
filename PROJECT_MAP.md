@@ -135,6 +135,7 @@ gitGraph
     commit id: "tableau-start-page-and-recent-workbooks" tag: "v2.2.0"
     commit id: "excel-xlsx-xls-sheetjs-multi-sheet" tag: "v2.3.0"
     commit id: "data-interpreter-source-filters-and-prep" tag: "v2.4.0"
+    commit id: "fix-data-type-casting-and-sidebar-popover" tag: "v2.4.1"
 ```
 
 ---
@@ -166,6 +167,7 @@ gitGraph
 | **CP-21** | Página de Inicio Auténtica de Tableau Desktop (`StartPage.tsx`) con Libros Recientes y Muestras | **Completado** | 1) Pantalla de inicio Tableau Desktop (`StartPage.tsx`) activa al arrancar la app; 2) Panel izquierdo "Conectar": Excel, CSV, Parquet, JSON y fuentes de muestra con 1 clic (Superstore Sales y World Indicators); 3) Panel central "Libros de trabajo recientes": tarjetas con vista previa gráfica, fechas relativas, estado activo y banner de reanudación inmediata; 4) Toggle bidireccional mediante el logo de Atelier en el Header para alternar entre el Inicio y el Lienzo sin cerrar nada; 5) 19/19 tests unitarios pasando, 0 errores tsc, build limpio y HTTP 200 en http://127.0.0.1:5173. |
 | **CP-22** | Soporte Nativo de Archivos Microsoft Excel (.xlsx / .xls) Multi-Hoja con SheetJS y DuckDB-WASM | **Completado** | 1) Ingestión client-side de archivos Excel (.xlsx y .xls) mediante SheetJS (`xlsx@0.18.5`); 2) Preservación de precisión numérica con `rawNumbers: true` para evitar distorsiones por formatos de moneda o porcentajes; 3) Soporte multi-hoja completo estilo Tableau Desktop: cada hoja se carga como una tabla independiente en DuckDB y se registra en `availableDatasets`, permitiendo análisis directo y relaciones (JOIN/UNION); 4) Conector independiente "Microsoft Excel" en StartPage, EmptyWorkspace y barra lateral; 5) 23/23 tests pasando en Vitest, 0 errores tsc, build limpio y HTTP 200. |
 | **CP-23** | Tableau Data Interpreter, Filtros de Fuente de Datos y Prelimpieza de Datos en Cuadrícula | **Completado** | 1) Data Interpreter (`dataInterpreter.ts`) con heurística de encabezados, detección de notas, metadatos y poda de subtotales/totales generales al pie; 2) Arquitectura física base + vista SQL en DuckDB (`CREATE OR REPLACE VIEW ... WHERE ...`) para Filtros de Fuente de Datos que gobiernan a nivel raíz antes de hojas y dashboards; 3) Prelimpieza de datos en cuadrícula (renombrado, TRY_CAST vectorial con EXCLUDE, SPLIT_PART por delimitador, TRIM/UPPER/LOWER y ocultamiento de campos); 4) Pestaña "Fuente de datos" en TabBar y banco de trabajo `DataSourceWorkbench.tsx`; 5) 29/29 tests unitarios pasando, 0 errores tsc, build limpio y HTTP 200. |
+| **CP-24** | Robustecimiento del Cambio de Tipos de Datos (Cast) y Popover Interactivo en Panel Lateral | **Completado** | 1) Auto-sanación en `castColumn`: verificación y creación dinámica de la tabla física base `_base` si no existe; 2) Expresiones SQL multi-formato con `COALESCE` para números (limpieza de `$`, `€`, comas de miles y espacios), fechas (`%Y-%m-%d`, `%d/%m/%Y`, `%m/%d/%Y`, etc.) y booleanos (reconociendo 'si', 'sí', 'verdadero', 'false', '0', etc.); 3) Preservación estricta del orden original de columnas en DuckDB y preservación del flag `hidden`; 4) Sincronización automática de pastillas en todas las hojas (`pills`) al cambiar tipos o roles para evitar fallos de ejecución; 5) Popover interactivo estilo Tableau Desktop en el panel lateral (`DataSidebar.tsx`): clic en el icono (`#`, `Abc`, `📅`, `T/F`) o clic derecho para cambiar tipo, convertir dimensión/medida u ocultar; 6) 31/31 tests pasando en Vitest, 0 errores tsc, build limpio y HTTP 200. |
 
 ---
 
@@ -249,31 +251,22 @@ atelier-analytics/
 
 ---
 
-- **Estado Actual:** Implementada la arquitectura completa de preparación de datos estilo Tableau Desktop (Checkpoint **CP-23**):
-  1. **Tableau Data Interpreter (`dataInterpreter.ts`):** Motor de análisis heurístico que examina los libros de Excel (`.xlsx`/`.xls`) antes de ingresarlos a DuckDB-WASM:
-     - Detecta y descarta automáticamente filas de metadatos, títulos corporativos superiores, notas y líneas en blanco.
-     - Identifica la fila real de cabeceras tabulares mediante densidad y tipos de valores.
-     - Rellena celdas combinadas horizontales (`F1`, `F2` -> nombres derivados o anteriores).
-     - Detecta y descarta subtotales y filas de totales generales al pie (`Total`, `Grand Total`, `Subtotal`, `Promedio`, `Fuente:`, etc.) para evitar duplicaciones en agregaciones de Tableau.
-     - Genera versión gemela `_clean.csv` y reporte de diagnóstico explicativo (`dataInterpreterReport`). Conmutador instantáneo On/Off en la UI.
-  2. **Filtros de Fuente de Datos (Data Source Filters):**
-     - Gobernanza de filtrado en la raíz de DuckDB-WASM antes de que los datos alcancen cualquier hoja de trabajo o dashboard.
-     - Arquitectura física DuckDB `"${tableName}_base"` + vista activa `CREATE OR REPLACE VIEW "${tableName}" AS SELECT * FROM "${tableName}_base" WHERE ...`.
-     - Integración con el compilador AST (`compileFilter`) para filtros categóricos (`in`, `not_in`), rangos numéricos/fechas (`range`) y búsqueda textual (`contains`).
-     - Reduce drásticamente la memoria ocupada y garantiza coherencia transversal en todo el libro.
-  3. **Herramientas de Prelimpieza en Cuadrícula (Data Prep Grid Tools):**
-     - Renombrado directo de columnas en DuckDB (`ALTER TABLE ... RENAME COLUMN ...`).
-     - Conversión de tipos vectorizada mediante `TRY_CAST` con preservación de columnas (`SELECT * EXCLUDE (col), TRY_CAST(...) AS col`).
-     - División de columnas por delimitador (`splitDatasetColumn`) usando `SPLIT_PART` de DuckDB para generar campos derivados (`col_1`, `col_2`).
-     - Limpieza de texto asistida (`cleanDatasetColumn`): `TRIM`, `UPPER` y `LOWER`.
-     - Ocultamiento/visibilidad de campos (`hidden?: boolean`) con toggle en la cuadrícula y en la barra lateral.
-  4. **Pestaña "Fuente de datos" y Banco de Trabajo (`DataSourceWorkbench.tsx`):**
-     - Pestaña fija en la esquina inferior izquierda de `TabBar.tsx` (`[ 🗄️ Fuente de datos ] | [ 📊 Hoja 1 ] ...`).
-     - Tarjetas superiores para el Intérprete de Datos y los Filtros de Fuente de Datos con chips interactivos para editar o eliminar.
-     - Cuadrícula de previsualización en vivo (50 filas) con dropdown de tipos de dato por encabezado, menú de acciones contextual y buscador de columnas.
-  5. **Verificación:**
-     - 29/29 tests unitarios pasando en Vitest across 7 files (100% verde).
+- **Estado Actual:** Resuelta y robustecida la modificación de tipos de datos en DuckDB-WASM y panel lateral Tableau (Checkpoint **CP-24**):
+  1. **Causa Raíz:**
+     - Falta de interactividad en el panel lateral de datos (`DataSidebar.tsx`): los iconos de tipo (`#`, `Abc`, `📅`) eran estáticos y el componente no recibía `onChangeColumnType`. En Tableau Desktop, los analistas esperan cambiar el tipo de dato y alternar entre dimensión/métrica directamente en el panel lateral de cualquier hoja.
+     - En `castColumn` de DuckDB: Si la tabla fue cargada sin el sufijo `_base` (por ejemplo, en sesiones anteriores o datasets de muestra), la consulta fallaba con error de catálogo.
+     - Fragilidad de formato: `TRY_CAST("col" AS DATE)` devolvía `NULL` para fechas comunes con barras (`DD/MM/YYYY`, `MM/DD/YYYY`), y para números con símbolos de moneda (`$`, `€`), comas de miles o espacios.
+     - Desincronización de pastillas (`pills`): Al cambiar el tipo de dato de una columna ya colocada en estantes (Columns/Rows), las pastillas conservaban tipos y agregaciones incompatibles (ej. `SUM(VARCHAR)`), provocando un fallo en DuckDB.
+     - Desconexión del refresco de la cuadrícula: La vista previa de `DataSourceWorkbench.tsx` no reaccionaba a los cambios de tipos en sus dependencias de `useEffect`.
+  2. **Solución Implementada:**
+     - Auto-sanación en `castColumn`: detección y creación transparente de la tabla base `${tableName}_base` si no existe.
+     - Casting resiliente multi-formato con `COALESCE`: soporte para formatos numéricos con moneda/comas, formatos de fecha internacionales y locales (`%d/%m/%Y`, `%m/%d/%Y`, ISO), y valores booleanos en español e inglés.
+     - Preservación del orden original de columnas y atributos (`hidden`).
+     - Sincronización transversal de pastillas en todas las hojas en `changeDatasetColumnType` y nueva acción `changeDatasetColumnRole` ("Convertir a dimensión / medida").
+     - Menú contextual y popover interactivo en `DataSidebar.tsx` al hacer clic en el icono del tipo o clic derecho sobre cualquier campo.
+  3. **Verificación:**
+     - 31/31 tests unitarios pasando en Vitest (100% verde).
      - Verificación estricta de TypeScript (`tsc --noEmit`) con 0 errores y 0 advertencias.
-     - Compilación estática de producción (`vite build`) limpia en 2.96s.
-     - Proceso activo en macOS respondiendo `HTTP 200 OK` en `http://127.0.0.1:5173`.
-- **Siguiente Paso:** Entregar confirmación al usuario e invitarlo a probar la pestaña "Fuente de datos", el Intérprete de datos y los filtros de fuente con sus archivos Excel.
+     - Compilación estática de producción (`vite build`) limpia en 2.73s.
+     - Servidor activo en macOS respondiendo `HTTP 200 OK` en `http://127.0.0.1:5173`.
+- **Siguiente Paso:** Entregar confirmación al usuario e invitarlo a probar el cambio de tipo de datos tanto en el panel lateral como en la página de fuente de datos.

@@ -275,6 +275,14 @@ class DuckDBManager {
     target.isDataInterpreterEnabled = source.isDataInterpreterEnabled;
     target.dataInterpreterReport = source.dataInterpreterReport;
     target.dataSourceFilters = source.dataSourceFilters;
+
+    const sourceColMap = new Map(source.columns.map((c) => [c.name, c]));
+    for (const targetCol of target.columns) {
+      const sourceCol = sourceColMap.get(targetCol.name);
+      if (sourceCol?.hidden) {
+        targetCol.hidden = true;
+      }
+    }
   }
 
   /**
@@ -354,24 +362,70 @@ class DuckDBManager {
   }
 
   /**
-   * Changes column data type (Cast) using safe TRY_CAST in DuckDB
+   * Changes column data type (Cast) using safe multi-format TRY_CAST in DuckDB
    */
   public async castColumn(tableName: string, columnName: string, newType: DataType): Promise<DatasetMeta> {
     const conn = await this.getConnection();
     const meta = this.activeDatasets.get(tableName);
     if (!meta) throw new Error(`Dataset no encontrado: ${tableName}`);
 
-    let targetType = 'VARCHAR';
-    if (newType === 'number') targetType = 'DOUBLE';
-    else if (newType === 'date') targetType = 'DATE';
-    else if (newType === 'boolean') targetType = 'BOOLEAN';
-
     const safeBaseTable = `${tableName}_base`.replace(/"/g, '""');
+    const safeTable = tableName.replace(/"/g, '""');
     const safeCol = columnName.replace(/"/g, '""');
+
+    // Auto-heal: verify if base table exists; if not, create it from tableName
+    const checkBaseRes = await conn.query(`
+      SELECT table_name FROM information_schema.tables WHERE table_name = '${safeBaseTable}';
+    `);
+    if (checkBaseRes.numRows === 0) {
+      await conn.query(`CREATE TABLE "${safeBaseTable}" AS SELECT * FROM "${safeTable}";`);
+      await conn.query(`CREATE OR REPLACE VIEW "${safeTable}" AS SELECT * FROM "${safeBaseTable}";`);
+    }
+
+    let castExpr = `TRY_CAST("${safeCol}" AS VARCHAR)`;
+    if (newType === 'number') {
+      castExpr = `COALESCE(
+        TRY_CAST("${safeCol}" AS DOUBLE),
+        TRY_CAST(REPLACE(REPLACE(REPLACE(REPLACE(CAST("${safeCol}" AS VARCHAR), '$', ''), '€', ''), ',', ''), ' ', '') AS DOUBLE)
+      )`;
+    } else if (newType === 'date') {
+      castExpr = `COALESCE(
+        TRY_CAST("${safeCol}" AS DATE),
+        TRY_STRPTIME(CAST("${safeCol}" AS VARCHAR), '%Y-%m-%d')::DATE,
+        TRY_STRPTIME(CAST("${safeCol}" AS VARCHAR), '%d/%m/%Y')::DATE,
+        TRY_STRPTIME(CAST("${safeCol}" AS VARCHAR), '%m/%d/%Y')::DATE,
+        TRY_STRPTIME(CAST("${safeCol}" AS VARCHAR), '%d-%m-%Y')::DATE,
+        TRY_STRPTIME(CAST("${safeCol}" AS VARCHAR), '%Y/%m/%d')::DATE,
+        TRY_STRPTIME(CAST("${safeCol}" AS VARCHAR), '%d/%m/%y')::DATE,
+        TRY_STRPTIME(CAST("${safeCol}" AS VARCHAR), '%m/%d/%y')::DATE,
+        TRY_STRPTIME(CAST("${safeCol}" AS VARCHAR), '%Y-%m-%d %H:%M:%S')::DATE,
+        TRY_STRPTIME(CAST("${safeCol}" AS VARCHAR), '%d/%m/%Y %H:%M:%S')::DATE
+      )`;
+    } else if (newType === 'boolean') {
+      castExpr = `COALESCE(
+        TRY_CAST("${safeCol}" AS BOOLEAN),
+        CASE
+          WHEN LOWER(TRIM(CAST("${safeCol}" AS VARCHAR))) IN ('true', '1', 'si', 'sí', 'yes', 'verdadero', 't', 'y') THEN TRUE
+          WHEN LOWER(TRIM(CAST("${safeCol}" AS VARCHAR))) IN ('false', '0', 'no', 'falso', 'f', 'n') THEN FALSE
+          ELSE NULL
+        END
+      )`;
+    } else if (newType === 'string') {
+      castExpr = `CAST("${safeCol}" AS VARCHAR)`;
+    }
+
+    // Preserve exact original column order in the table
+    const colExprs = meta.columns.map((c) => {
+      const sName = c.name.replace(/"/g, '""');
+      if (c.name === columnName) {
+        return `${castExpr} AS "${sName}"`;
+      }
+      return `"${sName}"`;
+    });
 
     await conn.query(`
       CREATE OR REPLACE TABLE "${safeBaseTable}" AS
-      SELECT * EXCLUDE ("${safeCol}"), TRY_CAST("${safeCol}" AS ${targetType}) AS "${safeCol}"
+      SELECT ${colExprs.join(', ')}
       FROM "${safeBaseTable}";
     `);
 

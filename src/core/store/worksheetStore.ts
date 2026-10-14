@@ -18,6 +18,7 @@ import {
   JoinRelationConfig,
   UnionConfig,
   DataType,
+  FieldRole,
 } from '../ast/types';
 import { buildWorksheetAST } from '../ast/builder';
 import { compileASTtoDuckDB, CompiledQuery } from '../compiler/sqlCompiler';
@@ -112,6 +113,7 @@ export interface WorksheetStore extends WorksheetState {
   removeDataSourceFilter: (filterId: string) => Promise<void>;
   renameDatasetColumn: (oldName: string, newName: string) => Promise<void>;
   changeDatasetColumnType: (columnName: string, newType: DataType) => Promise<void>;
+  changeDatasetColumnRole: (columnName: string, newRole: FieldRole) => Promise<void>;
   splitDatasetColumn: (columnName: string, delimiter?: string) => Promise<void>;
   cleanDatasetColumn: (columnName: string, cleanType: 'trim' | 'upper' | 'lower') => Promise<void>;
   toggleHideDatasetColumn: (columnName: string) => void;
@@ -698,22 +700,117 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
   },
 
   changeDatasetColumnType: async (columnName: string, newType: DataType) => {
-    const { currentDataset } = get();
+    const { currentDataset, sheets, activeTabId } = get();
     if (!currentDataset) return;
     try {
       set({ isExecuting: true, engineError: null });
       const updatedMeta = await duckdbEngine.castColumn(currentDataset.tableName, columnName, newType);
       const allDatasets = duckdbEngine.getAvailableDatasets();
+
+      const updatedCol = updatedMeta.columns.find((c) => c.name === columnName);
+      const newRole = updatedCol?.role || (newType === 'number' ? 'measure' : 'dimension');
+
+      // Update pills across all sheets that reference this column
+      const updatedSheets = sheets.map((sheet) => {
+        const updatePillList = (pills: Pill[]): Pill[] =>
+          pills.map((pill) => {
+            if (pill.columnName === columnName) {
+              return {
+                ...pill,
+                dataType: newType,
+                role: newRole,
+                aggregation:
+                  newType === 'string' && ['SUM', 'AVG', 'MEDIAN'].includes(pill.aggregation || '')
+                    ? undefined
+                    : pill.aggregation,
+              };
+            }
+            return pill;
+          });
+
+        return {
+          ...sheet,
+          columns: updatePillList(sheet.columns),
+          rows: updatePillList(sheet.rows),
+        };
+      });
+
+      const currentActiveSheet = updatedSheets.find((s) => s.id === activeTabId);
+
       set({
         currentDataset: updatedMeta,
         availableDatasets: allDatasets,
+        sheets: updatedSheets,
+        columns: currentActiveSheet ? currentActiveSheet.columns : get().columns,
+        rows: currentActiveSheet ? currentActiveSheet.rows : get().rows,
         isExecuting: false,
       });
-      await get().executeCurrentState();
+
+      // Safely re-execute current state if on a worksheet
+      if (!get().isDataSourceTabActive) {
+        await get().executeCurrentState();
+      }
     } catch (err) {
+      console.error('[Store] Error al cambiar tipo de dato:', err);
       set({
         isExecuting: false,
         engineError: err instanceof Error ? err.message : 'Error al cambiar tipo de dato',
+      });
+    }
+  },
+
+  changeDatasetColumnRole: async (columnName: string, newRole: FieldRole) => {
+    const { currentDataset, sheets, activeTabId } = get();
+    if (!currentDataset) return;
+    try {
+      set({ isExecuting: true, engineError: null });
+      const updatedCols = currentDataset.columns.map((c) =>
+        c.name === columnName ? { ...c, role: newRole } : c
+      );
+      const updatedMeta: DatasetMeta = { ...currentDataset, columns: updatedCols };
+
+      // Update pills across all sheets
+      const updatedSheets = sheets.map((sheet) => {
+        const updatePillList = (pills: Pill[]): Pill[] =>
+          pills.map((pill) => {
+            if (pill.columnName === columnName) {
+              return {
+                ...pill,
+                role: newRole,
+                aggregation: newRole === 'dimension' ? undefined : (pill.aggregation || 'SUM'),
+              };
+            }
+            return pill;
+          });
+
+        return {
+          ...sheet,
+          columns: updatePillList(sheet.columns),
+          rows: updatePillList(sheet.rows),
+        };
+      });
+
+      const currentActiveSheet = updatedSheets.find((s) => s.id === activeTabId);
+
+      set({
+        currentDataset: updatedMeta,
+        availableDatasets: get().availableDatasets.map((d) =>
+          d.id === updatedMeta.id ? updatedMeta : d
+        ),
+        sheets: updatedSheets,
+        columns: currentActiveSheet ? currentActiveSheet.columns : get().columns,
+        rows: currentActiveSheet ? currentActiveSheet.rows : get().rows,
+        isExecuting: false,
+      });
+
+      if (!get().isDataSourceTabActive) {
+        await get().executeCurrentState();
+      }
+    } catch (err) {
+      console.error('[Store] Error al cambiar rol de columna:', err);
+      set({
+        isExecuting: false,
+        engineError: err instanceof Error ? err.message : 'Error al cambiar rol',
       });
     }
   },

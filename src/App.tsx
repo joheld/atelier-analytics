@@ -134,6 +134,7 @@ export const App: React.FC = () => {
     removeDataSourceFilter,
     renameDatasetColumn,
     changeDatasetColumnType,
+    changeDatasetColumnRole,
     splitDatasetColumn,
     cleanDatasetColumn,
     toggleHideDatasetColumn,
@@ -243,6 +244,9 @@ export const App: React.FC = () => {
           onDeleteParameter={deleteParameter}
           onAddAnalyticsLine={addAnalyticsLine}
           onRemoveAnalyticsLine={removeAnalyticsLine}
+          onChangeColumnType={changeDatasetColumnType}
+          onChangeColumnRole={changeDatasetColumnRole}
+          onToggleHideColumn={toggleHideDatasetColumn}
         />
 
         {/* Center Analytical Workbench */}
@@ -263,6 +267,7 @@ export const App: React.FC = () => {
               onOpenFilterModal={(filter) => setActiveFilterModal(filter)}
               onRenameColumn={renameDatasetColumn}
               onChangeColumnType={changeDatasetColumnType}
+              onChangeColumnRole={changeDatasetColumnRole}
               onSplitColumn={splitDatasetColumn}
               onCleanColumn={cleanDatasetColumn}
               onToggleHideColumn={toggleHideDatasetColumn}

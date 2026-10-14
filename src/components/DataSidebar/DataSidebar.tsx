@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { DatasetMeta, Pill, Parameter, CalculatedField, DataType, FieldRole, AnalyticsLine } from '../../core/ast/types';
+import React, { useState, useRef, useEffect } from 'react';
+import { DatasetMeta, Pill, Parameter, CalculatedField, DataType, FieldRole, AnalyticsLine, DatasetColumn } from '../../core/ast/types';
 import {
   Search,
   Type,
@@ -21,6 +21,9 @@ import {
   Layers,
   GitMerge,
   Database,
+  Check,
+  ArrowRightLeft,
+  MoreVertical,
 } from 'lucide-react';
 
 interface DataSidebarProps {
@@ -43,6 +46,9 @@ interface DataSidebarProps {
   onDeleteParameter: (paramId: string) => void;
   onAddAnalyticsLine?: (line: AnalyticsLine) => void;
   onRemoveAnalyticsLine?: (lineId: string) => void;
+  onChangeColumnType?: (columnName: string, newType: DataType) => Promise<void>;
+  onChangeColumnRole?: (columnName: string, newRole: FieldRole) => Promise<void>;
+  onToggleHideColumn?: (columnName: string) => void;
 }
 
 export const DataSidebar: React.FC<DataSidebarProps> = ({
@@ -65,11 +71,21 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
   onDeleteParameter,
   onAddAnalyticsLine,
   onRemoveAnalyticsLine,
+  onChangeColumnType,
+  onChangeColumnRole,
+  onToggleHideColumn,
 }) => {
   const [sidebarTab, setSidebarTab] = useState<'data' | 'analytics'>('data');
   const [searchTerm, setSearchTerm] = useState('');
   const [showHidden, setShowHidden] = useState(false);
+  const [activeColumnMenu, setActiveColumnMenu] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = () => setActiveColumnMenu(null);
+    window.addEventListener('click', handleClickOutside);
+    return () => window.removeEventListener('click', handleClickOutside);
+  }, []);
 
   const columns = currentDataset?.columns || [];
   const filteredColumns = columns.filter(
@@ -113,6 +129,218 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
         label,
       });
     }
+  };
+
+  const renderColumnItem = (col: DatasetColumn, defaultShelf: 'columns' | 'rows') => {
+    const calcObj = calculatedFields.find((cf) => cf.name === col.name);
+    const isMenuOpen = activeColumnMenu === col.name;
+    const isMeasure = col.role === 'measure';
+
+    return (
+      <div
+        key={col.name}
+        draggable
+        onDragStart={(e) => handleDragStart(e, col)}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setActiveColumnMenu(isMenuOpen ? null : col.name);
+        }}
+        className={`group relative flex items-center justify-between rounded-md border border-transparent px-2 py-1 text-xs transition-all cursor-grab active:cursor-grabbing ${
+          isMeasure
+            ? 'text-stone-700 hover:border-emerald-300 hover:bg-emerald-50/70 hover:text-emerald-900 dark:text-stone-300 dark:hover:border-emerald-800 dark:hover:bg-emerald-950/40 dark:hover:text-emerald-200'
+            : 'text-stone-700 hover:border-sky-300 hover:bg-sky-50/70 hover:text-sky-900 dark:text-stone-300 dark:hover:border-sky-800 dark:hover:bg-sky-950/40 dark:hover:text-sky-200'
+        }`}
+      >
+        <div className="flex items-center gap-1.5 min-w-0">
+          {/* Interactive Tableau Type Icon with Click Popover */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setActiveColumnMenu(isMenuOpen ? null : col.name);
+            }}
+            className="rounded p-0.5 hover:bg-stone-200/70 dark:hover:bg-stone-750 cursor-pointer transition-colors"
+            title="Cambiar tipo de datos o rol analítico"
+          >
+            {col.isCalculated ? (
+              <span className={`font-mono font-bold text-[10px] shrink-0 ${isMeasure ? 'text-emerald-600 dark:text-emerald-400' : 'text-sky-600 dark:text-sky-400'}`}>
+                {isMeasure ? '=#' : '=Abc'}
+              </span>
+            ) : col.dataType === 'date' ? (
+              <Calendar className={`h-3.5 w-3.5 shrink-0 ${isMeasure ? 'text-emerald-600 dark:text-emerald-400' : 'text-sky-600 dark:text-sky-400'}`} />
+            ) : col.dataType === 'number' ? (
+              <Hash className={`h-3.5 w-3.5 shrink-0 ${isMeasure ? 'text-emerald-600 dark:text-emerald-400' : 'text-sky-600 dark:text-sky-400'}`} />
+            ) : col.dataType === 'boolean' ? (
+              <span className={`font-mono text-[9px] font-bold shrink-0 ${isMeasure ? 'text-emerald-600 dark:text-emerald-400' : 'text-sky-600 dark:text-sky-400'}`}>T/F</span>
+            ) : (
+              <Type className={`h-3.5 w-3.5 shrink-0 ${isMeasure ? 'text-emerald-600 dark:text-emerald-400' : 'text-sky-600 dark:text-sky-400'}`} />
+            )}
+          </button>
+
+          <span className="truncate font-mono text-[11.5px]">{col.name}</span>
+        </div>
+
+        {/* Hover Action Buttons */}
+        <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity gap-0.5">
+          {calcObj && (
+            <>
+              <button
+                type="button"
+                onClick={() => onOpenCalculatedFieldModal(calcObj)}
+                className="rounded p-0.5 text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 cursor-pointer"
+                title="Editar fórmula"
+              >
+                <Edit2 className="h-2.5 w-2.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => onDeleteCalculatedField(calcObj.id)}
+                className="rounded p-0.5 text-stone-400 hover:text-rose-600 cursor-pointer"
+                title="Eliminar campo calculado"
+              >
+                <Trash2 className="h-2.5 w-2.5" />
+              </button>
+            </>
+          )}
+
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setActiveColumnMenu(isMenuOpen ? null : col.name);
+            }}
+            className="rounded p-0.5 text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 cursor-pointer"
+            title="Opciones de campo y tipo de dato"
+          >
+            <MoreVertical className="h-3 w-3" />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onAddPill(defaultShelf, makePill(col.name, col.role, col.dataType, col.isCalculated, col.formula))}
+            className={`rounded p-0.5 cursor-pointer ${
+              isMeasure
+                ? 'text-emerald-600 hover:bg-emerald-200/50 dark:hover:bg-emerald-900/60'
+                : 'text-sky-600 hover:bg-sky-200/50 dark:hover:bg-sky-900/60'
+            }`}
+            title={`Añadir a ${defaultShelf === 'columns' ? 'Columns (X)' : 'Rows (Y)'}`}
+          >
+            <Plus className="h-3 w-3" />
+          </button>
+        </div>
+
+        {/* Tableau Context Menu for Field: Type & Role */}
+        {isMenuOpen && (
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="absolute left-0 top-full mt-1 w-52 rounded-lg border border-stone-200 bg-white py-1.5 shadow-xl dark:border-stone-700 dark:bg-stone-850 z-50 text-left"
+          >
+            <div className="px-3 py-1 text-[10px] font-mono font-bold text-stone-400 uppercase tracking-wider">
+              Tipo de dato (Tableau)
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                void onChangeColumnType?.(col.name, 'string');
+                setActiveColumnMenu(null);
+              }}
+              className={`flex w-full items-center justify-between px-3 py-1.5 text-xs hover:bg-stone-100 dark:hover:bg-stone-800 cursor-pointer ${
+                col.dataType === 'string' ? 'font-bold text-sky-600 dark:text-sky-400' : 'text-stone-700 dark:text-stone-300'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Type className="h-3.5 w-3.5 text-sky-600" />
+                <span>Cadena (Texto)</span>
+              </div>
+              {col.dataType === 'string' && <Check className="h-3.5 w-3.5 text-sky-600" />}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                void onChangeColumnType?.(col.name, 'number');
+                setActiveColumnMenu(null);
+              }}
+              className={`flex w-full items-center justify-between px-3 py-1.5 text-xs hover:bg-stone-100 dark:hover:bg-stone-800 cursor-pointer ${
+                col.dataType === 'number' ? 'font-bold text-emerald-600 dark:text-emerald-400' : 'text-stone-700 dark:text-stone-300'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Hash className="h-3.5 w-3.5 text-emerald-600" />
+                <span>Número (Decimal)</span>
+              </div>
+              {col.dataType === 'number' && <Check className="h-3.5 w-3.5 text-emerald-600" />}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                void onChangeColumnType?.(col.name, 'date');
+                setActiveColumnMenu(null);
+              }}
+              className={`flex w-full items-center justify-between px-3 py-1.5 text-xs hover:bg-stone-100 dark:hover:bg-stone-800 cursor-pointer ${
+                col.dataType === 'date' ? 'font-bold text-sky-600 dark:text-sky-400' : 'text-stone-700 dark:text-stone-300'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Calendar className="h-3.5 w-3.5 text-sky-600" />
+                <span>Fecha</span>
+              </div>
+              {col.dataType === 'date' && <Check className="h-3.5 w-3.5 text-sky-600" />}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                void onChangeColumnType?.(col.name, 'boolean');
+                setActiveColumnMenu(null);
+              }}
+              className={`flex w-full items-center justify-between px-3 py-1.5 text-xs hover:bg-stone-100 dark:hover:bg-stone-800 cursor-pointer ${
+                col.dataType === 'boolean' ? 'font-bold text-sky-600 dark:text-sky-400' : 'text-stone-700 dark:text-stone-300'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-[10px] font-bold text-sky-600">T/F</span>
+                <span>Booleano</span>
+              </div>
+              {col.dataType === 'boolean' && <Check className="h-3.5 w-3.5 text-sky-600" />}
+            </button>
+
+            <div className="border-t border-stone-100 dark:border-stone-800 my-1"></div>
+
+            {onChangeColumnRole && (
+              <button
+                type="button"
+                onClick={() => {
+                  void onChangeColumnRole(col.name, isMeasure ? 'dimension' : 'measure');
+                  setActiveColumnMenu(null);
+                }}
+                className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-stone-700 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800 cursor-pointer"
+              >
+                <ArrowRightLeft className="h-3.5 w-3.5 text-stone-400" />
+                <span>{isMeasure ? 'Convertir a dimensión' : 'Convertir a medida'}</span>
+              </button>
+            )}
+
+            {onToggleHideColumn && (
+              <button
+                type="button"
+                onClick={() => {
+                  onToggleHideColumn(col.name);
+                  setActiveColumnMenu(null);
+                }}
+                className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-stone-700 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800 cursor-pointer"
+              >
+                <EyeOff className="h-3.5 w-3.5 text-stone-400" />
+                <span>Ocultar campo</span>
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -380,62 +608,7 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
               </div>
 
               <div className="space-y-1">
-                {dimensions.map((col) => {
-                  const calcObj = calculatedFields.find((cf) => cf.name === col.name);
-
-                  return (
-                    <div
-                      key={col.name}
-                      draggable
-                      onDragStart={(e) => handleDragStart(e, col)}
-                      className="group flex items-center justify-between rounded-md border border-transparent px-2 py-1 text-xs text-stone-700 hover:border-sky-300 hover:bg-sky-50/70 hover:text-sky-900 cursor-grab active:cursor-grabbing transition-all dark:text-stone-300 dark:hover:border-sky-800 dark:hover:bg-sky-950/40 dark:hover:text-sky-200"
-                    >
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        {col.isCalculated ? (
-                          <span className="font-mono font-bold text-[10px] text-emerald-600 dark:text-emerald-400 shrink-0">
-                            =Abc
-                          </span>
-                        ) : col.dataType === 'date' ? (
-                          <Calendar className="h-3.5 w-3.5 shrink-0 text-sky-600 dark:text-sky-400" />
-                        ) : (
-                          <Type className="h-3.5 w-3.5 shrink-0 text-sky-600 dark:text-sky-400" />
-                        )}
-                        <span className="truncate font-mono text-[11.5px]">{col.name}</span>
-                      </div>
-
-                      <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity gap-0.5">
-                        {calcObj && (
-                          <>
-                            <button
-                              type="button"
-                              onClick={() => onOpenCalculatedFieldModal(calcObj)}
-                              className="rounded p-0.5 text-stone-400 hover:text-stone-700 dark:hover:text-stone-200"
-                              title="Editar fórmula"
-                            >
-                              <Edit2 className="h-2.5 w-2.5" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => onDeleteCalculatedField(calcObj.id)}
-                              className="rounded p-0.5 text-stone-400 hover:text-rose-600"
-                              title="Eliminar campo calculado"
-                            >
-                              <Trash2 className="h-2.5 w-2.5" />
-                            </button>
-                          </>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => onAddPill('columns', makePill(col.name, col.role, col.dataType, col.isCalculated, col.formula))}
-                          className="rounded p-0.5 text-sky-600 hover:bg-sky-200/50 dark:hover:bg-sky-900/60"
-                          title="Añadir a Columns (X)"
-                        >
-                          <Plus className="h-3 w-3" />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
+                {dimensions.map((col) => renderColumnItem(col, 'columns'))}
               </div>
             </div>
 
@@ -449,60 +622,7 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
               </div>
 
               <div className="space-y-1">
-                {measures.map((col) => {
-                  const calcObj = calculatedFields.find((cf) => cf.name === col.name);
-
-                  return (
-                    <div
-                      key={col.name}
-                      draggable
-                      onDragStart={(e) => handleDragStart(e, col)}
-                      className="group flex items-center justify-between rounded-md border border-transparent px-2 py-1 text-xs text-stone-700 hover:border-emerald-300 hover:bg-emerald-50/70 hover:text-emerald-900 cursor-grab active:cursor-grabbing transition-all dark:text-stone-300 dark:hover:border-emerald-800 dark:hover:bg-emerald-950/40 dark:hover:text-emerald-200"
-                    >
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        {col.isCalculated ? (
-                          <span className="font-mono font-bold text-[10px] text-emerald-600 dark:text-emerald-400 shrink-0">
-                            =#
-                          </span>
-                        ) : (
-                          <Hash className="h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
-                        )}
-                        <span className="truncate font-mono text-[11.5px]">{col.name}</span>
-                      </div>
-
-                      <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity gap-0.5">
-                        {calcObj && (
-                          <>
-                            <button
-                              type="button"
-                              onClick={() => onOpenCalculatedFieldModal(calcObj)}
-                              className="rounded p-0.5 text-stone-400 hover:text-stone-700 dark:hover:text-stone-200"
-                              title="Editar fórmula"
-                            >
-                              <Edit2 className="h-2.5 w-2.5" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => onDeleteCalculatedField(calcObj.id)}
-                              className="rounded p-0.5 text-stone-400 hover:text-rose-600"
-                              title="Eliminar campo calculado"
-                            >
-                              <Trash2 className="h-2.5 w-2.5" />
-                            </button>
-                          </>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => onAddPill('rows', makePill(col.name, col.role, col.dataType, col.isCalculated, col.formula))}
-                          className="rounded p-0.5 text-emerald-600 hover:bg-emerald-200/50 dark:hover:bg-emerald-900/60"
-                          title="Añadir a Rows (Y)"
-                        >
-                          <Plus className="h-3 w-3" />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
+                {measures.map((col) => renderColumnItem(col, 'rows'))}
               </div>
             </div>
 
