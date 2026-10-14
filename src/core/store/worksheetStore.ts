@@ -90,6 +90,12 @@ export interface WorksheetStore extends WorksheetState {
   deleteWorkbook: (id: string) => Promise<void>;
   refreshSavedWorkbooks: () => Promise<void>;
 
+  // Start Page (Tableau Welcome & Recent Workbooks Hub)
+  isStartPageVisible: boolean;
+  showStartPage: () => void;
+  hideStartPage: () => void;
+  toggleStartPage: () => void;
+
   // Actions - Core Engine & Datasets
   initEngine: () => Promise<void>;
   loadFile: (file: File) => Promise<void>;
@@ -221,6 +227,11 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
   savedWorkbooks: [],
   isStorageModalOpen: false,
 
+  isStartPageVisible: true,
+  showStartPage: () => set({ isStartPageVisible: true }),
+  hideStartPage: () => set({ isStartPageVisible: false }),
+  toggleStartPage: () => set((state) => ({ isStartPageVisible: !state.isStartPageVisible })),
+
   openStorageModal: () => set({ isStorageModalOpen: true }),
   closeStorageModal: () => set({ isStorageModalOpen: false }),
 
@@ -285,6 +296,7 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
         opacity: 0.85,
       },
       dashboardResults: {},
+      isStartPageVisible: false,
     });
 
     await get().refreshSavedWorkbooks();
@@ -293,7 +305,10 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
 
   switchWorkbook: async (id: string) => {
     const state = get();
-    if (state.currentWorkbookId === id) return;
+    if (state.currentWorkbookId === id) {
+      set({ isStartPageVisible: false });
+      return;
+    }
 
     // 1. Save current active workbook
     const currentSnapshot: ActiveSessionSnapshot = {
@@ -342,6 +357,7 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
       calculatedFields: snap.calculatedFields || [],
       parameters: snap.parameters || [],
       theme: snap.theme || state.theme,
+      isStartPageVisible: false,
     });
 
     await get().refreshSavedWorkbooks();
@@ -505,6 +521,7 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
         rows: activeSheet.rows,
         filters: activeSheet.filters,
         marks: activeSheet.marks,
+        isStartPageVisible: false,
       });
 
       await get().executeCurrentState();
@@ -538,6 +555,7 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
       sheets: [defaultSheet],
       activeTabId: 'sheet_1',
       dashboardResults: {},
+      isStartPageVisible: true,
     });
   },
 
@@ -1433,6 +1451,7 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
         marks: activeSheet.marks,
         calculatedFields: project.calculatedFields || [],
         parameters: project.parameters || [],
+        isStartPageVisible: false,
       });
 
       await get().executeCurrentState();

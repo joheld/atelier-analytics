@@ -131,6 +131,8 @@ gitGraph
     commit id: "indexeddb-persistence-and-session-autosave" tag: "v1.9.0"
     commit id: "multi-source-and-visual-data-modeling" tag: "v2.0.0"
     commit id: "storage-transparency-and-multi-workbook-catalog" tag: "v2.1.0"
+    commit id: "mac-desktop-launcher-path-fix" tag: "v2.1.1"
+    commit id: "tableau-start-page-and-recent-workbooks" tag: "v2.2.0"
 ```
 
 ---
@@ -159,6 +161,7 @@ gitGraph
 | **CP-18** | Multi-Fuente y Modelado Relacional de Datos: Joins, Unions y Dashboards Compuestos | **Completado** | 1) Soporte multi-tabla simultáneo en DuckDB-WASM (cada archivo se monta como tabla independiente); 2) Selector multi-fuente en la barra lateral con botón `+ Fuente` y badge de tablas cargadas; 3) Vinculación por hoja (`sheet.tableName`/`sheet.datasetId`), permitiendo que cada hoja analice un archivo diferente y convivan en el mismo Dashboard con badge de origen; 4) Asistente visual de modelado de datos (`DataModelModal.tsx`) con soporte para 4 tipos de JOIN (`LEFT`, `INNER`, `FULL`, `RIGHT`), desambiguación automática de nombres de columnas y apilado vertical `UNION ALL BY NAME`; 5) Previsualización en vivo en 5 filas con DuckDB-WASM; 6) 18/18 tests unitarios pasando, 0 errores tsc, build limpio en 2.40s y HTTP 200 en puerto 5173. |
 | **CP-19** | Transparencia de Almacenamiento Local y Catálogo de Reportes Múltiples | **Completado** | 1) Modal de Transparencia de Almacenamiento (`StorageInspectorModal.tsx`) accesible al pulsar el badge "Guardado en Mac" en el Header; muestra métricas de almacenamiento, arquitectura en capas, ubicación física en disco en macOS (`~/Library/Application Support/...`) y botón para exportar `.atelier` a `~/Downloads`; 2) Catálogo de Reportes Múltiples en el Header con selector de reporte activo, renombrado en tiempo real, creación de nuevos reportes independientes (`+ Nuevo Reporte en Blanco`) sin cerrar ni perder el trabajo activo y alternancia instantánea en 1 clic; 3) 19/19 tests unitarios pasando en Vitest, 0 errores de TypeScript, compilación de producción en 2.58s y HTTP 200 en http://127.0.0.1:5173. |
 | **CP-20** | Resolución de PATH en Launcher de Escritorio y Acceso Directo macOS | **Completado** | 1) Corrección de error `nohup: bun: No such file or directory` al abrir desde `Atelier Analytics.app` o `.command`; 2) Exportación explícita de `PATH` (`$HOME/.bun/bin:/opt/homebrew/bin:/usr/local/bin:$PATH`) en `run.sh`, `launch-desktop.sh` y `main.scpt`; 3) Resolución dinámica y portable de rutas sin hardcoding de `/Users/joe`; 4) Verificación empírica mediante `open` en macOS con inicio de servidor en 187ms y respuesta HTTP 200. |
+| **CP-21** | Página de Inicio Auténtica de Tableau Desktop (`StartPage.tsx`) con Libros Recientes y Muestras | **Completado** | 1) Pantalla de inicio Tableau Desktop (`StartPage.tsx`) activa al arrancar la app; 2) Panel izquierdo "Conectar": Excel, CSV, Parquet, JSON y fuentes de muestra con 1 clic (Superstore Sales y World Indicators); 3) Panel central "Libros de trabajo recientes": tarjetas con vista previa gráfica, fechas relativas, estado activo y banner de reanudación inmediata; 4) Toggle bidireccional mediante el logo de Atelier en el Header para alternar entre el Inicio y el Lienzo sin cerrar nada; 5) 19/19 tests unitarios pasando, 0 errores tsc, build limpio y HTTP 200 en http://127.0.0.1:5173. |
 
 ---
 

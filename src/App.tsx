@@ -18,6 +18,7 @@ import { ParameterControlsBar } from './components/Parameters/ParameterControlsB
 import { ShowMeDrawer } from './components/ShowMe/ShowMeDrawer';
 import { DataModelModal } from './components/DataModel/DataModelModal';
 import { StorageInspectorModal } from './components/Storage/StorageInspectorModal';
+import { StartPage } from './components/StartPage/StartPage';
 import { Columns, Rows, Loader2, Sparkles, ArrowUpDown } from 'lucide-react';
 import { buildWorksheetAST } from './core/ast/builder';
 
@@ -118,6 +119,11 @@ export const App: React.FC = () => {
     switchWorkbook,
     renameCurrentWorkbook,
     deleteWorkbook,
+
+    // Start Page (Tableau Welcome & Recent Workbooks Hub)
+    isStartPageVisible,
+    hideStartPage,
+    toggleStartPage,
   } = useWorksheetStore();
 
   useEffect(() => {
@@ -181,14 +187,32 @@ export const App: React.FC = () => {
         onRenameWorkbook={renameCurrentWorkbook}
         onDeleteWorkbook={(id) => void deleteWorkbook(id)}
         onOpenStorageModal={openStorageModal}
+        isStartPageVisible={isStartPageVisible}
+        onToggleStartPage={toggleStartPage}
       />
 
-      {/* Main Studio Workspace */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Left Data Sidebar */}
-        <DataSidebar
+      {/* Tableau Desktop Start Page Hub OR Main Studio Workspace */}
+      {isStartPageVisible ? (
+        <StartPage
           currentDataset={currentDataset}
-          availableDatasets={availableDatasets}
+          currentWorkbookId={currentWorkbookId}
+          currentWorkbookName={currentWorkbookName}
+          savedWorkbooks={savedWorkbooks}
+          sheetsCount={sheets.length}
+          onOpenWorkspace={hideStartPage}
+          onNewWorkbook={() => void createNewWorkbook()}
+          onSwitchWorkbook={(id) => void switchWorkbook(id)}
+          onDeleteWorkbook={(id) => void deleteWorkbook(id)}
+          onFileUpload={(file) => void loadFile(file)}
+          onImportProject={(file) => void importProjectFile(file)}
+          onOpenStorageModal={openStorageModal}
+        />
+      ) : (
+        <div className="flex flex-1 overflow-hidden">
+          {/* Left Data Sidebar */}
+          <DataSidebar
+            currentDataset={currentDataset}
+            availableDatasets={availableDatasets}
           onSelectDataset={selectDataset}
           onLoadAdditionalFile={(file) => void loadFile(file)}
           onOpenDataModelModal={openDataModelModal}
@@ -390,6 +414,7 @@ export const App: React.FC = () => {
           )}
         </main>
       </div>
+      )}
 
       {/* SQL & Arrow Inspector Drawer */}
       <SQLInspectorDrawer

@@ -43,6 +43,10 @@ interface HeaderProps {
   onRenameWorkbook?: (name: string) => void;
   onDeleteWorkbook?: (id: string) => void;
   onOpenStorageModal?: () => void;
+
+  // Tableau Start Page Hub
+  isStartPageVisible?: boolean;
+  onToggleStartPage?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -65,6 +69,8 @@ export const Header: React.FC<HeaderProps> = ({
   onRenameWorkbook,
   onDeleteWorkbook,
   onOpenStorageModal,
+  isStartPageVisible,
+  onToggleStartPage,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isReportDropdownOpen, setIsReportDropdownOpen] = useState(false);
@@ -91,32 +97,49 @@ export const Header: React.FC<HeaderProps> = ({
     <header className="flex h-14 w-full items-center justify-between border-b border-stone-200/90 bg-white px-4 dark:border-stone-800 dark:bg-stone-900 select-none">
       {/* Brand & Editorial Title & Report Switcher */}
       <div className="flex items-center gap-3">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900 shadow-sm">
+        {/* Tableau Iconic Start Page Toggle Logo */}
+        <button
+          type="button"
+          onClick={onToggleStartPage}
+          className="flex h-8 w-8 items-center justify-center rounded-lg bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900 shadow-sm hover:scale-105 active:scale-95 transition-all"
+          title={isStartPageVisible ? 'Ir al espacio de trabajo (Lienzo)' : 'Página de inicio (Tableau Start Page)'}
+        >
           <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <rect width="7" height="9" x="3" y="3" rx="1" />
             <rect width="7" height="5" x="14" y="3" rx="1" />
             <rect width="7" height="9" x="14" y="12" rx="1" />
             <rect width="7" height="5" x="3" y="16" rx="1" />
           </svg>
-        </div>
+        </button>
+
         <div className="flex items-center gap-2">
-          <h1 className="font-editorial text-lg font-bold tracking-tight text-stone-900 dark:text-stone-100">
+          <button
+            type="button"
+            onClick={onToggleStartPage}
+            className="font-editorial text-lg font-bold tracking-tight text-stone-900 dark:text-stone-100 hover:opacity-80 transition-opacity"
+            title={isStartPageVisible ? 'Ir al espacio de trabajo' : 'Ver página de inicio y archivos recientes'}
+          >
             Atelier
-          </h1>
+          </button>
           <span className="text-stone-300 dark:text-stone-700">/</span>
 
-          {/* Report Switcher Dropdown */}
-          <div className="relative" ref={dropdownRef}>
-            <button
-              type="button"
-              onClick={() => setIsReportDropdownOpen(!isReportDropdownOpen)}
-              className="flex items-center gap-1.5 rounded-lg border border-stone-200/90 bg-stone-50/80 px-2.5 py-1 text-xs font-semibold text-stone-800 hover:bg-stone-100 hover:border-stone-300 dark:border-stone-800 dark:bg-stone-950/70 dark:text-stone-200 transition-colors"
-              title="Catálogo de reportes: cambia de reporte o crea uno nuevo"
-            >
-              <Folder className="h-3.5 w-3.5 text-amber-500" />
-              <span className="max-w-[130px] truncate">{currentWorkbookName || 'Reporte Principal'}</span>
-              <ChevronDown className="h-3 w-3 text-stone-400" />
-            </button>
+          {isStartPageVisible ? (
+            <span className="rounded-md bg-stone-100 px-2 py-0.5 text-xs font-mono font-medium text-stone-600 dark:bg-stone-800 dark:text-stone-300">
+              Inicio
+            </span>
+          ) : (
+            /* Report Switcher Dropdown */
+            <div className="relative" ref={dropdownRef}>
+              <button
+                type="button"
+                onClick={() => setIsReportDropdownOpen(!isReportDropdownOpen)}
+                className="flex items-center gap-1.5 rounded-lg border border-stone-200/90 bg-stone-50/80 px-2.5 py-1 text-xs font-semibold text-stone-800 hover:bg-stone-100 hover:border-stone-300 dark:border-stone-800 dark:bg-stone-950/70 dark:text-stone-200 transition-colors"
+                title="Catálogo de reportes: cambia de reporte o crea uno nuevo"
+              >
+                <Folder className="h-3.5 w-3.5 text-amber-500" />
+                <span className="max-w-[130px] truncate">{currentWorkbookName || 'Reporte Principal'}</span>
+                <ChevronDown className="h-3 w-3 text-stone-400" />
+              </button>
 
             {/* Dropdown Menu */}
             {isReportDropdownOpen && (
@@ -246,6 +269,7 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
             )}
           </div>
+          )}
         </div>
       </div>
 
