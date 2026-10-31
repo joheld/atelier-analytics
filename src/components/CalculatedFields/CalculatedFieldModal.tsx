@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { CalculatedField, DatasetColumn, Parameter, FieldRole, DataType } from '../../core/ast/types';
 import { duckdbEngine } from '../../core/engine/duckdbClient';
-import { substituteParameters, compileLodExpressions } from '../../core/compiler/sqlCompiler';
+import { compileLodExpressions, normalizeTableauFormula } from '../../core/compiler/sqlCompiler';
 import {
   Calculator,
   CheckCircle2,
@@ -441,6 +441,7 @@ export const CalculatedFieldModal: React.FC<CalculatedFieldModalProps> = ({
   onSave,
   onClose,
 }) => {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [name, setName] = useState(initialField?.name || '');
   const [role, setRole] = useState<FieldRole>(initialField?.role || 'measure');
   const [dataType, setDataType] = useState<DataType>(initialField?.dataType || 'number');
@@ -457,6 +458,7 @@ export const CalculatedFieldModal: React.FC<CalculatedFieldModalProps> = ({
     tested: boolean;
     valid: boolean;
     error?: string;
+    sampleValue?: string | number | boolean | null;
   } | null>(null);
 
   // Automatic Debounced Type & Role Inference (Tableau Style)
@@ -468,7 +470,12 @@ export const CalculatedFieldModal: React.FC<CalculatedFieldModalProps> = ({
 
     const timer = setTimeout(async () => {
       try {
-        const evaluated = compileLodExpressions(substituteParameters(formula, parameters), tableName);
+        const availableCols = columns.map((c) => c.name);
+        const evaluated = normalizeTableauFormula(
+          compileLodExpressions(formula, tableName),
+          parameters,
+          availableCols
+        );
         const res = await duckdbEngine.validateCalculatedFormula(tableName, evaluated);
         if (res.valid && res.inferredRole && res.inferredDataType) {
           setAutoInferred({
@@ -487,7 +494,7 @@ export const CalculatedFieldModal: React.FC<CalculatedFieldModalProps> = ({
     }, 350);
 
     return () => clearTimeout(timer);
-  }, [formula, tableName, parameters, isManualOverride]);
+  }, [formula, tableName, parameters, isManualOverride, columns]);
 
   // Reference Library State
   const [activeTab, setActiveTab] = useState<'functions' | 'fields' | 'recipes'>('functions');
@@ -508,12 +515,18 @@ export const CalculatedFieldModal: React.FC<CalculatedFieldModalProps> = ({
     if (!formula.trim() || !tableName) return;
     try {
       setIsValidating(true);
-      const evaluated = compileLodExpressions(substituteParameters(formula, parameters), tableName);
+      const availableCols = columns.map((c) => c.name);
+      const evaluated = normalizeTableauFormula(
+        compileLodExpressions(formula, tableName),
+        parameters,
+        availableCols
+      );
       const res = await duckdbEngine.validateCalculatedFormula(tableName, evaluated);
       setValidationResult({
         tested: true,
         valid: res.valid,
         error: res.error,
+        sampleValue: res.sampleValue,
       });
       if (res.valid && res.inferredRole && res.inferredDataType) {
         setAutoInferred({
@@ -535,7 +548,12 @@ export const CalculatedFieldModal: React.FC<CalculatedFieldModalProps> = ({
     if (!name.trim() || !formula.trim()) return;
 
     if (!validationResult?.tested) {
-      const evaluated = compileLodExpressions(substituteParameters(formula, parameters), tableName);
+      const availableCols = columns.map((c) => c.name);
+      const evaluated = normalizeTableauFormula(
+        compileLodExpressions(formula, tableName),
+        parameters,
+        availableCols
+      );
       const res = await duckdbEngine.validateCalculatedFormula(tableName, evaluated);
       if (!res.valid) {
         setValidationResult({ tested: true, valid: false, error: res.error });
@@ -555,8 +573,24 @@ export const CalculatedFieldModal: React.FC<CalculatedFieldModalProps> = ({
   };
 
   const insertSnippet = (snippet: string) => {
-    setFormula((prev) => (prev ? `${prev} ${snippet}` : snippet));
+    if (!textareaRef.current) {
+      setFormula((prev) => (prev ? `${prev} ${snippet}` : snippet));
+      setValidationResult(null);
+      return;
+    }
+    const ta = textareaRef.current;
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    const before = formula.substring(0, start);
+    const after = formula.substring(end);
+    const newFormula = `${before}${snippet}${after}`;
+    setFormula(newFormula);
     setValidationResult(null);
+    setTimeout(() => {
+      ta.focus();
+      const newCursor = start + snippet.length;
+      ta.setSelectionRange(newCursor, newCursor);
+    }, 0);
   };
 
   const applyRecipe = (recipe: typeof QUICK_RECIPES[0]) => {
@@ -709,14 +743,14 @@ export const CalculatedFieldModal: React.FC<CalculatedFieldModalProps> = ({
             </div>
 
             {/* Formula Editor */}
-            <div className="flex-1 flex flex-col min-h-[220px]">
+            <div className="flex-1 flex flex-col min-h-[240px]">
               <div className="flex items-center justify-between mb-1.5">
                 <div className="flex items-center gap-2">
                   <label className="text-xs font-semibold text-stone-700 dark:text-stone-300">
-                    Editor de Fórmula SQL
+                    Editor de Fórmula
                   </label>
                   <span className="text-[10px] text-stone-400 font-mono">
-                    DuckDB Vectorial
+                    Sintaxis Tableau o SQL DuckDB
                   </span>
                 </div>
 
@@ -724,7 +758,7 @@ export const CalculatedFieldModal: React.FC<CalculatedFieldModalProps> = ({
                   type="button"
                   onClick={handleValidate}
                   disabled={isValidating || !formula.trim()}
-                  className="flex items-center gap-1.5 rounded-md bg-stone-100 px-2 py-1 text-[11px] font-mono font-medium text-sky-700 hover:bg-sky-50 hover:text-sky-800 disabled:opacity-40 transition-colors dark:bg-stone-800 dark:text-sky-300 dark:hover:bg-stone-700"
+                  className="btn-tactile flex items-center gap-1.5 rounded-md bg-stone-100 px-2 py-1 text-[11px] font-mono font-medium text-sky-700 hover:bg-sky-50 hover:text-sky-800 disabled:opacity-40 transition-colors dark:bg-stone-800 dark:text-sky-300 dark:hover:bg-stone-700 shadow-2xs"
                   title="Ejecutar prueba de validación en DuckDB-WASM"
                 >
                   {isValidating ? (
@@ -736,23 +770,122 @@ export const CalculatedFieldModal: React.FC<CalculatedFieldModalProps> = ({
                 </button>
               </div>
 
+              {/* Quick Interactive Operators & Functions Toolbar */}
+              <div className="flex flex-wrap items-center gap-1 p-1.5 bg-stone-100/70 dark:bg-stone-900/60 rounded-md border border-stone-200/80 dark:border-white/[0.06] mb-2">
+                <div className="flex items-center gap-0.5 border-r border-stone-200 dark:border-white/[0.08] pr-1.5 mr-1">
+                  {(['+', '-', '*', '/', '(', ')', '=', '!=', '>', '<'] as const).map((op) => (
+                    <button
+                      key={op}
+                      type="button"
+                      onClick={() => insertSnippet(` ${op} `)}
+                      className="btn-tactile h-6 min-w-[20px] px-1 rounded bg-white text-stone-700 hover:bg-stone-50 hover:text-stone-950 font-mono text-xs font-semibold dark:bg-stone-800 dark:text-stone-300 dark:hover:bg-stone-700 shadow-2xs border border-stone-200/60 dark:border-white/[0.06]"
+                      title={`Insertar ${op}`}
+                    >
+                      {op}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-1 border-r border-stone-200 dark:border-white/[0.08] pr-1.5 mr-1">
+                  <button
+                    type="button"
+                    onClick={() => insertSnippet('SUM([campo])')}
+                    className="btn-tactile h-6 px-1.5 rounded bg-white text-stone-700 hover:bg-stone-50 hover:text-stone-950 font-mono text-[10px] font-medium dark:bg-stone-800 dark:text-stone-300 shadow-2xs border border-stone-200/60 dark:border-white/[0.06]"
+                  >
+                    SUM
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => insertSnippet('AVG([campo])')}
+                    className="btn-tactile h-6 px-1.5 rounded bg-white text-stone-700 hover:bg-stone-50 hover:text-stone-950 font-mono text-[10px] font-medium dark:bg-stone-800 dark:text-stone-300 shadow-2xs border border-stone-200/60 dark:border-white/[0.06]"
+                  >
+                    AVG
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => insertSnippet('ROUND([campo], 2)')}
+                    className="btn-tactile h-6 px-1.5 rounded bg-white text-stone-700 hover:bg-stone-50 hover:text-stone-950 font-mono text-[10px] font-medium dark:bg-stone-800 dark:text-stone-300 shadow-2xs border border-stone-200/60 dark:border-white/[0.06]"
+                  >
+                    ROUND
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => insertSnippet("IF [condicion] THEN 'A' ELSE 'B' END")}
+                    className="btn-tactile h-6 px-1.5 rounded bg-white text-stone-700 hover:bg-stone-50 hover:text-stone-950 font-mono text-[10px] font-medium dark:bg-stone-800 dark:text-stone-300 shadow-2xs border border-stone-200/60 dark:border-white/[0.06]"
+                  >
+                    IF..THEN
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => insertSnippet('ZN([campo])')}
+                    className="btn-tactile h-6 px-1.5 rounded bg-white text-stone-700 hover:bg-stone-50 hover:text-stone-950 font-mono text-[10px] font-medium dark:bg-stone-800 dark:text-stone-300 shadow-2xs border border-stone-200/60 dark:border-white/[0.06]"
+                    title="Devuelve 0 si el campo es NULL"
+                  >
+                    ZN
+                  </button>
+                </div>
+
+                {/* Quick Insert Field Dropdown */}
+                <div className="ml-auto flex items-center gap-1.5">
+                  <select
+                    defaultValue=""
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        insertSnippet(`[${e.target.value}]`);
+                        e.target.value = '';
+                      }
+                    }}
+                    className="h-6 text-[10.5px] font-mono rounded border border-stone-200/80 bg-white px-1.5 text-stone-700 dark:border-white/[0.08] dark:bg-stone-800 dark:text-stone-300 focus:outline-none cursor-pointer"
+                  >
+                    <option value="" disabled>+ Insertar Campo...</option>
+                    {columns.map((c) => (
+                      <option key={c.name} value={c.name}>
+                        [{c.name}] ({c.role === 'measure' ? '#' : 'Abc'})
+                      </option>
+                    ))}
+                  </select>
+
+                  {parameters.length > 0 && (
+                    <select
+                      defaultValue=""
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          insertSnippet(`[${e.target.value}]`);
+                          e.target.value = '';
+                        }
+                      }}
+                      className="h-6 text-[10.5px] font-mono rounded border border-amber-300 bg-amber-50 px-1.5 text-amber-900 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-200 focus:outline-none cursor-pointer"
+                    >
+                      <option value="" disabled>+ Parámetro...</option>
+                      {parameters.map((p) => (
+                        <option key={p.name} value={p.name}>
+                          [{p.name}]
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+              </div>
+
               <textarea
+                ref={textareaRef}
                 value={formula}
                 onChange={(e) => {
                   setFormula(e.target.value);
                   setValidationResult(null);
                 }}
-                placeholder={`Escribe o inserta tu fórmula aquí. Ejemplos:
-"sales" - "cost"
-ROUND(("profit" / NULLIF("sales", 0)) * 100, 2)
-CASE WHEN "age" >= 50 THEN 'Senior' ELSE 'Junior' END`}
+                placeholder={`Escribe tu fórmula aquí usando sintaxis de Tableau o SQL. Ejemplos:
+[Sales] - [Cost]
+ROUND(([Profit] / NULLIF([Sales], 0)) * 100, 2)
+IF [Sales] > 1000 THEN 'Alto Volumen' ELSE 'Estándar' END
+{FIXED [Region] : SUM([Sales])}`}
                 className="flex-1 w-full rounded-lg border border-stone-200 bg-stone-50/60 p-3 font-mono text-xs text-stone-900 focus:border-stone-400 focus:bg-white focus:outline-none dark:border-stone-700 dark:bg-stone-950 dark:text-stone-100 resize-none leading-relaxed shadow-inner"
               />
 
-              {/* Validation Feedback Banner */}
+              {/* Validation Feedback Banner with Live Sample Preview */}
               {validationResult?.tested && (
                 <div
-                  className={`mt-2.5 flex items-start gap-2 rounded-lg p-2.5 text-xs font-mono transition-all ${
+                  className={`mt-2.5 flex items-start justify-between gap-2 rounded-lg p-2.5 text-xs font-mono transition-all ${
                     validationResult.valid
                       ? 'border border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200'
                       : 'border border-rose-300 bg-rose-50 text-rose-900 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-200'
@@ -760,16 +893,26 @@ CASE WHEN "age" >= 50 THEN 'Senior' ELSE 'Junior' END`}
                 >
                   {validationResult.valid ? (
                     <>
-                      <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400 mt-0.5" />
-                      <div>
-                        <span className="font-bold">¡Fórmula válida!</span>
-                        <p className="text-[11px] opacity-80">
-                          DuckDB-WASM compiló y validó la expresión correctamente.
-                        </p>
+                      <div className="flex items-start gap-2">
+                        <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400 mt-0.5" />
+                        <div>
+                          <span className="font-bold">¡Fórmula válida!</span>
+                          <p className="text-[11px] opacity-80">
+                            DuckDB-WASM compiló y validó la expresión correctamente.
+                          </p>
+                        </div>
                       </div>
+                      {validationResult.sampleValue !== undefined && validationResult.sampleValue !== null && (
+                        <div className="shrink-0 rounded bg-white/80 dark:bg-stone-900 px-2 py-1 text-[11px] font-mono border border-emerald-300/80 dark:border-emerald-700 shadow-2xs">
+                          <span className="text-[10px] text-stone-400 block uppercase">Fila 1 de muestra:</span>
+                          <strong className="text-emerald-800 dark:text-emerald-300 text-xs">
+                            {String(validationResult.sampleValue)}
+                          </strong>
+                        </div>
+                      )}
                     </>
                   ) : (
-                    <>
+                    <div className="flex items-start gap-2">
                       <AlertCircle className="h-4 w-4 shrink-0 text-rose-600 dark:text-rose-400 mt-0.5" />
                       <div className="min-w-0">
                         <span className="font-bold">Error de sintaxis:</span>
@@ -777,7 +920,7 @@ CASE WHEN "age" >= 50 THEN 'Senior' ELSE 'Junior' END`}
                           {validationResult.error}
                         </p>
                       </div>
-                    </>
+                    </div>
                   )}
                 </div>
               )}
@@ -953,11 +1096,11 @@ CASE WHEN "age" >= 50 THEN 'Senior' ELSE 'Junior' END`}
                       <button
                         key={col.name}
                         type="button"
-                        onClick={() => insertSnippet(`"${col.name}"`)}
+                        onClick={() => insertSnippet(`[${col.name}]`)}
                         className="flex items-center justify-between rounded-md border border-stone-200 bg-white px-2 py-1.5 text-left text-xs font-mono text-stone-800 hover:border-sky-400 hover:bg-sky-50 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-200"
-                        title={`Insertar "${col.name}"`}
+                        title={`Insertar [${col.name}]`}
                       >
-                        <span className="truncate">"{col.name}"</span>
+                        <span className="truncate">[{col.name}]</span>
                         <span className="text-[9px] uppercase text-stone-400 ml-1">
                           {col.dataType}
                         </span>

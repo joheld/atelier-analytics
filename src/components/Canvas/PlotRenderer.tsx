@@ -205,6 +205,16 @@ export const PlotRenderer: React.FC<PlotRendererProps> = ({ ast, result, theme }
       marks.push(Plot.gridY({ stroke: gridColor, strokeDasharray: '2,2' }));
     }
 
+    // Size channel normalization for Bar Charts & Bubble Plot
+    const sizeValues = sizeField
+      ? result.rows
+          .map((r) => Number(r[sizeField]))
+          .filter((v) => !isNaN(v))
+      : [];
+    const maxSizeVal = sizeValues.length > 0 ? Math.max(...sizeValues) : 1;
+    const minSizeVal = sizeValues.length > 0 ? Math.min(...sizeValues) : 0;
+    const sizeRange = maxSizeVal - minSizeVal || 1;
+
     const markType = ast.markType;
 
     // 1. BAR CHART
@@ -271,6 +281,21 @@ export const PlotRenderer: React.FC<PlotRendererProps> = ({ ast, result, theme }
             rx: 3,
           })
         );
+        if (sizeField) {
+          marks.push(
+            Plot.dot(result.rows, {
+              y: yField,
+              x: xField,
+              r: (d: Record<string, unknown>) =>
+                Math.max(3, Math.min(24, ((Number(d[sizeField]) - minSizeVal) / sizeRange) * 18 + 4)),
+              fill: colorField || 'oklch(0.55 0.18 245)',
+              stroke: '#ffffff',
+              strokeWidth: 1.5,
+              title: makeTooltipTitle,
+              tip: true,
+            })
+          );
+        }
       } else {
         // Vertical Bar (default)
         marks.push(
@@ -285,6 +310,21 @@ export const PlotRenderer: React.FC<PlotRendererProps> = ({ ast, result, theme }
             rx: 3,
           })
         );
+        if (sizeField) {
+          marks.push(
+            Plot.dot(result.rows, {
+              x: xField,
+              y: yField,
+              r: (d: Record<string, unknown>) =>
+                Math.max(3, Math.min(24, ((Number(d[sizeField]) - minSizeVal) / sizeRange) * 18 + 4)),
+              fill: colorField || 'oklch(0.55 0.18 245)',
+              stroke: '#ffffff',
+              strokeWidth: 1.5,
+              title: makeTooltipTitle,
+              tip: true,
+            })
+          );
+        }
       }
     }
     // 2. LINE CHART
@@ -330,7 +370,7 @@ export const PlotRenderer: React.FC<PlotRendererProps> = ({ ast, result, theme }
             x: xField,
             y: yField,
             fill: colorField || 'oklch(0.55 0.18 245)',
-            r: 3.5,
+            r: sizeField ? ((d: Record<string, unknown>) => Math.max(0, Number(d[sizeField]) || 0)) : 3.5,
             title: makeTooltipTitle,
             tip: true,
           })
@@ -384,14 +424,14 @@ export const PlotRenderer: React.FC<PlotRendererProps> = ({ ast, result, theme }
         );
       }
     }
-    // 4. SCATTER / DOT PLOT
+    // 4. SCATTER / DOT PLOT (BUBBLE CHART)
     else if (markType === 'dot') {
       marks.push(
         Plot.dot(result.rows, {
           x: xField,
           y: yField,
           fill: colorField || 'oklch(0.55 0.18 245)',
-          r: sizeField || 6,
+          r: sizeField ? ((d: Record<string, unknown>) => Math.max(0, Number(d[sizeField]) || 0)) : 6,
           fillOpacity: 0.85,
           stroke: isDark ? '#1c1917' : '#ffffff',
           strokeWidth: 1,
@@ -666,6 +706,13 @@ export const PlotRenderer: React.FC<PlotRendererProps> = ({ ast, result, theme }
       marginRight,
       marginBottom,
       marginLeft,
+      color: colorScaleConfig,
+      r: sizeField
+        ? {
+            type: 'sqrt',
+            range: [3, 24],
+          }
+        : undefined,
       style: {
         background: 'transparent',
         color: textColor,
@@ -735,7 +782,6 @@ export const PlotRenderer: React.FC<PlotRendererProps> = ({ ast, result, theme }
               return d;
             },
           },
-      color: colorScaleConfig,
       marks,
     });
 

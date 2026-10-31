@@ -26,6 +26,7 @@ import {
   ArrowRightLeft,
   MoreVertical,
   Split,
+  ChevronDown,
 } from 'lucide-react';
 
 interface DataSidebarProps {
@@ -167,29 +168,34 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
         }`}
       >
         <div className="flex items-center gap-1.5 min-w-0">
-          {/* Interactive Tableau Type Icon with Click Popover */}
+          {/* Interactive Tableau Type Micro-Badge with Click Popover */}
           <button
             type="button"
             onClick={(e) => {
               e.stopPropagation();
               setActiveColumnMenu(isMenuOpen ? null : col.name);
             }}
-            className="rounded p-0.5 hover:bg-stone-200/70 dark:hover:bg-stone-750 cursor-pointer transition-colors"
-            title="Cambiar tipo de datos o rol analítico"
+            className={`group/type flex items-center gap-0.5 rounded px-1 py-0.5 border text-[10px] font-mono transition-all cursor-pointer ${
+              isMeasure
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200/90 hover:bg-emerald-100 hover:border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800'
+                : 'bg-sky-50 text-sky-700 border-sky-200/90 hover:bg-sky-100 hover:border-sky-300 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800'
+            }`}
+            title={`Tipo: ${col.dataType === 'string' ? 'Texto' : col.dataType === 'number' ? 'Número' : col.dataType === 'date' ? 'Fecha' : 'Booleano'}. Haz clic para cambiar el tipo de dato.`}
           >
             {col.isCalculated ? (
-              <span className={`font-mono font-bold text-[10px] shrink-0 ${isMeasure ? 'text-emerald-600 dark:text-emerald-400' : 'text-sky-600 dark:text-sky-400'}`}>
+              <span className="font-mono font-bold text-[9.5px] shrink-0">
                 {isMeasure ? '=#' : '=Abc'}
               </span>
             ) : col.dataType === 'date' ? (
-              <Calendar className={`h-3.5 w-3.5 shrink-0 ${isMeasure ? 'text-emerald-600 dark:text-emerald-400' : 'text-sky-600 dark:text-sky-400'}`} />
+              <Calendar className="h-3 w-3 shrink-0" />
             ) : col.dataType === 'number' ? (
-              <Hash className={`h-3.5 w-3.5 shrink-0 ${isMeasure ? 'text-emerald-600 dark:text-emerald-400' : 'text-sky-600 dark:text-sky-400'}`} />
+              <Hash className="h-3 w-3 shrink-0" />
             ) : col.dataType === 'boolean' ? (
-              <span className={`font-mono text-[9px] font-bold shrink-0 ${isMeasure ? 'text-emerald-600 dark:text-emerald-400' : 'text-sky-600 dark:text-sky-400'}`}>T/F</span>
+              <span className="font-mono text-[9px] font-bold shrink-0">T/F</span>
             ) : (
-              <Type className={`h-3.5 w-3.5 shrink-0 ${isMeasure ? 'text-emerald-600 dark:text-emerald-400' : 'text-sky-600 dark:text-sky-400'}`} />
+              <Type className="h-3 w-3 shrink-0" />
             )}
+            <ChevronDown className="h-2 w-2 opacity-60 group-hover/type:opacity-100 transition-opacity" />
           </button>
 
           <span className="truncate font-mono text-[11.5px]">{col.name}</span>
@@ -248,136 +254,158 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
         {isMenuOpen && (
           <div
             onClick={(e) => e.stopPropagation()}
-            className="absolute left-0 top-full mt-1 w-52 rounded-lg border border-stone-200 bg-white py-1.5 shadow-xl dark:border-stone-700 dark:bg-stone-850 z-50 text-left"
+            className="absolute left-1 top-full mt-1 w-56 rounded-lg border border-stone-200 bg-white py-1.5 shadow-2xl dark:border-stone-700 dark:bg-stone-900 z-50 text-left rim-light-subtle"
           >
-            <div className="px-3 py-1 text-[10px] font-mono font-bold text-stone-400 uppercase tracking-wider">
-              Tipo de dato (Tableau)
+            <div className="flex items-center justify-between px-3 py-1 border-b border-stone-100 dark:border-stone-800">
+              <span className="font-mono text-[10px] font-bold text-stone-400 uppercase tracking-wider">
+                Tipo de Dato
+              </span>
+              <span className={`text-[9.5px] font-mono font-semibold px-1 py-0.2 rounded ${
+                isMeasure ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300'
+              }`}>
+                {col.dataType}
+              </span>
             </div>
 
-            <button
-              type="button"
-              onClick={() => {
-                void onChangeColumnType?.(col.name, 'string');
-                setActiveColumnMenu(null);
-              }}
-              className={`flex w-full items-center justify-between px-3 py-1.5 text-xs hover:bg-stone-100 dark:hover:bg-stone-800 cursor-pointer ${
-                col.dataType === 'string' ? 'font-bold text-sky-600 dark:text-sky-400' : 'text-stone-700 dark:text-stone-300'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <Type className="h-3.5 w-3.5 text-sky-600" />
-                <span>Cadena (Texto)</span>
-              </div>
-              {col.dataType === 'string' && <Check className="h-3.5 w-3.5 text-sky-600" />}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                void onChangeColumnType?.(col.name, 'number');
-                setActiveColumnMenu(null);
-              }}
-              className={`flex w-full items-center justify-between px-3 py-1.5 text-xs hover:bg-stone-100 dark:hover:bg-stone-800 cursor-pointer ${
-                col.dataType === 'number' ? 'font-bold text-emerald-600 dark:text-emerald-400' : 'text-stone-700 dark:text-stone-300'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <Hash className="h-3.5 w-3.5 text-emerald-600" />
-                <span>Número (Decimal)</span>
-              </div>
-              {col.dataType === 'number' && <Check className="h-3.5 w-3.5 text-emerald-600" />}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                void onChangeColumnType?.(col.name, 'date');
-                setActiveColumnMenu(null);
-              }}
-              className={`flex w-full items-center justify-between px-3 py-1.5 text-xs hover:bg-stone-100 dark:hover:bg-stone-800 cursor-pointer ${
-                col.dataType === 'date' ? 'font-bold text-sky-600 dark:text-sky-400' : 'text-stone-700 dark:text-stone-300'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <Calendar className="h-3.5 w-3.5 text-sky-600" />
-                <span>Fecha</span>
-              </div>
-              {col.dataType === 'date' && <Check className="h-3.5 w-3.5 text-sky-600" />}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                void onChangeColumnType?.(col.name, 'boolean');
-                setActiveColumnMenu(null);
-              }}
-              className={`flex w-full items-center justify-between px-3 py-1.5 text-xs hover:bg-stone-100 dark:hover:bg-stone-800 cursor-pointer ${
-                col.dataType === 'boolean' ? 'font-bold text-sky-600 dark:text-sky-400' : 'text-stone-700 dark:text-stone-300'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-[10px] font-bold text-sky-600">T/F</span>
-                <span>Booleano</span>
-              </div>
-              {col.dataType === 'boolean' && <Check className="h-3.5 w-3.5 text-sky-600" />}
-            </button>
-
-            <div className="border-t border-stone-100 dark:border-stone-800 my-1"></div>
-
-            {onSplitColumn && (
+            {/* Type Casting Options */}
+            <div className="py-1">
               <button
                 type="button"
                 onClick={() => {
-                  void onSplitColumn(col.name, ' ', 'first', 2);
+                  void onChangeColumnType?.(col.name, 'string');
                   setActiveColumnMenu(null);
                 }}
-                className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-stone-700 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800 cursor-pointer"
+                className={`flex w-full items-center justify-between px-3 py-1.5 text-xs hover:bg-stone-100 dark:hover:bg-stone-800 cursor-pointer transition-colors ${
+                  col.dataType === 'string' ? 'font-bold text-sky-600 dark:text-sky-400 bg-sky-50/50 dark:bg-sky-950/20' : 'text-stone-700 dark:text-stone-300'
+                }`}
               >
-                <Split className="h-3.5 w-3.5 text-stone-400" />
-                <span>Dividir por espacio</span>
+                <div className="flex items-center gap-2">
+                  <Type className="h-3.5 w-3.5 text-sky-600 shrink-0" />
+                  <span>Cadena (Texto)</span>
+                </div>
+                {col.dataType === 'string' && <Check className="h-3.5 w-3.5 text-sky-600 shrink-0" />}
               </button>
-            )}
 
-            {onCleanColumn && (
               <button
                 type="button"
                 onClick={() => {
-                  void onCleanColumn(col.name, 'trim');
+                  void onChangeColumnType?.(col.name, 'number');
                   setActiveColumnMenu(null);
                 }}
-                className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-stone-700 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800 cursor-pointer"
+                className={`flex w-full items-center justify-between px-3 py-1.5 text-xs hover:bg-stone-100 dark:hover:bg-stone-800 cursor-pointer transition-colors ${
+                  col.dataType === 'number' ? 'font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/20' : 'text-stone-700 dark:text-stone-300'
+                }`}
               >
-                <Type className="h-3.5 w-3.5 text-stone-400" />
-                <span>Recortar espacios (TRIM)</span>
+                <div className="flex items-center gap-2">
+                  <Hash className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                  <span>Número (Decimal / Entero)</span>
+                </div>
+                {col.dataType === 'number' && <Check className="h-3.5 w-3.5 text-emerald-600 shrink-0" />}
               </button>
-            )}
 
+              <button
+                type="button"
+                onClick={() => {
+                  void onChangeColumnType?.(col.name, 'date');
+                  setActiveColumnMenu(null);
+                }}
+                className={`flex w-full items-center justify-between px-3 py-1.5 text-xs hover:bg-stone-100 dark:hover:bg-stone-800 cursor-pointer transition-colors ${
+                  col.dataType === 'date' ? 'font-bold text-sky-600 dark:text-sky-400 bg-sky-50/50 dark:bg-sky-950/20' : 'text-stone-700 dark:text-stone-300'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-3.5 w-3.5 text-sky-600 shrink-0" />
+                  <span>Fecha</span>
+                </div>
+                {col.dataType === 'date' && <Check className="h-3.5 w-3.5 text-sky-600 shrink-0" />}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  void onChangeColumnType?.(col.name, 'boolean');
+                  setActiveColumnMenu(null);
+                }}
+                className={`flex w-full items-center justify-between px-3 py-1.5 text-xs hover:bg-stone-100 dark:hover:bg-stone-800 cursor-pointer transition-colors ${
+                  col.dataType === 'boolean' ? 'font-bold text-sky-600 dark:text-sky-400 bg-sky-50/50 dark:bg-sky-950/20' : 'text-stone-700 dark:text-stone-300'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-[10px] font-bold text-sky-600 shrink-0">T/F</span>
+                  <span>Booleano (Verdadero/Falso)</span>
+                </div>
+                {col.dataType === 'boolean' && <Check className="h-3.5 w-3.5 text-sky-600 shrink-0" />}
+              </button>
+            </div>
+
+            {/* Role Conversion */}
             {onChangeColumnRole && (
-              <button
-                type="button"
-                onClick={() => {
-                  void onChangeColumnRole(col.name, isMeasure ? 'dimension' : 'measure');
-                  setActiveColumnMenu(null);
-                }}
-                className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-stone-700 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800 cursor-pointer"
-              >
-                <ArrowRightLeft className="h-3.5 w-3.5 text-stone-400" />
-                <span>{isMeasure ? 'Convertir a dimensión' : 'Convertir a medida'}</span>
-              </button>
+              <>
+                <div className="border-t border-stone-100 dark:border-stone-800 my-1"></div>
+                <div className="px-3 py-1 text-[10px] font-mono font-bold text-stone-400 uppercase tracking-wider">
+                  Rol Analítico
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    void onChangeColumnRole(col.name, isMeasure ? 'dimension' : 'measure');
+                    setActiveColumnMenu(null);
+                  }}
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-stone-700 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800 cursor-pointer transition-colors"
+                >
+                  <ArrowRightLeft className="h-3.5 w-3.5 text-stone-400 shrink-0" />
+                  <span>{isMeasure ? 'Convertir a Dimensión (azul)' : 'Convertir a Métrica (verde)'}</span>
+                </button>
+              </>
             )}
 
-            {onToggleHideColumn && (
-              <button
-                type="button"
-                onClick={() => {
-                  onToggleHideColumn(col.name);
-                  setActiveColumnMenu(null);
-                }}
-                className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-stone-700 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800 cursor-pointer"
-              >
-                <EyeOff className="h-3.5 w-3.5 text-stone-400" />
-                <span>Ocultar campo</span>
-              </button>
+            {/* Quick Prep Tools */}
+            {(onSplitColumn || onCleanColumn || onToggleHideColumn) && (
+              <>
+                <div className="border-t border-stone-100 dark:border-stone-800 my-1"></div>
+                <div className="px-3 py-1 text-[10px] font-mono font-bold text-stone-400 uppercase tracking-wider">
+                  Transformaciones
+                </div>
+                {onSplitColumn && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void onSplitColumn(col.name, ' ', 'first', 2);
+                      setActiveColumnMenu(null);
+                    }}
+                    className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-stone-700 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800 cursor-pointer"
+                  >
+                    <Split className="h-3.5 w-3.5 text-stone-400 shrink-0" />
+                    <span>Dividir por espacio</span>
+                  </button>
+                )}
+                {onCleanColumn && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void onCleanColumn(col.name, 'trim');
+                      setActiveColumnMenu(null);
+                    }}
+                    className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-stone-700 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800 cursor-pointer"
+                  >
+                    <Type className="h-3.5 w-3.5 text-stone-400 shrink-0" />
+                    <span>Recortar espacios (TRIM)</span>
+                  </button>
+                )}
+                {onToggleHideColumn && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onToggleHideColumn(col.name);
+                      setActiveColumnMenu(null);
+                    }}
+                    className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-stone-700 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800 cursor-pointer"
+                  >
+                    <EyeOff className="h-3.5 w-3.5 text-stone-400 shrink-0" />
+                    <span>Ocultar campo</span>
+                  </button>
+                )}
+              </>
             )}
           </div>
         )}

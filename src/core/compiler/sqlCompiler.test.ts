@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { WorksheetState, Pill } from '../ast/types';
 import { buildWorksheetAST } from '../ast/builder';
-import { compileASTtoDuckDB } from './sqlCompiler';
+import { compileASTtoDuckDB, normalizeTableauFormula } from './sqlCompiler';
 
 describe('Atelier Analytics Compiler & AST Builder', () => {
   it('compiles standard Bar Chart (Dimension on Columns, Measure on Rows)', () => {
@@ -595,7 +595,36 @@ describe('Atelier Analytics Compiler & AST Builder', () => {
     const ast = buildWorksheetAST(ratioState);
     const compiled = compileASTtoDuckDB(ast);
 
-    expect(compiled.sql).toContain('SUM([sales]) / (SELECT SUM(_lod.sales) FROM superstore AS _lod WHERE _lod.region = superstore.region) * 100');
+    expect(compiled.sql).toContain('SUM(sales) / (SELECT SUM(_lod.sales) FROM superstore AS _lod WHERE _lod.region = superstore.region) * 100');
     expect(compiled.sql).toContain('GROUP BY region');
+  });
+
+  it('normalizes Tableau formulas with [Field], IF..THEN, IIF, ZN, and parameter replacements', () => {
+    const cols = ['Sales', 'Profit', 'Customer Name', 'Order Date'];
+    const params = [{ id: 'p1', name: 'Discount Rate', dataType: 'number' as const, currentValue: 0.15 }];
+
+    // 1. Bracketed column names and parameter substitution
+    const f1 = normalizeTableauFormula('[Sales] * (1 - [Parameters].[Discount Rate])', params, cols);
+    expect(f1).toBe('Sales * (1 - 0.15)');
+
+    // 2. Column names with spaces
+    const f2 = normalizeTableauFormula('[Customer Name] || " - " || [Sales]', params, cols);
+    expect(f2).toBe('"Customer Name" || " - " || Sales');
+
+    // 3. IF .. THEN .. ELSE .. END
+    const f3 = normalizeTableauFormula('IF [Profit] > 0 THEN "Profitable" ELSE "Loss" END', params, cols);
+    expect(f3).toBe('CASE WHEN Profit > 0 THEN "Profitable" ELSE "Loss" END');
+
+    // 4. IIF function
+    const f4 = normalizeTableauFormula('IIF([Sales] > 1000, "High", "Low")', params, cols);
+    expect(f4).toBe('(CASE WHEN Sales > 1000 THEN "High" ELSE "Low" END)');
+
+    // 5. ZN function
+    const f5 = normalizeTableauFormula('ZN([Profit])', params, cols);
+    expect(f5).toBe('COALESCE(Profit, 0)');
+
+    // 6. ISNULL function
+    const f6 = normalizeTableauFormula('ISNULL([Sales])', params, cols);
+    expect(f6).toBe('((Sales) IS NULL)');
   });
 });

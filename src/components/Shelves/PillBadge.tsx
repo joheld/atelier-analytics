@@ -5,12 +5,15 @@ import {
   ShelfId,
   QuickTableCalcType,
   NumberFormatConfig,
+  DataType,
+  FieldRole,
 } from '../../core/ast/types';
 import { ChevronDown, X, Hash, Calendar, Type } from 'lucide-react';
 
 interface PillBadgeProps {
   pill: Pill;
   shelf: ShelfId;
+  compact?: boolean;
   onRemove: () => void;
   onSetAggregation?: (agg: AggregationFunction) => void;
   onSetQuickTableCalc?: (calcType?: QuickTableCalcType) => void;
@@ -19,11 +22,14 @@ interface PillBadgeProps {
   onDrillDown?: () => void;
   onDrillUp?: () => void;
   onSetFormat?: (config: NumberFormatConfig) => void;
+  onChangeDataType?: (newType: DataType) => void;
+  onChangeRole?: (newRole: FieldRole) => void;
 }
 
 export const PillBadge: React.FC<PillBadgeProps> = ({
   pill,
   shelf: _shelf,
+  compact = false,
   onRemove,
   onSetAggregation,
   onSetQuickTableCalc,
@@ -32,6 +38,8 @@ export const PillBadge: React.FC<PillBadgeProps> = ({
   onDrillDown,
   onDrillUp,
   onSetFormat,
+  onChangeDataType,
+  onChangeRole,
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -89,22 +97,31 @@ export const PillBadge: React.FC<PillBadgeProps> = ({
     <div
       draggable
       onDragStart={handleDragStart}
-      className={`group relative inline-flex items-center gap-1 rounded-[5px] px-2 py-0.5 text-xs font-medium transition-all duration-150 cursor-grab active:cursor-grabbing select-none shadow-[inset_0_1px_0_0_rgba(255,255,255,0.22),0_1px_2px_0_rgba(0,0,0,0.12)] ${
+      className={`group relative inline-flex items-center gap-1 rounded-[5px] text-xs font-medium transition-all duration-150 cursor-grab active:cursor-grabbing select-none shadow-[inset_0_1px_0_0_rgba(255,255,255,0.22),0_1px_2px_0_rgba(0,0,0,0.12)] ${
+        compact ? 'w-full max-w-full justify-between px-1.5 py-0.5' : 'max-w-full px-2 py-0.5'
+      } ${
         isDimension
           ? 'bg-sky-600 text-white border border-sky-500/80 hover:bg-sky-500 dark:bg-sky-700 dark:border-sky-600 dark:hover:bg-sky-600'
           : 'bg-emerald-600 text-white border border-emerald-500/80 hover:bg-emerald-500 dark:bg-emerald-700 dark:border-emerald-600 dark:hover:bg-emerald-600'
       }`}
     >
-      <span className="flex items-center">
+      <span className="flex items-center min-w-0 flex-1 overflow-hidden">
         {renderIcon()}
-        <span className="truncate max-w-[140px] font-mono text-[11px] tracking-tight">{getLabel()}</span>
+        <span
+          className={`truncate font-mono tracking-tight ${
+            compact ? 'text-[10px] max-w-[85px]' : 'text-[11px] max-w-[140px]'
+          }`}
+          title={getLabel()}
+        >
+          {getLabel()}
+        </span>
         {pill.quickTableCalc && (
-          <span className="ml-1 rounded bg-black/25 px-1 py-0.2 text-[9px] font-mono font-bold text-amber-200">
+          <span className="ml-1 rounded bg-black/25 px-1 py-0.2 text-[9px] font-mono font-bold text-amber-200 shrink-0">
             Δ
           </span>
         )}
         {pill.formatConfig && pill.formatConfig.type !== 'auto' && (
-          <span className="ml-1 rounded bg-black/25 px-1 py-0.2 text-[9px] font-mono font-bold text-emerald-200" title={`Formato: ${pill.formatConfig.type}`}>
+          <span className="ml-1 rounded bg-black/25 px-1 py-0.2 text-[9px] font-mono font-bold text-emerald-200 shrink-0" title={`Formato: ${pill.formatConfig.type}`}>
             {pill.formatConfig.type === 'currency'
               ? pill.formatConfig.currencySymbol || '$'
               : pill.formatConfig.type === 'percent'
@@ -116,68 +133,147 @@ export const PillBadge: React.FC<PillBadgeProps> = ({
         )}
       </span>
 
-      {/* Drill-Up button (-) */}
-      {onDrillUp && canDrillUp && (
+      <div className="flex items-center gap-0.5 shrink-0 ml-auto">
+        {/* Drill-Up button (-) */}
+        {!compact && onDrillUp && canDrillUp && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDrillUp();
+            }}
+            className="h-3.5 w-3.5 flex items-center justify-center rounded bg-black/20 hover:bg-black/35 font-mono font-bold text-[10px] leading-none active:scale-95 transition-all"
+            title="Contraer nivel jerárquico (-)"
+          >
+            -
+          </button>
+        )}
+
+        {/* Drill-Down button (+) */}
+        {!compact && onDrillDown && canDrillDown && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDrillDown();
+            }}
+            className="h-3.5 w-3.5 flex items-center justify-center rounded bg-black/20 hover:bg-black/35 font-mono font-bold text-[10px] leading-none active:scale-95 transition-all"
+            title="Desglosar nivel jerárquico (+)"
+          >
+            +
+          </button>
+        )}
+
+        {/* Pill Dropdown Toggle */}
         <button
           type="button"
           onClick={(e) => {
             e.stopPropagation();
-            onDrillUp();
+            setMenuOpen(!menuOpen);
           }}
-          className="h-3.5 w-3.5 flex items-center justify-center rounded bg-black/20 hover:bg-black/35 font-mono font-bold text-[10px] leading-none active:scale-95 transition-all"
-          title="Contraer nivel jerárquico (-)"
+          className="rounded p-0.5 hover:bg-black/20 active:scale-95 focus:outline-none transition-all shrink-0"
+          title="Opciones de campo"
         >
-          -
+          <ChevronDown className="h-3 w-3" />
         </button>
-      )}
 
-      {/* Drill-Down button (+) */}
-      {onDrillDown && canDrillDown && (
+        {/* Pill Remove */}
         <button
           type="button"
           onClick={(e) => {
             e.stopPropagation();
-            onDrillDown();
+            onRemove();
           }}
-          className="h-3.5 w-3.5 flex items-center justify-center rounded bg-black/20 hover:bg-black/35 font-mono font-bold text-[10px] leading-none active:scale-95 transition-all"
-          title="Desglosar nivel jerárquico (+)"
+          className="rounded p-0.5 hover:bg-black/30 active:scale-90 focus:outline-none transition-all shrink-0 text-white/90 hover:text-white"
+          title="Eliminar pastilla"
         >
-          +
+          <X className="h-3 w-3" />
         </button>
-      )}
-
-      {/* Pill Dropdown Toggle */}
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          setMenuOpen(!menuOpen);
-        }}
-        className="rounded p-0.5 hover:bg-black/20 active:scale-95 focus:outline-none transition-all"
-        title="Opciones de campo"
-      >
-        <ChevronDown className="h-3 w-3" />
-      </button>
-
-      {/* Pill Remove */}
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          onRemove();
-        }}
-        className="rounded p-0.5 hover:bg-black/20 active:scale-95 focus:outline-none transition-all"
-        title="Eliminar pastilla"
-      >
-        <X className="h-3 w-3" />
-      </button>
+      </div>
 
       {/* Context Menu Dropdown */}
       {menuOpen && (
         <div
           ref={menuRef}
-          className="absolute left-0 top-full z-50 mt-1 min-w-[190px] rounded-md border border-stone-200/90 bg-white py-1 shadow-xl dark:border-white/[0.08] dark:bg-stone-950 text-stone-900 dark:text-stone-100 max-h-[360px] overflow-y-auto rim-light-subtle"
+          className="absolute left-0 top-full z-50 mt-1 min-w-[200px] rounded-md border border-stone-200/90 bg-white py-1 shadow-xl dark:border-white/[0.08] dark:bg-stone-950 text-stone-900 dark:text-stone-100 max-h-[360px] overflow-y-auto rim-light-subtle"
         >
+          {/* Change Data Type Section */}
+          {onChangeDataType && (
+            <>
+              <div className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-stone-400">
+                Tipo de dato (Tableau)
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  onChangeDataType('string');
+                  setMenuOpen(false);
+                }}
+                className={`flex w-full items-center justify-between px-3 py-1 text-xs hover:bg-stone-100 dark:hover:bg-stone-800 ${
+                  pill.dataType === 'string' ? 'font-bold text-sky-600 dark:text-sky-400' : ''
+                }`}
+              >
+                <span>Cadena (Texto)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onChangeDataType('number');
+                  setMenuOpen(false);
+                }}
+                className={`flex w-full items-center justify-between px-3 py-1 text-xs hover:bg-stone-100 dark:hover:bg-stone-800 ${
+                  pill.dataType === 'number' ? 'font-bold text-emerald-600 dark:text-emerald-400' : ''
+                }`}
+              >
+                <span>Número (Decimal)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onChangeDataType('date');
+                  setMenuOpen(false);
+                }}
+                className={`flex w-full items-center justify-between px-3 py-1 text-xs hover:bg-stone-100 dark:hover:bg-stone-800 ${
+                  pill.dataType === 'date' ? 'font-bold text-sky-600 dark:text-sky-400' : ''
+                }`}
+              >
+                <span>Fecha</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onChangeDataType('boolean');
+                  setMenuOpen(false);
+                }}
+                className={`flex w-full items-center justify-between px-3 py-1 text-xs hover:bg-stone-100 dark:hover:bg-stone-800 ${
+                  pill.dataType === 'boolean' ? 'font-bold text-sky-600 dark:text-sky-400' : ''
+                }`}
+              >
+                <span>Booleano (T/F)</span>
+              </button>
+              <div className="my-1 border-t border-stone-100 dark:border-stone-800" />
+            </>
+          )}
+
+          {/* Change Role Section */}
+          {onChangeRole && (
+            <>
+              <div className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-stone-400">
+                Rol analítico
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  onChangeRole(isMeasure ? 'dimension' : 'measure');
+                  setMenuOpen(false);
+                }}
+                className="flex w-full items-center justify-between px-3 py-1 text-xs hover:bg-stone-100 dark:hover:bg-stone-800"
+              >
+                <span>{isMeasure ? 'Convertir a Dimensión (azul)' : 'Convertir a Medida (verde)'}</span>
+              </button>
+              <div className="my-1 border-t border-stone-100 dark:border-stone-800" />
+            </>
+          )}
           {isMeasure && onSetAggregation && (
             <>
               <div className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-stone-400">

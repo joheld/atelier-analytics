@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Pill, ShelfId, AggregationFunction, QuickTableCalcType, NumberFormatConfig } from '../../core/ast/types';
+import { Pill, ShelfId, AggregationFunction, QuickTableCalcType, NumberFormatConfig, DataType, FieldRole } from '../../core/ast/types';
 import { PillBadge } from './PillBadge';
 
 interface ShelfDropZoneProps {
@@ -16,6 +16,8 @@ interface ShelfDropZoneProps {
   onDrillDown?: (shelf: 'columns' | 'rows', pillId: string) => void;
   onDrillUp?: (shelf: 'columns' | 'rows', pillId: string) => void;
   onSetFormat?: (shelf: ShelfId, pillId: string, format: NumberFormatConfig) => void;
+  onChangeColumnType?: (columnName: string, newType: DataType) => Promise<void>;
+  onChangeColumnRole?: (columnName: string, newRole: FieldRole) => Promise<void>;
   placeholder?: string;
 }
 
@@ -33,6 +35,8 @@ export const ShelfDropZone: React.FC<ShelfDropZoneProps> = ({
   onDrillDown,
   onDrillUp,
   onSetFormat,
+  onChangeColumnType,
+  onChangeColumnRole,
   placeholder = 'Arrastra un campo aquí...',
 }) => {
   const [isOver, setIsOver] = useState(false);
@@ -114,6 +118,12 @@ export const ShelfDropZone: React.FC<ShelfDropZoneProps> = ({
               }
               onSetFormat={
                 onSetFormat ? (fmt) => onSetFormat(shelfId, p.id, fmt) : undefined
+              }
+              onChangeDataType={
+                onChangeColumnType ? (t) => void onChangeColumnType(p.columnName, t) : undefined
+              }
+              onChangeRole={
+                onChangeColumnRole ? (r) => void onChangeColumnRole(p.columnName, r) : undefined
               }
             />
           ))

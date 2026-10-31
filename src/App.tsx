@@ -342,6 +342,8 @@ export const App: React.FC = () => {
                       onDrillDown={drillDownPill}
                       onDrillUp={drillUpPill}
                       onSetFormat={updatePillFormat}
+                      onChangeColumnType={changeDatasetColumnType}
+                      onChangeColumnRole={changeDatasetColumnRole}
                       placeholder="Arrastra dimensiones o métricas para el Eje X..."
                     />
                     <ShelfDropZone
@@ -358,6 +360,8 @@ export const App: React.FC = () => {
                       onDrillDown={drillDownPill}
                       onDrillUp={drillUpPill}
                       onSetFormat={updatePillFormat}
+                      onChangeColumnType={changeDatasetColumnType}
+                      onChangeColumnRole={changeDatasetColumnRole}
                       placeholder="Arrastra dimensiones o métricas para el Eje Y..."
                     />
                   </div>
@@ -394,6 +398,8 @@ export const App: React.FC = () => {
                     onSetOpacity={setOpacity}
                     onAddPillToChannel={addPillToShelf}
                     onRemovePillFromChannel={removePillFromShelf}
+                    onChangeColumnType={changeDatasetColumnType}
+                    onChangeColumnRole={changeDatasetColumnRole}
                   />
                 </div>
 

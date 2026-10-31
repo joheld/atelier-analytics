@@ -31,10 +31,12 @@ export function escapeIdentifier(ident: string): string {
  * Substitutes [ParameterName] tokens with their current values
  */
 export function substituteParameters(expression: string, parameters?: Parameter[]): string {
-  if (!parameters || parameters.length === 0) return expression;
+  if (!parameters || !Array.isArray(parameters) || parameters.length === 0) return expression;
   let result = expression;
   for (const param of parameters) {
+    if (!param || typeof param !== 'object' || !param.name) continue;
     const token = `[${param.name}]`;
+    const tokenParams = `[Parameters].[${param.name}]`;
     const tokenUnderscore = `[${param.name.replace(/\s+/g, '_')}]`;
 
     let replacement: string;
@@ -46,6 +48,9 @@ export function substituteParameters(expression: string, parameters?: Parameter[
       replacement = String(param.currentValue);
     }
 
+    if (result.includes(tokenParams)) {
+      result = result.split(tokenParams).join(replacement);
+    }
     if (result.includes(token)) {
       result = result.split(token).join(replacement);
     }
@@ -53,6 +58,52 @@ export function substituteParameters(expression: string, parameters?: Parameter[
       result = result.split(tokenUnderscore).join(replacement);
     }
   }
+  return result;
+}
+
+/**
+ * Transpiles common Tableau Desktop formulas into DuckDB SQL:
+ * - [FieldName] -> "FieldName"
+ * - IF <cond> THEN <a> [ELSEIF <c2> THEN <b2>] [ELSE <b>] END -> CASE WHEN <cond> THEN <a> ... END
+ * - IIF(test, then, else) -> (CASE WHEN test THEN then ELSE else END)
+ * - ZN(expr) -> COALESCE(expr, 0)
+ * - ISNULL(expr) -> ((expr) IS NULL)
+ */
+export function normalizeTableauFormula(
+  expression: string,
+  parameters?: Parameter[],
+  availableColumns?: string[]
+): string {
+  if (!expression) return '';
+  // 1. Substitute any parameters first
+  let result = substituteParameters(expression, parameters);
+
+  // 2. Tableau IF ... THEN ... ELSEIF ... ELSE ... END -> CASE WHEN ... THEN ... END
+  result = result.replace(/\bIF\b\s+([\s\S]+?)\s+\bTHEN\b/gi, 'CASE WHEN $1 THEN');
+  result = result.replace(/\bELSEIF\b\s+([\s\S]+?)\s+\bTHEN\b/gi, 'WHEN $1 THEN');
+
+  // 3. IIF(cond, a, b) -> (CASE WHEN cond THEN a ELSE b END)
+  result = result.replace(/\bIIF\s*\(\s*([^,]+)\s*,\s*([^,]+)\s*,\s*([^)]+)\s*\)/gi, '(CASE WHEN $1 THEN $2 ELSE $3 END)');
+
+  // 4. ZN(expr) -> COALESCE(expr, 0)
+  result = result.replace(/\bZN\s*\(\s*([^)]+)\s*\)/gi, 'COALESCE($1, 0)');
+
+  // 5. ISNULL(expr) -> (($1) IS NULL)
+  result = result.replace(/\bISNULL\s*\(\s*([^)]+)\s*\)/gi, '(($1) IS NULL)');
+
+  // 6. Transpile any remaining [Column Name] into "Column Name"
+  result = result.replace(/(?<!\{[^}]*)\[([^\]]+)\](?![^{]*\})/g, (_match, colName) => {
+    if (availableColumns && availableColumns.length > 0) {
+      const matchCol = availableColumns.find(
+        (c) => c.toLowerCase() === colName.trim().toLowerCase()
+      );
+      if (matchCol) {
+        return escapeIdentifier(matchCol);
+      }
+    }
+    return escapeIdentifier(colName.trim());
+  });
+
   return result;
 }
 
@@ -123,13 +174,13 @@ function compileAggregation(
   vizDims: string[] = []
 ): string {
   if (formula) {
-    const substituted = substituteParameters(formula, parameters);
-    const withLod = compileLodExpressions(substituted, tableName, vizDims);
+    const withLod = compileLodExpressions(formula, tableName, vizDims);
+    const normalized = normalizeTableauFormula(withLod, parameters);
     // If formula already contains aggregate calls or is an LOD, treat as Tableau 'AGG' pill
-    if (/^\s*(SUM|AVG|MIN|MAX|COUNT|MEDIAN|COUNT_DISTINCT)\s*\(/i.test(formula.trim()) || formula.trim().startsWith('{')) {
-      return withLod;
+    if (/^\s*(SUM|AVG|MIN|MAX|COUNT|MEDIAN|COUNT_DISTINCT)\s*\(/i.test(normalized.trim()) || normalized.trim().startsWith('{') || normalized.trim().startsWith('(SELECT')) {
+      return normalized;
     }
-    const target = `(${withLod})`;
+    const target = `(${normalized})`;
     switch (func) {
       case 'SUM':
         return `SUM(${target})`;
@@ -182,9 +233,9 @@ function compileDimensionExpr(
 ): { expr: string; alias: string } {
   let target = escapeIdentifier(pill.columnName);
   if (pill.formula) {
-    const substituted = substituteParameters(pill.formula, parameters);
-    const withLod = compileLodExpressions(substituted, tableName, vizDims);
-    target = withLod.startsWith('(') ? withLod : `(${withLod})`;
+    const withLod = compileLodExpressions(pill.formula, tableName, vizDims);
+    const normalized = normalizeTableauFormula(withLod, parameters);
+    target = normalized.startsWith('(') ? normalized : `(${normalized})`;
   }
 
   const safeCol = escapeIdentifier(pill.columnName);
@@ -300,9 +351,9 @@ export function compileASTtoDuckDB(ast: WorksheetAST, parameters?: Parameter[]):
     const aggExpr = compileAggregation(aggFunc, measure.columnName, measure.formula, parameters, ast.tableName, currentVizDims);
     let rawTarget = escapeIdentifier(measure.columnName);
     if (measure.formula) {
-      const substituted = substituteParameters(measure.formula, parameters);
-      const withLod = compileLodExpressions(substituted, ast.tableName, currentVizDims);
-      rawTarget = withLod.startsWith('(') ? withLod : `(${withLod})`;
+      const withLod = compileLodExpressions(measure.formula, ast.tableName, currentVizDims);
+      const normalized = normalizeTableauFormula(withLod, parameters);
+      rawTarget = normalized.startsWith('(') ? normalized : `(${normalized})`;
     }
     const aliasRaw = getPillSqlIdentifier(measure);
     const safeAlias = escapeIdentifier(aliasRaw);

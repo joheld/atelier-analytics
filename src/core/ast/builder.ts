@@ -62,7 +62,7 @@ export function buildWorksheetAST(state: WorksheetState): WorksheetAST {
   // 3. Resolve MarkType
   let resolvedMarkType: MarkType = marks.markType;
   if (resolvedMarkType === 'auto') {
-    resolvedMarkType = inferOptimalMarkType(columns, rows);
+    resolvedMarkType = inferOptimalMarkType(columns, rows, marks.size);
   }
 
   // 4. Construct Order By specs (prefer explicit sort, fallback to X dimension)
@@ -105,11 +105,16 @@ export function buildWorksheetAST(state: WorksheetState): WorksheetAST {
 /**
  * Heuristics for Tableau 'Show Me' automatic mark selection
  */
-export function inferOptimalMarkType(columns: Pill[], rows: Pill[]): MarkType {
+export function inferOptimalMarkType(columns: Pill[], rows: Pill[], sizePill?: Pill): MarkType {
   const xDim = columns.some((p) => p.role === 'dimension');
   const xMeasure = columns.some((p) => p.role === 'measure');
   const yDim = rows.some((p) => p.role === 'dimension');
   const yMeasure = rows.some((p) => p.role === 'measure');
+
+  // If a Size mark is specified and we have at least one measure, infer Bubble / Dot plot
+  if (sizePill && (xMeasure || yMeasure)) {
+    return 'dot';
+  }
 
   // Both measures -> Scatter / Dot plot
   if (xMeasure && yMeasure) {

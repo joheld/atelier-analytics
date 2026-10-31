@@ -143,6 +143,7 @@ gitGraph
     commit id: "number-formatting-engine" tag: "v2.9.0"
     commit id: "executive-export-and-bundle-optimization" tag: "v3.0.0"
     commit id: "unslop-precision-swiss-density" tag: "v3.1.0"
+    commit id: "tableau-formula-normalization-marks-compact-and-type-casting" tag: "v3.2.0"
 ```
 
 ---
@@ -182,6 +183,7 @@ gitGraph
 | **CP-29** | Motor Universal de Formato Numérico y Tipográfico por Métrica | **Completado** | 1) Utilidad universal `numberFormatter.ts` con soporte para Moneda (`$`, `€`, `£`, etc.), Porcentajes (`%`), Compacto (`K`, `M`, `B`), Notación Científica y Estándar con decimales y comas de miles; 2) Menú contextual en pastillas verdes de métrica (*"Formato de Número..."*) con badges visuales de formato; 3) Propagación reactiva a ejes X/Y de Observable Plot en `PlotRenderer.tsx`, tooltips nativos y celdas y fila de Total General en `TextTableRenderer.tsx`; 4) 6/6 tests unitarios en `numberFormatter.test.ts`. |
 | **CP-30** | Suite de Exportación Ejecutiva (PNG Retina, SVG, PDF) y Optimización Arquitectónica de Bundle | **Completado** | 1) Exportador visual `exportVisual.ts`: PNG Retina de alta resolución (escala 2x en Canvas con fondo adaptativo), Vectorial SVG puro con namespaces XML y PDF / Informe Impreso (`window.print()`); 2) Reglas `@media print` en `index.css` que ocultan chrome de UI (toolbars, estantes, sidebars) y renderizan reportes ejecutivos limpios; 3) Dropdown "Exportar" en `Header.tsx`; 4) Optimización de empaquetado en `vite.config.ts` (`manualChunks` dividiendo `vendor-duckdb`, `vendor-sheetjs`, `vendor-sqljs`, `vendor-plot`, `vendor-react-core`, `vendor-lucide`), eliminando advertencias de tamaño y reduciendo el chunk principal de 1,582 kB a 445 kB. |
 | **CP-31** | Rediseño Técnico Unslop (Linear-Grade & Precisión Suiza) | **Completado** | Erradicación total de patrones de vibecoding e IA genérica ('AI slop'): 1) Eliminación de cajas de iconos pastel arcoíris y sustitución por filas monocromas de alta densidad con extensiones mono (.xlsx, .csv, .parquet, .sqlite); 2) Sustitución de `font-editorial` y `animate-pulse` por títulos en sans de precisión técnica, estado de memoria estático y sparklines mono; 3) Conversión del panel de marketing 'Descubrir' en Inspector de Telemetría y Diagnóstico (DuckDB WASM, ARM64 SIMD, OPFS) y matriz de atajos `<kbd>`; 4) Adopción de tokens de bisel subpíxel `.rim-light`, respuestas táctiles mecánicas `.btn-tactile` y blueprint `.bg-dot-grid`; 5) Pastillas cartridge estilo Tableau con controles micro `[+]` y `[-]`; 6) Segmented controls en DataSidebar y TabBar compacto de 36px. Batería Zero-Defect: 52/52 tests, 0 errores tsc, build limpio en 3.17s y HTTP 200 en puerto 5173. |
+| **CP-32** | Fórmulas Tableau Intuitivas, Canal de Tamaño, Marcas Compactas y Conversión Fluida de Tipos | **Completado** | 1) Normalizador de fórmulas Tableau (`normalizeTableauFormula`): soporte nativo de sintaxis corchetes `[Campo]` ➔ `"Campo"`, sentencias `IF..THEN..ELSEIF..ELSE..END` ➔ `CASE WHEN`, `IIF`, `ZN` y `ISNULL`; 2) Barra táctil de operadores matemáticos/lógicos y dropdowns de inserción de campo/parámetro en `CalculatedFieldModal.tsx` con preview en vivo de fila 1 evaluada por DuckDB; 3) Activación del canal de Tamaño (`Size`): escala `r: sqrt [3, 24]`, auto-inferencia a gráfico de burbujas (`dot`), escalado de puntos en líneas y marcadores lollipop en barras; 4) Rediseño de la tarjeta de Marcas (`MarksCard.tsx`): reemplazo de la cuadrícula estrecha de 2 columnas por filas dedicadas de ancho completo, pastillas compactas que nunca desbordan y botón explícito "Quitar" tanto en la pastilla como en la cabecera del canal; 5) Micro-badge de tipo de datos en `DataSidebar.tsx` con indicador interactivo y caret `▾`, menú contextual mejorado con secciones claras de Tipo de Dato y Rol Analítico, y conversión de tipo/rol directamente desde las pastillas en estantes. Batería Zero-Defect: 53/53 tests unitarios, 0 errores `tsc -b`, build en 3.22s y HTTP 200 en puerto 5173. |
 
 ---
 
@@ -277,16 +279,22 @@ atelier-analytics/
 
 ---
 
-- **Estado Actual:** Plataforma de Analítica Visual Atelier v3.1.0 (Checkpoints **CP-27**, **CP-28**, **CP-29**, **CP-30** y **CP-31** Completados):
-  1. **Capacidades Evolutivas y Rediseño Unslop:**
+- **Estado Actual:** Plataforma de Analítica Visual Atelier v3.2.0 (Checkpoints **CP-27**, **CP-28**, **CP-29**, **CP-30**, **CP-31** y **CP-32** Completados):
+  1. **Capacidades Evolutivas y Ergonomía Tableau:**
      - **Motor de Expresiones LOD de Tableau (CP-27)**: Parser y compilador para `{FIXED [Dim] : AGG([Field])}`, `{FIXED : AGG([Field])}` (table-scoped), `{EXCLUDE ...}` e `{INCLUDE ...}` con subconsultas correlacionadas vectorizadas en DuckDB-WASM y soporte para pastillas `AGG(...)`.
      - **Jerarquías y Drill-down / Drill-up Dinámico (CP-28)**: Desglose jerárquico temporal continuo (`year ➔ quarter ➔ month ➔ week ➔ day`) y dimensional personalizado mediante botones interactivos `[+]` y `[-]` directamente en pastillas Rows/Columns sin rehacer el lienzo.
      - **Motor Universal de Formato Numérico (CP-29)**: Formateador tipográfico para Moneda (`$`, `€`), Porcentaje (`%`), Compacto (`K`, `M`, `B`), Notación Científica y Estándar, sincronizado en ejes de Observable Plot, tooltips y celdas/totales de la tabla cruzada.
      - **Exportación Ejecutiva y Optimización de Bundle (CP-30)**: Exportación a PNG Retina 2x, SVG vectorial puro, PDF/impresión con `@media print`, y empaquetado optimizado en Vite con 7 vendor chunks dedicados (`vendor-duckdb`, `vendor-sheetjs`, `vendor-sqljs`, `vendor-plot`, `vendor-react-core`, `vendor-lucide`), reduciendo el chunk principal de 1,582 kB a 445 kB.
      - **Rediseño Técnico Unslop (CP-31)**: Eliminación total de anti-patrones vibecoded (cajas de iconos arcoíris, animaciones `pulse`/`scale-105`, radios `rounded-2xl` excesivos, serifs e cursivas aleatorias). Aplicación de arquetipo Linear / Raycast / Precisión Suiza: biseles subpíxel `.rim-light`, respuestas táctiles mecánicas `.btn-tactile`, atajos `<kbd>`, blueprint `.bg-dot-grid`, pastillas cartridge compactas y panel de telemetría y diagnóstico del motor.
+     - **Ergonomía Tableau y Experiencia Fluida (CP-32)**:
+       * **Fórmulas Tableau Intuitivas**: Soporte nativo para corchetes `[Campo]` transpildos automáticamente a DuckDB SQL (`"Campo"` / `Campo`), sintaxis `IF..THEN..ELSEIF..ELSE..END`, `IIF`, `ZN` e `ISNULL`.
+       * **Toolbar Táctil & Previsualización en Vivo**: Barra rápida de operadores matemáticos/lógicos y dropdowns para insertar campos/parámetros en el editor, con feedback visual y muestra real evaluada de la fila 1 en DuckDB.
+       * **Canal Tamaño Activo & Gráficos de Burbujas**: Configuración de escala `r: sqrt [3, 24]` en Observable Plot, auto-inferencia a gráfico de dispersión/burbujas (`dot`), escalado continuo de puntos en líneas y marcadores lollipop en barras.
+       * **Tarjeta de Marcas con Filas Dedicadas & Pastillas Compactas**: Sustitución de la cuadrícula estrecha de 2 columnas por filas de ancho completo para Color, Tamaño, Detalle y Tooltip. Pastillas con prop `compact` que nunca desbordan la tarjeta y botón explícito "Quitar" tanto en la pastilla como en la cabecera.
+       * **Conversión Intuitiva de Tipos y Roles**: Micro-badge interactivo con caret `▾` en cada campo del panel lateral, menú contextual estructurado al hacer clic o clic derecho, y cambio de tipo/rol directamente desde las pastillas en estantes.
   2. **Verificación Zero-Defect:**
-     - 52/52 tests unitarios pasando en Bun/Vitest (100% verde).
+     - 53/53 tests unitarios pasando en Bun/Vitest (100% verde).
      - Tipado estricto (`tsc -b`) con 0 errores y 0 advertencias.
-     - Compilación estática de producción (`vite build`) en 3.17s sin advertencias de tamaño de chunk.
+     - Compilación estática de producción (`vite build`) en 3.22s sin advertencias de tamaño de chunk.
      - Servidor activo en macOS respondiendo `HTTP 200 OK` en `http://localhost:5173`.
-- **Siguiente Paso:** Presentar la plataforma Atelier Analytics v3.1.0 al usuario tras completar el rediseño Unslop.
+- **Siguiente Paso:** Presentar la versión v3.2.0 al usuario con las 4 mejoras de usabilidad y funcionalidad completadas.

@@ -884,6 +884,7 @@ class DuckDBManager {
     rawType?: string;
     inferredDataType?: 'string' | 'number' | 'date' | 'boolean';
     inferredRole?: 'dimension' | 'measure';
+    sampleValue?: string | number | boolean | null;
   }> {
     try {
       const conn = await this.getConnection();
@@ -892,6 +893,7 @@ class DuckDBManager {
       const result = await conn.query(testQuery);
       const row = result.toArray()[0]?.toJSON();
       const rawType = String(row?.col_type || '').toUpperCase();
+      const sampleVal = row?.sample_val ?? null;
 
       let inferredDataType: 'string' | 'number' | 'date' | 'boolean' = 'string';
       let inferredRole: 'dimension' | 'measure' = 'dimension';
@@ -927,6 +929,7 @@ class DuckDBManager {
         rawType,
         inferredDataType,
         inferredRole,
+        sampleValue: sampleVal,
       };
     } catch (err: unknown) {
       return {
