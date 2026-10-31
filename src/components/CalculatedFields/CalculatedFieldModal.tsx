@@ -23,7 +23,7 @@ import {
 
 interface FunctionDoc {
   name: string;
-  category: 'logic' | 'numeric' | 'string' | 'date' | 'conversion' | 'stats' | 'advanced' | 'lod';
+  category: 'logic' | 'numeric' | 'string' | 'date' | 'conversion' | 'stats' | 'advanced' | 'lod' | 'table_calc';
   syntax: string;
   description: string;
   example: string;
@@ -31,6 +31,88 @@ interface FunctionDoc {
 }
 
 const FUNCTION_LIBRARY: FunctionDoc[] = [
+  // TABLEAU TABLE CALCULATIONS (WINDOW FUNCTIONS)
+  {
+    name: 'RUNNING_SUM',
+    category: 'table_calc',
+    syntax: 'RUNNING_SUM(AGG([Campo]))',
+    description: 'Calcula la suma acumulada de la métrica desde la primera fila hasta la fila actual.',
+    example: 'RUNNING_SUM(SUM([sales]))',
+    snippet: 'RUNNING_SUM(SUM([measure]))',
+  },
+  {
+    name: 'RUNNING_AVG',
+    category: 'table_calc',
+    syntax: 'RUNNING_AVG(AGG([Campo]))',
+    description: 'Calcula el promedio acumulado continuo desde la primera fila hasta la actual.',
+    example: 'RUNNING_AVG(AVG([profit]))',
+    snippet: 'RUNNING_AVG(AVG([measure]))',
+  },
+  {
+    name: 'WINDOW_AVG',
+    category: 'table_calc',
+    syntax: 'WINDOW_AVG(AGG([Campo]))',
+    description: 'Calcula el promedio de la expresión en toda la partición o ventana visible.',
+    example: 'WINDOW_AVG(SUM([sales]))',
+    snippet: 'WINDOW_AVG(SUM([measure]))',
+  },
+  {
+    name: 'WINDOW_SUM',
+    category: 'table_calc',
+    syntax: 'WINDOW_SUM(AGG([Campo]))',
+    description: 'Calcula la suma total de la expresión en toda la partición o ventana visible.',
+    example: 'WINDOW_SUM(SUM([profit]))',
+    snippet: 'WINDOW_SUM(SUM([measure]))',
+  },
+  {
+    name: 'RANK',
+    category: 'table_calc',
+    syntax: 'RANK(AGG([Campo]))',
+    description: 'Asigna un ranking estándar (con saltos ante empates) según la métrica indicada en orden descendente.',
+    example: 'RANK(SUM([sales]))',
+    snippet: 'RANK(SUM([measure]))',
+  },
+  {
+    name: 'RANK_DENSE',
+    category: 'table_calc',
+    syntax: 'RANK_DENSE(AGG([Campo]))',
+    description: 'Asigna un ranking denso continuo (sin saltos de posición ante empates).',
+    example: 'RANK_DENSE(SUM([sales]))',
+    snippet: 'RANK_DENSE(SUM([measure]))',
+  },
+  {
+    name: 'INDEX',
+    category: 'table_calc',
+    syntax: 'INDEX()',
+    description: 'Devuelve el número de fila actual en la partición (comenzando en 1).',
+    example: 'INDEX()',
+    snippet: 'INDEX()',
+  },
+  {
+    name: 'FIRST',
+    category: 'table_calc',
+    syntax: 'FIRST()',
+    description: 'Devuelve la distancia relativa desde la fila actual hasta la primera fila (0 para la primera, -1 para la segunda, etc.).',
+    example: 'FIRST()',
+    snippet: 'FIRST()',
+  },
+  {
+    name: 'LAST',
+    category: 'table_calc',
+    syntax: 'LAST()',
+    description: 'Devuelve el número de filas desde la fila actual hasta la última fila de la partición.',
+    example: 'LAST()',
+    snippet: 'LAST()',
+  },
+  {
+    name: 'LOOKUP',
+    category: 'table_calc',
+    syntax: 'LOOKUP(AGG([Campo]), [offset])',
+    description: 'Devuelve el valor de la métrica en la fila desplazada por el offset (por ejemplo, -1 para el período anterior).',
+    example: 'LOOKUP(SUM([sales]), -1)',
+    snippet: 'LOOKUP(SUM([measure]), -1)',
+  },
+
   // TABLEAU LEVEL OF DETAIL (LOD)
   {
     name: 'FIXED',
@@ -982,6 +1064,7 @@ IF [Sales] > 1000 THEN 'Alto Volumen' ELSE 'Estándar' END
                     className="w-40 rounded-md border border-stone-200 bg-white px-2 py-1 text-xs text-stone-800 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200"
                   >
                     <option value="all">Todas las categorías</option>
+                    <option value="table_calc">Cálculos de Tabla (Tableau: RUNNING, WINDOW, RANK)</option>
                     <option value="lod">Tableau LOD ({'{FIXED}'}, {'{EXCLUDE}'})</option>
                     <option value="stats">Estadística & ML (DuckDB)</option>
                     <option value="advanced">Regex, JSON & Arrays</option>

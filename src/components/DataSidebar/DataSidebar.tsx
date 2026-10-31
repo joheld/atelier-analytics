@@ -27,6 +27,9 @@ import {
   MoreVertical,
   Split,
   ChevronDown,
+  ArrowDownToLine,
+  ArrowUpToLine,
+  LineChart,
 } from 'lucide-react';
 
 interface DataSidebarProps {
@@ -134,7 +137,7 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
 
   const isLineActive = (type: string) => analyticsLines.some((l) => l.type === type);
 
-  const toggleLine = (type: 'average' | 'median' | 'trend_line', label: string) => {
+  const toggleLine = (type: 'average' | 'median' | 'trend_line' | 'min' | 'max' | 'moving_average', label: string) => {
     if (isLineActive(type)) {
       onRemoveAnalyticsLine?.(type);
     } else {
@@ -494,6 +497,48 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
                   {isLineActive('median') ? 'ACTIVA' : '+'}
                 </span>
               </button>
+
+              <button
+                type="button"
+                onClick={() => toggleLine('min', 'Mínimo')}
+                className={`flex w-full items-center justify-between rounded-md border p-2.5 text-left text-xs transition-all ${
+                  isLineActive('min')
+                    ? 'border-cyan-400 bg-cyan-50/70 text-cyan-900 dark:border-cyan-800 dark:bg-cyan-950/30 dark:text-cyan-200'
+                    : 'border-stone-200 bg-white hover:bg-stone-100 dark:border-stone-800 dark:bg-stone-900 dark:hover:bg-stone-800/80 text-stone-800 dark:text-stone-200'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <ArrowDownToLine className="h-4 w-4 text-cyan-500" />
+                  <div>
+                    <div className="font-semibold">Línea de Mínimo</div>
+                    <div className="text-[10px] text-stone-500">Límite inferior absoluto en Y</div>
+                  </div>
+                </div>
+                <span className={`text-[10px] font-mono font-bold ${isLineActive('min') ? 'text-cyan-600' : 'text-stone-400'}`}>
+                  {isLineActive('min') ? 'ACTIVA' : '+'}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => toggleLine('max', 'Máximo')}
+                className={`flex w-full items-center justify-between rounded-md border p-2.5 text-left text-xs transition-all ${
+                  isLineActive('max')
+                    ? 'border-pink-400 bg-pink-50/70 text-pink-900 dark:border-pink-800 dark:bg-pink-950/30 dark:text-pink-200'
+                    : 'border-stone-200 bg-white hover:bg-stone-100 dark:border-stone-800 dark:bg-stone-900 dark:hover:bg-stone-800/80 text-stone-800 dark:text-stone-200'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <ArrowUpToLine className="h-4 w-4 text-pink-500" />
+                  <div>
+                    <div className="font-semibold">Línea de Máximo</div>
+                    <div className="text-[10px] text-stone-500">Límite superior absoluto en Y</div>
+                  </div>
+                </div>
+                <span className={`text-[10px] font-mono font-bold ${isLineActive('max') ? 'text-pink-600' : 'text-stone-400'}`}>
+                  {isLineActive('max') ? 'ACTIVA' : '+'}
+                </span>
+              </button>
             </div>
           </div>
 
@@ -520,6 +565,27 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
                 </div>
                 <span className={`text-[10px] font-mono font-bold ${isLineActive('trend_line') ? 'text-indigo-600' : 'text-stone-400'}`}>
                   {isLineActive('trend_line') ? 'ACTIVA' : '+'}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => toggleLine('moving_average', 'Media Móvil')}
+                className={`flex w-full items-center justify-between rounded-md border p-2.5 text-left text-xs transition-all ${
+                  isLineActive('moving_average')
+                    ? 'border-emerald-400 bg-emerald-50/70 text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200'
+                    : 'border-stone-200 bg-white hover:bg-stone-100 dark:border-stone-800 dark:bg-stone-900 dark:hover:bg-stone-800/80 text-stone-800 dark:text-stone-200'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <LineChart className="h-4 w-4 text-emerald-500" />
+                  <div>
+                    <div className="font-semibold">Media Móvil (k=5)</div>
+                    <div className="text-[10px] text-stone-500">Alisado dinámico temporal sobre X</div>
+                  </div>
+                </div>
+                <span className={`text-[10px] font-mono font-bold ${isLineActive('moving_average') ? 'text-emerald-600' : 'text-stone-400'}`}>
+                  {isLineActive('moving_average') ? 'ACTIVA' : '+'}
                 </span>
               </button>
             </div>

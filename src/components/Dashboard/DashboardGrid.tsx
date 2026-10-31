@@ -598,6 +598,23 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
                             ast={exec?.ast || null}
                             result={exec?.queryResult || null}
                             theme={theme}
+                            selectedFilterValue={
+                              activeDashboard.dashboardCrossFilter?.sourceSheetId === sheet.id
+                                ? activeDashboard.dashboardCrossFilter?.value
+                                : null
+                            }
+                            onMarkClick={(colName, val) => {
+                              if (!sheet.useAsFilter) return;
+                              if (activeDashboard.dashboardCrossFilter?.value === val) {
+                                onSetCrossFilter?.(activeDashboard.id, null);
+                              } else {
+                                onSetCrossFilter?.(activeDashboard.id, {
+                                  sourceSheetId: sheet.id,
+                                  columnName: colName,
+                                  value: val,
+                                });
+                              }
+                            }}
                           />
                         </CanvasErrorBoundary>
 

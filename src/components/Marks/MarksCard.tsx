@@ -100,6 +100,7 @@ export const MarksCard: React.FC<MarksCardProps> = ({
           <option value="difference">Gráfico de Diferencia (Difference)</option>
           <option value="tick">Líneas de Marca (Tick)</option>
           <option value="waffle">Gráfico Waffle (Waffle)</option>
+          <option value="geo">Mapa Cartográfico (Geo / Map)</option>
           <option value="text">Texto / Métrica (Text)</option>
         </select>
       </div>

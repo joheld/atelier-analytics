@@ -31,7 +31,8 @@ export type MarkType =
   | 'hexbin'
   | 'spike'
   | 'difference'
-  | 'waffle';
+  | 'waffle'
+  | 'geo';
 
 export interface DatasetColumn {
   name: string;
@@ -77,7 +78,10 @@ export type AnalyticsLineType =
   | 'average'
   | 'median'
   | 'constant'
-  | 'trend_line';
+  | 'trend_line'
+  | 'min'
+  | 'max'
+  | 'moving_average';
 
 export interface AnalyticsLine {
   id: string;

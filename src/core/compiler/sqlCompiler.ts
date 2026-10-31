@@ -62,12 +62,67 @@ export function substituteParameters(expression: string, parameters?: Parameter[
 }
 
 /**
+ * Helper to replace function calls like FN(...) with balanced parentheses handling.
+ */
+function replaceBalancedFunctionCall(
+  source: string,
+  fnName: string,
+  transform: (arg: string) => string
+): string {
+  const pattern = new RegExp(`\\b${fnName}\\s*\\(`, 'gi');
+  let match: RegExpExecArray | null;
+  let result = '';
+  let lastIndex = 0;
+
+  while ((match = pattern.exec(source)) !== null) {
+    const startCall = match.index;
+    const startArg = pattern.lastIndex; // right after '('
+    let depth = 1;
+    let inSingleQuote = false;
+    let inDoubleQuote = false;
+    let i = startArg;
+
+    while (i < source.length && depth > 0) {
+      const char = source[i];
+      if (char === "'" && !inDoubleQuote) {
+        if (source[i - 1] !== '\\') inSingleQuote = !inSingleQuote;
+      } else if (char === '"' && !inSingleQuote) {
+        if (source[i - 1] !== '\\') inDoubleQuote = !inDoubleQuote;
+      } else if (!inSingleQuote && !inDoubleQuote) {
+        if (char === '(') depth++;
+        else if (char === ')') depth--;
+      }
+      i++;
+    }
+
+    if (depth === 0) {
+      const endArg = i - 1; // index of closing ')'
+      const arg = source.substring(startArg, endArg).trim();
+      const replacement = transform(arg);
+      result += source.substring(lastIndex, startCall) + replacement;
+      lastIndex = i;
+      pattern.lastIndex = i;
+    } else {
+      result += source.substring(lastIndex, startArg);
+      lastIndex = startArg;
+    }
+  }
+
+  result += source.substring(lastIndex);
+  return result;
+}
+
+/**
  * Transpiles common Tableau Desktop formulas into DuckDB SQL:
  * - [FieldName] -> "FieldName"
  * - IF <cond> THEN <a> [ELSEIF <c2> THEN <b2>] [ELSE <b>] END -> CASE WHEN <cond> THEN <a> ... END
  * - IIF(test, then, else) -> (CASE WHEN test THEN then ELSE else END)
  * - ZN(expr) -> COALESCE(expr, 0)
  * - ISNULL(expr) -> ((expr) IS NULL)
+ * - Tableau Table Calculations:
+ *   - RUNNING_SUM, RUNNING_AVG, RUNNING_COUNT, RUNNING_MIN, RUNNING_MAX
+ *   - WINDOW_AVG, WINDOW_SUM, WINDOW_MIN, WINDOW_MAX, WINDOW_COUNT
+ *   - RANK, RANK_DENSE, INDEX, FIRST, LAST, LOOKUP
  */
 export function normalizeTableauFormula(
   expression: string,
@@ -91,7 +146,70 @@ export function normalizeTableauFormula(
   // 5. ISNULL(expr) -> (($1) IS NULL)
   result = result.replace(/\bISNULL\s*\(\s*([^)]+)\s*\)/gi, '(($1) IS NULL)');
 
-  // 6. Transpile any remaining [Column Name] into "Column Name"
+  // Helper for wrapping target in aggregation if not already aggregated
+  const ensureAgg = (expr: string, defaultFunc: string) => {
+    if (/^\s*(SUM|AVG|MIN|MAX|COUNT)\s*\(/i.test(expr)) {
+      return expr;
+    }
+    return `${defaultFunc}(${expr})`;
+  };
+
+  // 6. Tableau Table Calculations (Window Functions)
+  result = replaceBalancedFunctionCall(result, 'RUNNING_SUM', (arg) => {
+    return `${ensureAgg(arg, 'SUM')} OVER (ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)`;
+  });
+  result = replaceBalancedFunctionCall(result, 'RUNNING_AVG', (arg) => {
+    return `${ensureAgg(arg, 'AVG')} OVER (ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)`;
+  });
+  result = replaceBalancedFunctionCall(result, 'RUNNING_COUNT', (arg) => {
+    return `${ensureAgg(arg, 'COUNT')} OVER (ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)`;
+  });
+  result = replaceBalancedFunctionCall(result, 'RUNNING_MIN', (arg) => {
+    return `${ensureAgg(arg, 'MIN')} OVER (ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)`;
+  });
+  result = replaceBalancedFunctionCall(result, 'RUNNING_MAX', (arg) => {
+    return `${ensureAgg(arg, 'MAX')} OVER (ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)`;
+  });
+
+  result = replaceBalancedFunctionCall(result, 'WINDOW_AVG', (arg) => {
+    return `${ensureAgg(arg, 'AVG')} OVER ()`;
+  });
+  result = replaceBalancedFunctionCall(result, 'WINDOW_SUM', (arg) => {
+    return `${ensureAgg(arg, 'SUM')} OVER ()`;
+  });
+  result = replaceBalancedFunctionCall(result, 'WINDOW_MIN', (arg) => {
+    return `${ensureAgg(arg, 'MIN')} OVER ()`;
+  });
+  result = replaceBalancedFunctionCall(result, 'WINDOW_MAX', (arg) => {
+    return `${ensureAgg(arg, 'MAX')} OVER ()`;
+  });
+  result = replaceBalancedFunctionCall(result, 'WINDOW_COUNT', (arg) => {
+    return `${ensureAgg(arg, 'COUNT')} OVER ()`;
+  });
+
+  result = replaceBalancedFunctionCall(result, 'RANK', (arg) => {
+    return `RANK() OVER (ORDER BY ${arg} DESC)`;
+  });
+  result = replaceBalancedFunctionCall(result, 'RANK_DENSE', (arg) => {
+    return `DENSE_RANK() OVER (ORDER BY ${arg} DESC)`;
+  });
+
+  result = result.replace(/\bINDEX\s*\(\s*\)/gi, 'ROW_NUMBER() OVER ()');
+  result = result.replace(/\bFIRST\s*\(\s*\)/gi, '(1 - ROW_NUMBER() OVER ())');
+  result = result.replace(/\bLAST\s*\(\s*\)/gi, '(COUNT(*) OVER () - ROW_NUMBER() OVER ())');
+
+  result = replaceBalancedFunctionCall(result, 'LOOKUP', (arg) => {
+    const parts = arg.split(',').map((p) => p.trim());
+    const expr = parts[0];
+    const offset = parts.length > 1 ? parseInt(parts[1], 10) : -1;
+    if (isNaN(offset) || offset === 0) return expr;
+    if (offset < 0) {
+      return `LAG(${expr}, ${Math.abs(offset)}) OVER ()`;
+    }
+    return `LEAD(${expr}, ${offset}) OVER ()`;
+  });
+
+  // 7. Transpile any remaining [Column Name] into "Column Name"
   result = result.replace(/(?<!\{[^}]*)\[([^\]]+)\](?![^{]*\})/g, (_match, colName) => {
     if (availableColumns && availableColumns.length > 0) {
       const matchCol = availableColumns.find(
@@ -176,8 +294,14 @@ function compileAggregation(
   if (formula) {
     const withLod = compileLodExpressions(formula, tableName, vizDims);
     const normalized = normalizeTableauFormula(withLod, parameters);
-    // If formula already contains aggregate calls or is an LOD, treat as Tableau 'AGG' pill
-    if (/^\s*(SUM|AVG|MIN|MAX|COUNT|MEDIAN|COUNT_DISTINCT)\s*\(/i.test(normalized.trim()) || normalized.trim().startsWith('{') || normalized.trim().startsWith('(SELECT')) {
+    // If formula already contains aggregate calls, window functions (OVER), or is an LOD, treat as Tableau 'AGG' pill
+    if (
+      /^\s*(SUM|AVG|MIN|MAX|COUNT|MEDIAN|COUNT_DISTINCT|RANK|DENSE_RANK|ROW_NUMBER)\s*\(/i.test(normalized.trim()) ||
+      normalized.includes(' OVER ') ||
+      normalized.includes(' OVER(') ||
+      normalized.trim().startsWith('{') ||
+      normalized.trim().startsWith('(SELECT')
+    ) {
       return normalized;
     }
     const target = `(${normalized})`;

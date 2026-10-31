@@ -11,6 +11,8 @@ interface PlotRendererProps {
   ast: WorksheetAST | null;
   result: QueryExecutionResult | null;
   theme: 'light' | 'dark';
+  onMarkClick?: (columnName: string, value: string | number | boolean) => void;
+  selectedFilterValue?: string | number | boolean | null;
 }
 
 function getPillDisplayLabel(pill?: Pill, defaultVal = ''): string {
@@ -25,7 +27,13 @@ function getPillDisplayLabel(pill?: Pill, defaultVal = ''): string {
   return pill.columnName;
 }
 
-export const PlotRenderer: React.FC<PlotRendererProps> = ({ ast, result, theme }) => {
+export const PlotRenderer: React.FC<PlotRendererProps> = ({
+  ast,
+  result,
+  theme,
+  onMarkClick,
+  selectedFilterValue,
+}) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState<{ width: number; height: number }>({
     width: 800,
@@ -621,6 +629,34 @@ export const PlotRenderer: React.FC<PlotRendererProps> = ({ ast, result, theme }
         );
       }
     }
+    // 14. CARTOGRAPHIC MAP (Plot.geo / Plot.dot with Projection)
+    else if (markType === 'geo') {
+      marks.push(
+        Plot.sphere({ stroke: mutedColor, strokeWidth: 0.8, fill: isDark ? '#0c121e' : '#f1f5f9' }),
+        Plot.graticule({ stroke: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)', strokeWidth: 0.5 })
+      );
+      if (xField && yField) {
+        marks.push(
+          Plot.dot(result.rows, {
+            x: xField,
+            y: yField,
+            fill: colorField || (isDark ? '#38bdf8' : '#0284c7'),
+            r: sizeField
+              ? (d: any) => {
+                  const val = Number(d[sizeField]);
+                  if (isNaN(val)) return 5;
+                  return 3 + ((val - minSizeVal) / sizeRange) * 16;
+                }
+              : 5,
+            fillOpacity: 0.85,
+            stroke: isDark ? '#0f172a' : '#ffffff',
+            strokeWidth: 1,
+            title: makeTooltipTitle,
+            tip: true,
+          })
+        );
+      }
+    }
 
     // 7. Tableau Analytics Lines (Reference Lines, Average, Median, Linear Regression)
     if (ast.analyticsLines && ast.analyticsLines.length > 0 && yField && !isMultiMeasure) {
@@ -669,6 +705,43 @@ export const PlotRenderer: React.FC<PlotRendererProps> = ({ ast, result, theme }
                 strokeWidth: 2,
               })
             );
+          } else if (line.type === 'min') {
+            const minVal = Math.min(...yValues);
+            marks.push(
+              Plot.ruleY([minVal], {
+                stroke: '#06b6d4',
+                strokeWidth: 1.5,
+                strokeDasharray: '4 4',
+                title: () => `Mínimo: ${minVal.toFixed(2)}`,
+              })
+            );
+          } else if (line.type === 'max') {
+            const maxVal = Math.max(...yValues);
+            marks.push(
+              Plot.ruleY([maxVal], {
+                stroke: '#ec4899',
+                strokeWidth: 1.5,
+                strokeDasharray: '4 4',
+                title: () => `Máximo: ${maxVal.toFixed(2)}`,
+              })
+            );
+          } else if (line.type === 'moving_average' && xField) {
+            marks.push(
+              Plot.lineY(
+                result.rows,
+                Plot.windowY(
+                  { k: 5, reduce: 'mean' },
+                  {
+                    x: xField,
+                    y: yField,
+                    stroke: '#10b981',
+                    strokeWidth: 2,
+                    strokeDasharray: '3 3',
+                    title: () => 'Media Móvil (k=5)',
+                  }
+                )
+              )
+            );
           }
         }
       }
@@ -706,6 +779,7 @@ export const PlotRenderer: React.FC<PlotRendererProps> = ({ ast, result, theme }
       marginRight,
       marginBottom,
       marginLeft,
+      projection: markType === 'geo' ? { type: 'equal-earth' } : undefined,
       color: colorScaleConfig,
       r: sizeField
         ? {
@@ -733,7 +807,11 @@ export const PlotRenderer: React.FC<PlotRendererProps> = ({ ast, result, theme }
             padding: 0.2,
           }
         : undefined,
-      x: isMultiMeasureVertical
+      x: markType === 'geo'
+        ? {
+            axis: null,
+          }
+        : isMultiMeasureVertical
         ? {
             axis: null,
           }
@@ -761,7 +839,11 @@ export const PlotRenderer: React.FC<PlotRendererProps> = ({ ast, result, theme }
               return formatXTick(d);
             },
           },
-      y: isMultiMeasureHorizontal
+      y: markType === 'geo'
+        ? {
+            axis: null,
+          }
+        : isMultiMeasureHorizontal
         ? {
             axis: null,
           }
@@ -787,6 +869,55 @@ export const PlotRenderer: React.FC<PlotRendererProps> = ({ ast, result, theme }
 
     container.innerHTML = '';
     container.appendChild(plot);
+
+    // Tableau Interactive Mark Actions & Highlight
+    const targetDim = (xPill && xPill.role === 'dimension')
+      ? xPill.columnName
+      : (yPill && yPill.role === 'dimension')
+      ? yPill.columnName
+      : ast?.groupByDimensions[0]?.columnName;
+
+    if (targetDim) {
+      // 1. Highlight / Dim effect if selectedFilterValue is active
+      if (selectedFilterValue !== undefined && selectedFilterValue !== null) {
+        const svgMarks = plot.querySelectorAll('rect, circle, path');
+        svgMarks.forEach((el) => {
+          const d = (el as any).__data__;
+          if (d !== undefined && d !== null) {
+            const row = typeof d === 'number' && result.rows[d] ? result.rows[d] : typeof d === 'object' ? d : null;
+            if (row && row[targetDim] !== undefined) {
+              if (String(row[targetDim]) !== String(selectedFilterValue)) {
+                (el as SVGElement).style.opacity = '0.3';
+                (el as SVGElement).style.transition = 'opacity 0.15s ease';
+              } else {
+                (el as SVGElement).style.opacity = '1';
+                (el as SVGElement).style.stroke = '#f59e0b';
+                (el as SVGElement).style.strokeWidth = '2px';
+              }
+            }
+          }
+        });
+      }
+
+      // 2. Click listener for direct Dashboard Cross-filtering
+      if (onMarkClick) {
+        plot.style.cursor = 'pointer';
+        const handlePlotClick = (e: Event) => {
+          const mouseEvt = e as MouseEvent;
+          const target = mouseEvt.target as SVGElement | null;
+          if (!target) return;
+          const d = (target as any).__data__;
+          if (d !== undefined && d !== null) {
+            const row = typeof d === 'number' && result.rows[d] ? result.rows[d] : typeof d === 'object' ? d : null;
+            if (row && row[targetDim] !== undefined) {
+              e.stopPropagation();
+              onMarkClick(targetDim, row[targetDim]);
+            }
+          }
+        };
+        plot.addEventListener('click', handlePlotClick);
+      }
+    }
 
     // Style the native Plot legend if rendered to match editorial palette
     const legendEl = container.querySelector('.plot-legend') as HTMLElement | null;

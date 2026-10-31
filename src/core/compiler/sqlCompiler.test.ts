@@ -626,5 +626,65 @@ describe('Atelier Analytics Compiler & AST Builder', () => {
     // 6. ISNULL function
     const f6 = normalizeTableauFormula('ISNULL([Sales])', params, cols);
     expect(f6).toBe('((Sales) IS NULL)');
+
+    // 7. Tableau Table Calculations (Window Functions)
+    const f7 = normalizeTableauFormula('RUNNING_SUM([Sales])', params, cols);
+    expect(f7).toBe('SUM(Sales) OVER (ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)');
+
+    const f8 = normalizeTableauFormula('RUNNING_AVG(SUM([Sales]))', params, cols);
+    expect(f8).toBe('SUM(Sales) OVER (ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)');
+
+    const f9 = normalizeTableauFormula('WINDOW_AVG(SUM([Sales]))', params, cols);
+    expect(f9).toBe('SUM(Sales) OVER ()');
+
+    const f10 = normalizeTableauFormula('WINDOW_SUM([Profit])', params, cols);
+    expect(f10).toBe('SUM(Profit) OVER ()');
+
+    const f11 = normalizeTableauFormula('RANK([Sales])', params, cols);
+    expect(f11).toBe('RANK() OVER (ORDER BY Sales DESC)');
+
+    const f12 = normalizeTableauFormula('RANK_DENSE([Profit])', params, cols);
+    expect(f12).toBe('DENSE_RANK() OVER (ORDER BY Profit DESC)');
+
+    const f13 = normalizeTableauFormula('INDEX()', params, cols);
+    expect(f13).toBe('ROW_NUMBER() OVER ()');
+
+    const f14 = normalizeTableauFormula('FIRST()', params, cols);
+    expect(f14).toBe('(1 - ROW_NUMBER() OVER ())');
+
+    const f15 = normalizeTableauFormula('LAST()', params, cols);
+    expect(f15).toBe('(COUNT(*) OVER () - ROW_NUMBER() OVER ())');
+
+    const f16 = normalizeTableauFormula('LOOKUP([Sales], -1)', params, cols);
+    expect(f16).toBe('LAG(Sales, 1) OVER ()');
+  });
+
+  it('compiles worksheet queries with Tableau Table Calculation formulas as AGG pills without double aggregation', () => {
+    const tableCalcState: WorksheetState = {
+      datasetId: 'superstore',
+      tableName: 'superstore',
+      columns: [
+        { id: 'c1', columnName: 'region', role: 'dimension', dataType: 'string' },
+      ],
+      rows: [
+        {
+          id: 'r1',
+          columnName: 'running_sales',
+          role: 'measure',
+          dataType: 'number',
+          isCalculated: true,
+          formula: 'RUNNING_SUM([sales])',
+        },
+      ],
+      filters: [],
+      marks: { markType: 'bar', detail: [], tooltip: [], opacity: 0.9 },
+    };
+
+    const ast = buildWorksheetAST(tableCalcState);
+    const compiled = compileASTtoDuckDB(ast);
+
+    expect(compiled.sql).toContain('SUM(sales) OVER (ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)');
+    expect(compiled.sql).not.toContain('SUM(SUM(sales) OVER');
+    expect(compiled.sql).toContain('GROUP BY region');
   });
 });
