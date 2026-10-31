@@ -67,22 +67,22 @@ export const ShelfDropZone: React.FC<ShelfDropZoneProps> = ({
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
-      className={`flex items-center gap-2 border-b border-stone-200/80 px-3 py-1.5 transition-colors duration-150 dark:border-stone-800 ${
+      className={`flex items-center gap-2 border-b border-stone-200/80 px-3 py-1.5 transition-colors duration-150 dark:border-white/[0.06] ${
         isOver
-          ? 'bg-amber-50/70 dark:bg-amber-950/20 ring-1 ring-amber-400/50'
-          : 'bg-stone-50/50 hover:bg-stone-100/50 dark:bg-stone-900/40 dark:hover:bg-stone-900/60'
+          ? 'bg-sky-50/70 dark:bg-sky-950/30 ring-1 ring-sky-500/40 dark:ring-sky-400/30'
+          : 'bg-stone-50/40 hover:bg-stone-100/40 dark:bg-stone-900/30 dark:hover:bg-stone-900/50'
       }`}
     >
       {/* Shelf Header Label */}
-      <div className="flex w-24 shrink-0 items-center gap-1.5 text-xs font-semibold text-stone-600 dark:text-stone-400">
+      <div className="flex w-24 shrink-0 items-center gap-1.5 text-xs font-medium text-stone-500 dark:text-stone-400">
         {icon}
-        <span className="uppercase tracking-wider text-[11px] font-mono">{label}</span>
+        <span className="uppercase tracking-wider text-[10px] font-mono font-semibold">{label}</span>
       </div>
 
       {/* Pill Container */}
-      <div className="flex flex-1 flex-wrap items-center gap-1.5 min-h-[28px]">
+      <div className="flex flex-1 flex-wrap items-center gap-1.5 min-h-[26px]">
         {pills.length === 0 ? (
-          <span className="text-xs italic text-stone-400 select-none dark:text-stone-600 font-sans">
+          <span className="text-[11px] font-mono text-stone-400 select-none dark:text-stone-500">
             {placeholder}
           </span>
         ) : (

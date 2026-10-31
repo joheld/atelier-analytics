@@ -386,33 +386,35 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
   };
 
   return (
-    <aside className="flex h-full w-64 flex-col border-r border-stone-200/90 bg-stone-50/70 dark:border-stone-800 dark:bg-stone-950/80 select-none">
-      {/* Top Tab Switcher: Datos vs Análisis (Tableau mental model) */}
-      <div className="flex border-b border-stone-200/90 bg-stone-100/80 px-2 pt-2 dark:border-stone-800 dark:bg-stone-900/80">
-        <button
-          type="button"
-          onClick={() => setSidebarTab('data')}
-          className={`flex flex-1 items-center justify-center gap-1.5 border-b-2 py-1.5 text-xs font-medium transition-colors ${
-            sidebarTab === 'data'
-              ? 'border-emerald-600 text-stone-900 dark:border-emerald-400 dark:text-stone-100 font-semibold'
-              : 'border-transparent text-stone-500 hover:text-stone-700 dark:hover:text-stone-300'
-          }`}
-        >
-          <Layers className="h-3.5 w-3.5 text-sky-600 dark:text-sky-400" />
-          <span>Datos</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setSidebarTab('analytics')}
-          className={`flex flex-1 items-center justify-center gap-1.5 border-b-2 py-1.5 text-xs font-medium transition-colors ${
-            sidebarTab === 'analytics'
-              ? 'border-emerald-600 text-stone-900 dark:border-emerald-400 dark:text-stone-100 font-semibold'
-              : 'border-transparent text-stone-500 hover:text-stone-700 dark:hover:text-stone-300'
-          }`}
-        >
-          <TrendingUp className="h-3.5 w-3.5 text-amber-500" />
-          <span>Análisis</span>
-        </button>
+    <aside className="flex h-full w-64 flex-col border-r border-stone-200/90 bg-stone-50/80 dark:border-white/[0.06] dark:bg-stone-950/80 select-none">
+      {/* Top Tab Switcher: Datos vs Análisis (Segmented Control) */}
+      <div className="p-2 border-b border-stone-200/90 dark:border-white/[0.06] bg-stone-100/60 dark:bg-stone-900/60">
+        <div className="flex rounded-md bg-stone-200/60 p-0.5 dark:bg-white/[0.05]">
+          <button
+            type="button"
+            onClick={() => setSidebarTab('data')}
+            className={`btn-tactile flex flex-1 items-center justify-center gap-1.5 rounded py-1 text-xs font-medium transition-all ${
+              sidebarTab === 'data'
+                ? 'bg-white text-stone-950 shadow-2xs dark:bg-stone-800 dark:text-stone-100 rim-light-subtle font-semibold'
+                : 'text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-200'
+            }`}
+          >
+            <Layers className="h-3 w-3 text-stone-500 dark:text-stone-400" />
+            <span>Datos</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setSidebarTab('analytics')}
+            className={`btn-tactile flex flex-1 items-center justify-center gap-1.5 rounded py-1 text-xs font-medium transition-all ${
+              sidebarTab === 'analytics'
+                ? 'bg-white text-stone-950 shadow-2xs dark:bg-stone-800 dark:text-stone-100 rim-light-subtle font-semibold'
+                : 'text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-200'
+            }`}
+          >
+            <TrendingUp className="h-3 w-3 text-stone-500 dark:text-stone-400" />
+            <span>Análisis</span>
+          </button>
+        </div>
       </div>
 
       {sidebarTab === 'analytics' ? (
@@ -655,42 +657,42 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
             {/* DIMENSIONS SECTION (BLUE) */}
             <div>
               <div className="flex items-center justify-between pb-1.5">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-sky-700 dark:text-sky-400 font-mono">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400 font-mono">
                   Dimensiones ({dimensions.length})
                 </span>
-                <span className="text-[10px] text-stone-400 italic font-serif">Group By</span>
+                <span className="text-[9px] font-mono text-stone-400">DISCRETAS</span>
               </div>
 
-              <div className="space-y-1">
+              <div className="space-y-0.5">
                 {dimensions.map((col) => renderColumnItem(col, 'columns'))}
               </div>
             </div>
 
             {/* MEASURES SECTION (GREEN) */}
             <div>
-              <div className="flex items-center justify-between pb-1.5 pt-2 border-t border-stone-200/60 dark:border-stone-800/60">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 font-mono">
+              <div className="flex items-center justify-between pb-1.5 pt-2.5 border-t border-stone-200/60 dark:border-white/[0.06]">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400 font-mono">
                   Métricas ({measures.length})
                 </span>
-                <span className="text-[10px] text-stone-400 italic font-serif">Agregación</span>
+                <span className="text-[9px] font-mono text-stone-400">CONTINUAS</span>
               </div>
 
-              <div className="space-y-1">
+              <div className="space-y-0.5">
                 {measures.map((col) => renderColumnItem(col, 'rows'))}
               </div>
             </div>
 
             {/* PARAMETERS SECTION (AMBER) */}
-            <div className="pt-2 border-t border-stone-200/60 dark:border-stone-800/60">
+            <div className="pt-2.5 border-t border-stone-200/60 dark:border-white/[0.06]">
               <div className="flex items-center justify-between pb-1.5">
-                <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 font-mono">
-                  <Sliders className="h-3 w-3" />
+                <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400 font-mono">
+                  <Sliders className="h-3 w-3 text-stone-400" />
                   <span>Parámetros ({parameters.length})</span>
                 </span>
                 <button
                   type="button"
                   onClick={() => onOpenParameterModal()}
-                  className="flex items-center gap-1 rounded bg-stone-200/80 px-1.5 py-0.5 text-[10px] font-mono text-stone-700 hover:bg-stone-300 dark:bg-stone-800 dark:text-stone-300 dark:hover:bg-stone-700"
+                  className="btn-tactile flex items-center gap-1 rounded bg-stone-200/70 px-1.5 py-0.5 text-[10px] font-mono text-stone-700 hover:bg-stone-300 dark:bg-stone-800 dark:text-stone-300 dark:hover:bg-stone-700"
                   title="Crear un nuevo parámetro dinámico"
                 >
                   <Plus className="h-2.5 w-2.5" />
@@ -699,7 +701,7 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
               </div>
 
               {parameters.length === 0 ? (
-                <p className="text-[11px] text-stone-400 italic">No hay parámetros definidos.</p>
+                <p className="text-[10px] font-mono text-stone-400 py-1">Sin parámetros activos</p>
               ) : (
                 <div className="space-y-2 mt-1">
                   {parameters.map((param) => {

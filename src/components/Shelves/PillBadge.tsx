@@ -89,22 +89,22 @@ export const PillBadge: React.FC<PillBadgeProps> = ({
     <div
       draggable
       onDragStart={handleDragStart}
-      className={`group relative inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium shadow-sm transition-all duration-150 cursor-grab active:cursor-grabbing select-none ${
+      className={`group relative inline-flex items-center gap-1 rounded-[5px] px-2 py-0.5 text-xs font-medium transition-all duration-150 cursor-grab active:cursor-grabbing select-none shadow-[inset_0_1px_0_0_rgba(255,255,255,0.22),0_1px_2px_0_rgba(0,0,0,0.12)] ${
         isDimension
-          ? 'bg-sky-600 text-white hover:bg-sky-700 dark:bg-sky-700 dark:hover:bg-sky-600'
-          : 'bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-700 dark:hover:bg-emerald-600'
+          ? 'bg-sky-600 text-white border border-sky-500/80 hover:bg-sky-500 dark:bg-sky-700 dark:border-sky-600 dark:hover:bg-sky-600'
+          : 'bg-emerald-600 text-white border border-emerald-500/80 hover:bg-emerald-500 dark:bg-emerald-700 dark:border-emerald-600 dark:hover:bg-emerald-600'
       }`}
     >
       <span className="flex items-center">
         {renderIcon()}
-        <span className="truncate max-w-[140px] font-mono tracking-tight">{getLabel()}</span>
+        <span className="truncate max-w-[140px] font-mono text-[11px] tracking-tight">{getLabel()}</span>
         {pill.quickTableCalc && (
-          <span className="ml-1 rounded bg-amber-400/30 px-1 py-0.2 text-[9px] font-bold text-amber-200">
+          <span className="ml-1 rounded bg-black/25 px-1 py-0.2 text-[9px] font-mono font-bold text-amber-200">
             Δ
           </span>
         )}
         {pill.formatConfig && pill.formatConfig.type !== 'auto' && (
-          <span className="ml-1 rounded bg-black/20 px-1 py-0.2 text-[9px] font-mono font-bold text-emerald-200" title={`Formato: ${pill.formatConfig.type}`}>
+          <span className="ml-1 rounded bg-black/25 px-1 py-0.2 text-[9px] font-mono font-bold text-emerald-200" title={`Formato: ${pill.formatConfig.type}`}>
             {pill.formatConfig.type === 'currency'
               ? pill.formatConfig.currencySymbol || '$'
               : pill.formatConfig.type === 'percent'
@@ -124,7 +124,7 @@ export const PillBadge: React.FC<PillBadgeProps> = ({
             e.stopPropagation();
             onDrillUp();
           }}
-          className="rounded bg-black/20 px-1 py-0.5 hover:bg-black/40 font-bold text-[10px] leading-none transition-colors"
+          className="h-3.5 w-3.5 flex items-center justify-center rounded bg-black/20 hover:bg-black/35 font-mono font-bold text-[10px] leading-none active:scale-95 transition-all"
           title="Contraer nivel jerárquico (-)"
         >
           -
@@ -139,7 +139,7 @@ export const PillBadge: React.FC<PillBadgeProps> = ({
             e.stopPropagation();
             onDrillDown();
           }}
-          className="rounded bg-black/20 px-1 py-0.5 hover:bg-black/40 font-bold text-[10px] leading-none transition-colors"
+          className="h-3.5 w-3.5 flex items-center justify-center rounded bg-black/20 hover:bg-black/35 font-mono font-bold text-[10px] leading-none active:scale-95 transition-all"
           title="Desglosar nivel jerárquico (+)"
         >
           +
@@ -153,7 +153,7 @@ export const PillBadge: React.FC<PillBadgeProps> = ({
           e.stopPropagation();
           setMenuOpen(!menuOpen);
         }}
-        className="rounded p-0.5 hover:bg-black/20 focus:outline-none"
+        className="rounded p-0.5 hover:bg-black/20 active:scale-95 focus:outline-none transition-all"
         title="Opciones de campo"
       >
         <ChevronDown className="h-3 w-3" />
@@ -166,7 +166,7 @@ export const PillBadge: React.FC<PillBadgeProps> = ({
           e.stopPropagation();
           onRemove();
         }}
-        className="rounded p-0.5 hover:bg-black/20 focus:outline-none"
+        className="rounded p-0.5 hover:bg-black/20 active:scale-95 focus:outline-none transition-all"
         title="Eliminar pastilla"
       >
         <X className="h-3 w-3" />
@@ -176,7 +176,7 @@ export const PillBadge: React.FC<PillBadgeProps> = ({
       {menuOpen && (
         <div
           ref={menuRef}
-          className="absolute left-0 top-full z-50 mt-1 min-w-[190px] rounded-lg border border-stone-200 bg-white py-1.5 shadow-xl dark:border-stone-800 dark:bg-stone-900 text-stone-900 dark:text-stone-100 max-h-[360px] overflow-y-auto"
+          className="absolute left-0 top-full z-50 mt-1 min-w-[190px] rounded-md border border-stone-200/90 bg-white py-1 shadow-xl dark:border-white/[0.08] dark:bg-stone-950 text-stone-900 dark:text-stone-100 max-h-[360px] overflow-y-auto rim-light-subtle"
         >
           {isMeasure && onSetAggregation && (
             <>

@@ -142,6 +142,7 @@ gitGraph
     commit id: "hierarchies-and-dynamic-drill" tag: "v2.8.0"
     commit id: "number-formatting-engine" tag: "v2.9.0"
     commit id: "executive-export-and-bundle-optimization" tag: "v3.0.0"
+    commit id: "unslop-precision-swiss-density" tag: "v3.1.0"
 ```
 
 ---
@@ -180,6 +181,7 @@ gitGraph
 | **CP-28** | Jerarquías y Drill-down / Drill-up Dinámico (`+` / `-`) en Pastillas y Panel Lateral | **Completado** | 1) Desglose temporal Tableau: `year ➔ quarter ➔ month ➔ week ➔ day`; 2) Botones interactivos `[+]` y `[-]` en `PillBadge.tsx` que expanden y colapsan granularidad en vivo en Rows y Columns sin rehacer el lienzo; 3) Soporte para jerarquías dimensionales personalizadas (`hierarchies` en `DatasetMeta`); 4) Acciones `drillDownPill`, `drillUpPill` y `createHierarchy` en `worksheetStore.ts`; 5) 4/4 tests en `evolutionaryStore.test.ts`. |
 | **CP-29** | Motor Universal de Formato Numérico y Tipográfico por Métrica | **Completado** | 1) Utilidad universal `numberFormatter.ts` con soporte para Moneda (`$`, `€`, `£`, etc.), Porcentajes (`%`), Compacto (`K`, `M`, `B`), Notación Científica y Estándar con decimales y comas de miles; 2) Menú contextual en pastillas verdes de métrica (*"Formato de Número..."*) con badges visuales de formato; 3) Propagación reactiva a ejes X/Y de Observable Plot en `PlotRenderer.tsx`, tooltips nativos y celdas y fila de Total General en `TextTableRenderer.tsx`; 4) 6/6 tests unitarios en `numberFormatter.test.ts`. |
 | **CP-30** | Suite de Exportación Ejecutiva (PNG Retina, SVG, PDF) y Optimización Arquitectónica de Bundle | **Completado** | 1) Exportador visual `exportVisual.ts`: PNG Retina de alta resolución (escala 2x en Canvas con fondo adaptativo), Vectorial SVG puro con namespaces XML y PDF / Informe Impreso (`window.print()`); 2) Reglas `@media print` en `index.css` que ocultan chrome de UI (toolbars, estantes, sidebars) y renderizan reportes ejecutivos limpios; 3) Dropdown "Exportar" en `Header.tsx`; 4) Optimización de empaquetado en `vite.config.ts` (`manualChunks` dividiendo `vendor-duckdb`, `vendor-sheetjs`, `vendor-sqljs`, `vendor-plot`, `vendor-react-core`, `vendor-lucide`), eliminando advertencias de tamaño y reduciendo el chunk principal de 1,582 kB a 445 kB. |
+| **CP-31** | Rediseño Técnico Unslop (Linear-Grade & Precisión Suiza) | **Completado** | Erradicación total de patrones de vibecoding e IA genérica ('AI slop'): 1) Eliminación de cajas de iconos pastel arcoíris y sustitución por filas monocromas de alta densidad con extensiones mono (.xlsx, .csv, .parquet, .sqlite); 2) Sustitución de `font-editorial` y `animate-pulse` por títulos en sans de precisión técnica, estado de memoria estático y sparklines mono; 3) Conversión del panel de marketing 'Descubrir' en Inspector de Telemetría y Diagnóstico (DuckDB WASM, ARM64 SIMD, OPFS) y matriz de atajos `<kbd>`; 4) Adopción de tokens de bisel subpíxel `.rim-light`, respuestas táctiles mecánicas `.btn-tactile` y blueprint `.bg-dot-grid`; 5) Pastillas cartridge estilo Tableau con controles micro `[+]` y `[-]`; 6) Segmented controls en DataSidebar y TabBar compacto de 36px. Batería Zero-Defect: 52/52 tests, 0 errores tsc, build limpio en 3.17s y HTTP 200 en puerto 5173. |
 
 ---
 
@@ -275,15 +277,16 @@ atelier-analytics/
 
 ---
 
-- **Estado Actual:** Plataforma de Analítica Visual Atelier v3.0 (Checkpoints **CP-27**, **CP-28**, **CP-29** y **CP-30** Completados):
-  1. **Capacidades Evolutivas Implementadas:**
+- **Estado Actual:** Plataforma de Analítica Visual Atelier v3.1.0 (Checkpoints **CP-27**, **CP-28**, **CP-29**, **CP-30** y **CP-31** Completados):
+  1. **Capacidades Evolutivas y Rediseño Unslop:**
      - **Motor de Expresiones LOD de Tableau (CP-27)**: Parser y compilador para `{FIXED [Dim] : AGG([Field])}`, `{FIXED : AGG([Field])}` (table-scoped), `{EXCLUDE ...}` e `{INCLUDE ...}` con subconsultas correlacionadas vectorizadas en DuckDB-WASM y soporte para pastillas `AGG(...)`.
      - **Jerarquías y Drill-down / Drill-up Dinámico (CP-28)**: Desglose jerárquico temporal continuo (`year ➔ quarter ➔ month ➔ week ➔ day`) y dimensional personalizado mediante botones interactivos `[+]` y `[-]` directamente en pastillas Rows/Columns sin rehacer el lienzo.
      - **Motor Universal de Formato Numérico (CP-29)**: Formateador tipográfico para Moneda (`$`, `€`), Porcentaje (`%`), Compacto (`K`, `M`, `B`), Notación Científica y Estándar, sincronizado en ejes de Observable Plot, tooltips y celdas/totales de la tabla cruzada.
      - **Exportación Ejecutiva y Optimización de Bundle (CP-30)**: Exportación a PNG Retina 2x, SVG vectorial puro, PDF/impresión con `@media print`, y empaquetado optimizado en Vite con 7 vendor chunks dedicados (`vendor-duckdb`, `vendor-sheetjs`, `vendor-sqljs`, `vendor-plot`, `vendor-react-core`, `vendor-lucide`), reduciendo el chunk principal de 1,582 kB a 445 kB.
+     - **Rediseño Técnico Unslop (CP-31)**: Eliminación total de anti-patrones vibecoded (cajas de iconos arcoíris, animaciones `pulse`/`scale-105`, radios `rounded-2xl` excesivos, serifs e cursivas aleatorias). Aplicación de arquetipo Linear / Raycast / Precisión Suiza: biseles subpíxel `.rim-light`, respuestas táctiles mecánicas `.btn-tactile`, atajos `<kbd>`, blueprint `.bg-dot-grid`, pastillas cartridge compactas y panel de telemetría y diagnóstico del motor.
   2. **Verificación Zero-Defect:**
-     - 52/52 tests unitarios pasando en Vitest (100% verde).
+     - 52/52 tests unitarios pasando en Bun/Vitest (100% verde).
      - Tipado estricto (`tsc -b`) con 0 errores y 0 advertencias.
-     - Compilación estática de producción (`vite build`) en 3.04s sin advertencias de tamaño de chunk.
+     - Compilación estática de producción (`vite build`) en 3.17s sin advertencias de tamaño de chunk.
      - Servidor activo en macOS respondiendo `HTTP 200 OK` en `http://localhost:5173`.
-- **Siguiente Paso:** Presentar al usuario la plataforma Atelier Analytics v3.0 con el conjunto completo de capacidades evolutivas ejecutadas.
+- **Siguiente Paso:** Presentar la plataforma Atelier Analytics v3.1.0 al usuario tras completar el rediseño Unslop.
