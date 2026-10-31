@@ -1,5 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Pill, AggregationFunction, ShelfId, QuickTableCalcType } from '../../core/ast/types';
+import {
+  Pill,
+  AggregationFunction,
+  ShelfId,
+  QuickTableCalcType,
+  NumberFormatConfig,
+} from '../../core/ast/types';
 import { ChevronDown, X, Hash, Calendar, Type } from 'lucide-react';
 
 interface PillBadgeProps {
@@ -10,6 +16,9 @@ interface PillBadgeProps {
   onSetQuickTableCalc?: (calcType?: QuickTableCalcType) => void;
   onSetSort?: (sort: 'asc' | 'desc' | 'none') => void;
   onSetDateTrunc?: (trunc: 'year' | 'quarter' | 'month' | 'day') => void;
+  onDrillDown?: () => void;
+  onDrillUp?: () => void;
+  onSetFormat?: (config: NumberFormatConfig) => void;
 }
 
 export const PillBadge: React.FC<PillBadgeProps> = ({
@@ -20,12 +29,21 @@ export const PillBadge: React.FC<PillBadgeProps> = ({
   onSetQuickTableCalc,
   onSetSort,
   onSetDateTrunc,
+  onDrillDown,
+  onDrillUp,
+  onSetFormat,
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   const isDimension = pill.role === 'dimension';
   const isMeasure = pill.role === 'measure';
+
+  const canDrillDown =
+    (pill.dataType === 'date' && pill.dateTruncation !== 'day') || Boolean(pill.hierarchyId);
+  const canDrillUp =
+    (pill.dataType === 'date' && Boolean(pill.dateTruncation) && pill.dateTruncation !== 'year') ||
+    (Boolean(pill.hierarchyId) && (pill.hierarchyLevelIndex ?? 0) > 0);
 
   // Close menu on outside click
   useEffect(() => {
@@ -85,7 +103,48 @@ export const PillBadge: React.FC<PillBadgeProps> = ({
             Δ
           </span>
         )}
+        {pill.formatConfig && pill.formatConfig.type !== 'auto' && (
+          <span className="ml-1 rounded bg-black/20 px-1 py-0.2 text-[9px] font-mono font-bold text-emerald-200" title={`Formato: ${pill.formatConfig.type}`}>
+            {pill.formatConfig.type === 'currency'
+              ? pill.formatConfig.currencySymbol || '$'
+              : pill.formatConfig.type === 'percent'
+              ? '%'
+              : pill.formatConfig.type === 'compact'
+              ? 'K'
+              : '#'}
+          </span>
+        )}
       </span>
+
+      {/* Drill-Up button (-) */}
+      {onDrillUp && canDrillUp && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDrillUp();
+          }}
+          className="rounded bg-black/20 px-1 py-0.5 hover:bg-black/40 font-bold text-[10px] leading-none transition-colors"
+          title="Contraer nivel jerárquico (-)"
+        >
+          -
+        </button>
+      )}
+
+      {/* Drill-Down button (+) */}
+      {onDrillDown && canDrillDown && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDrillDown();
+          }}
+          className="rounded bg-black/20 px-1 py-0.5 hover:bg-black/40 font-bold text-[10px] leading-none transition-colors"
+          title="Desglosar nivel jerárquico (+)"
+        >
+          +
+        </button>
+      )}
 
       {/* Pill Dropdown Toggle */}
       <button
@@ -185,6 +244,47 @@ export const PillBadge: React.FC<PillBadgeProps> = ({
                     >
                       <span>{q.label}</span>
                       <span className="text-[10px] text-amber-500 font-mono">Δ</span>
+                    </button>
+                  ))}
+                  <div className="my-1 border-t border-stone-100 dark:border-stone-800" />
+                </>
+              )}
+
+              {/* Number Formatting (Tableau Format Dialog) */}
+              {onSetFormat && (
+                <>
+                  <div className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-stone-400">
+                    Formato de Número
+                  </div>
+                  {(
+                    [
+                      { type: 'auto', label: 'Automático' },
+                      { type: 'currency', label: 'Moneda ($)', symbol: '$', decimals: 2 },
+                      { type: 'currency', label: 'Moneda (€)', symbol: '€', decimals: 2 },
+                      { type: 'percent', label: 'Porcentaje (%)', decimals: 1 },
+                      { type: 'compact', label: 'Compacto (K, M, B)', decimals: 1 },
+                      { type: 'number', label: 'Estándar (2 dec)', decimals: 2 },
+                    ] as const
+                  ).map((fmt) => (
+                    <button
+                      key={fmt.label}
+                      type="button"
+                      onClick={() => {
+                        onSetFormat({
+                          type: fmt.type as any,
+                          currencySymbol: (fmt as any).symbol,
+                          decimals: (fmt as any).decimals,
+                        });
+                        setMenuOpen(false);
+                      }}
+                      className={`flex w-full items-center justify-between px-3 py-1 text-xs hover:bg-stone-100 dark:hover:bg-stone-800 ${
+                        pill.formatConfig?.type === fmt.type &&
+                        (!('symbol' in fmt) || pill.formatConfig?.currencySymbol === (fmt as any).symbol)
+                          ? 'font-bold text-emerald-600 dark:text-emerald-400'
+                          : ''
+                      }`}
+                    >
+                      <span>{fmt.label}</span>
                     </button>
                   ))}
                   <div className="my-1 border-t border-stone-100 dark:border-stone-800" />

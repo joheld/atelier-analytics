@@ -491,4 +491,111 @@ describe('Atelier Analytics Compiler & AST Builder', () => {
     expect(compiled.sql).toContain('SUM(profit) AS sum_profit');
     expect(compiled.sql).toContain('GROUP BY region, category');
   });
+
+  it('compiles Tableau Level of Detail (LOD) FIXED expressions with and without dimensions', () => {
+    // 1. FIXED by Region
+    const fixedRegionState: WorksheetState = {
+      datasetId: 'superstore',
+      tableName: 'superstore',
+      columns: [
+        { id: 'c1', columnName: 'region', role: 'dimension', dataType: 'string' },
+      ],
+      rows: [
+        {
+          id: 'r1',
+          columnName: 'region_sales',
+          role: 'measure',
+          dataType: 'number',
+          isCalculated: true,
+          formula: '{FIXED [region] : SUM([sales])}',
+        },
+        {
+          id: 'r2',
+          columnName: 'table_sales',
+          role: 'measure',
+          dataType: 'number',
+          isCalculated: true,
+          formula: '{FIXED : SUM([sales])}',
+        },
+      ],
+      filters: [],
+      marks: { markType: 'bar', detail: [], tooltip: [], opacity: 0.9 },
+    };
+
+    const ast = buildWorksheetAST(fixedRegionState);
+    const compiled = compileASTtoDuckDB(ast);
+
+    // Should generate correlated subquery for FIXED [region]
+    expect(compiled.sql).toContain('(SELECT SUM(_lod.sales) FROM superstore AS _lod WHERE _lod.region = superstore.region)');
+    // Should generate scalar subquery for FIXED : (table-scoped)
+    expect(compiled.sql).toContain('(SELECT SUM(_lod.sales) FROM superstore AS _lod)');
+    expect(compiled.sql).toContain('GROUP BY region');
+  });
+
+  it('compiles Tableau EXCLUDE and INCLUDE Level of Detail expressions based on viz grain', () => {
+    const lodState: WorksheetState = {
+      datasetId: 'superstore',
+      tableName: 'superstore',
+      columns: [
+        { id: 'c1', columnName: 'region', role: 'dimension', dataType: 'string' },
+        { id: 'c2', columnName: 'category', role: 'dimension', dataType: 'string' },
+      ],
+      rows: [
+        {
+          id: 'r1',
+          columnName: 'sales_excluding_category',
+          role: 'measure',
+          dataType: 'number',
+          isCalculated: true,
+          formula: '{EXCLUDE [category] : SUM([sales])}',
+        },
+        {
+          id: 'r2',
+          columnName: 'avg_including_customer',
+          role: 'measure',
+          dataType: 'number',
+          isCalculated: true,
+          formula: '{INCLUDE [customer_id] : AVG([sales])}',
+        },
+      ],
+      filters: [],
+      marks: { markType: 'bar', detail: [], tooltip: [], opacity: 0.9 },
+    };
+
+    const ast = buildWorksheetAST(lodState);
+    const compiled = compileASTtoDuckDB(ast);
+
+    // EXCLUDE [category] from [region, category] leaves [region]
+    expect(compiled.sql).toContain('(SELECT SUM(_lod.sales) FROM superstore AS _lod WHERE _lod.region = superstore.region)');
+    // INCLUDE [customer_id] on [region, category] expands to [region, category, customer_id]
+    expect(compiled.sql).toContain('_lod.region = superstore.region AND _lod.category = superstore.category AND _lod.customer_id = superstore.customer_id');
+  });
+
+  it('compiles ratio formulas combining aggregated measures with LOD expressions', () => {
+    const ratioState: WorksheetState = {
+      datasetId: 'superstore',
+      tableName: 'superstore',
+      columns: [
+        { id: 'c1', columnName: 'region', role: 'dimension', dataType: 'string' },
+      ],
+      rows: [
+        {
+          id: 'r1',
+          columnName: 'sales_pct_of_region',
+          role: 'measure',
+          dataType: 'number',
+          isCalculated: true,
+          formula: 'SUM([sales]) / {FIXED [region] : SUM([sales])} * 100',
+        },
+      ],
+      filters: [],
+      marks: { markType: 'bar', detail: [], tooltip: [], opacity: 0.9 },
+    };
+
+    const ast = buildWorksheetAST(ratioState);
+    const compiled = compileASTtoDuckDB(ast);
+
+    expect(compiled.sql).toContain('SUM([sales]) / (SELECT SUM(_lod.sales) FROM superstore AS _lod WHERE _lod.region = superstore.region) * 100');
+    expect(compiled.sql).toContain('GROUP BY region');
+  });
 });

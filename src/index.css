@@ -58,3 +58,33 @@
 .transition-smooth {
   transition: all 180ms cubic-bezier(0.16, 1, 0.3, 1);
 }
+
+/* Executive PDF & Print Optimization */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  header,
+  nav,
+  aside,
+  [data-print-hide="true"],
+  .no-print {
+    display: none !important;
+  }
+  main,
+  #root,
+  .print-area {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+  svg {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+}

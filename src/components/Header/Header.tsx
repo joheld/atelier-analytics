@@ -16,10 +16,13 @@ import {
   Database,
   Info,
   FileSpreadsheet,
+  Image,
+  Printer,
 } from 'lucide-react';
 import React, { useRef, useState, useEffect } from 'react';
 import { DatasetMeta } from '../../core/ast/types';
 import { SavedWorkbookRecord } from '../../core/storage/indexedDBStorage';
+import { exportPlotAsPng, exportPlotAsSvg, printExecutiveReport } from '../../utils/exportVisual';
 
 interface HeaderProps {
   theme: 'light' | 'dark';
@@ -74,8 +77,10 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isReportDropdownOpen, setIsReportDropdownOpen] = useState(false);
+  const [isExportDropdownOpen, setIsExportDropdownOpen] = useState(false);
   const [renameInput, setRenameInput] = useState(currentWorkbookName || 'Reporte Principal');
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const exportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setRenameInput(currentWorkbookName || 'Reporte Principal');
@@ -86,12 +91,15 @@ export const Header: React.FC<HeaderProps> = ({
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setIsReportDropdownOpen(false);
       }
+      if (exportRef.current && !exportRef.current.contains(e.target as Node)) {
+        setIsExportDropdownOpen(false);
+      }
     };
-    if (isReportDropdownOpen) {
+    if (isReportDropdownOpen || isExportDropdownOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     }
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isReportDropdownOpen]);
+  }, [isReportDropdownOpen, isExportDropdownOpen]);
 
   return (
     <header className="flex h-14 w-full items-center justify-between border-b border-stone-200/90 bg-white px-4 dark:border-stone-800 dark:bg-stone-900 select-none">
@@ -370,17 +378,81 @@ export const Header: React.FC<HeaderProps> = ({
           <span>Abrir</span>
         </button>
 
-        {onExportProject && (
+        {/* Executive Visual Export Dropdown */}
+        <div className="relative" ref={exportRef}>
           <button
             type="button"
-            onClick={onExportProject}
-            className="flex items-center gap-1 rounded-md border border-stone-200/80 bg-white px-2 py-1 text-xs font-mono text-stone-700 shadow-xs hover:bg-stone-50 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-300 dark:hover:bg-stone-800"
-            title="Guardar / Exportar proyecto a archivo (.atelier)"
+            onClick={() => setIsExportDropdownOpen(!isExportDropdownOpen)}
+            className="flex items-center gap-1.5 rounded-md border border-stone-200/80 bg-white px-2.5 py-1 text-xs font-mono text-stone-700 shadow-xs hover:bg-stone-50 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-300 dark:hover:bg-stone-800"
+            title="Exportar gráfico o informe ejecutivo"
           >
             <Download className="h-3 w-3 text-stone-500" />
-            <span>Guardar</span>
+            <span>Exportar</span>
+            <ChevronDown className="h-3 w-3 opacity-60" />
           </button>
-        )}
+
+          {isExportDropdownOpen && (
+            <div className="absolute right-0 top-full z-50 mt-1.5 w-56 rounded-lg border border-stone-200 bg-white py-1.5 shadow-xl dark:border-stone-800 dark:bg-stone-900 text-stone-900 dark:text-stone-100">
+              <div className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-stone-400">
+                Gráficos & Visuales
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsExportDropdownOpen(false);
+                  const el = document.querySelector('svg')?.parentElement || document.body;
+                  void exportPlotAsPng(el as HTMLElement, `${currentWorkbookName || 'atelier'}-grafico`);
+                }}
+                className="flex w-full items-center gap-2 px-3 py-1.5 text-xs hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-700 dark:text-stone-300"
+              >
+                <Image className="h-3.5 w-3.5 text-sky-500" />
+                <span>Imagen PNG (Retina 2x)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsExportDropdownOpen(false);
+                  const el = document.querySelector('svg')?.parentElement || document.body;
+                  exportPlotAsSvg(el as HTMLElement, `${currentWorkbookName || 'atelier'}-grafico`);
+                }}
+                className="flex w-full items-center gap-2 px-3 py-1.5 text-xs hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-700 dark:text-stone-300"
+              >
+                <Code className="h-3.5 w-3.5 text-emerald-500" />
+                <span>Gráfico Vectorial SVG (.svg)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsExportDropdownOpen(false);
+                  printExecutiveReport();
+                }}
+                className="flex w-full items-center gap-2 px-3 py-1.5 text-xs hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-700 dark:text-stone-300"
+              >
+                <Printer className="h-3.5 w-3.5 text-amber-500" />
+                <span>Informe PDF / Imprimir</span>
+              </button>
+
+              <div className="my-1 border-t border-stone-100 dark:border-stone-800" />
+
+              <div className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-stone-400">
+                Proyecto & Datos
+              </div>
+              {onExportProject && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsExportDropdownOpen(false);
+                    onExportProject();
+                  }}
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-xs hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-700 dark:text-stone-300"
+                >
+                  <Download className="h-3.5 w-3.5 text-indigo-500" />
+                  <span>Libro Completo (.atelier)</span>
+                </button>
+              )}
+            </div>
+          )}
+        </div>
 
         <button
           type="button"

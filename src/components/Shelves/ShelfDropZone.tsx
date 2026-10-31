@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Pill, ShelfId, AggregationFunction, QuickTableCalcType } from '../../core/ast/types';
+import { Pill, ShelfId, AggregationFunction, QuickTableCalcType, NumberFormatConfig } from '../../core/ast/types';
 import { PillBadge } from './PillBadge';
 
 interface ShelfDropZoneProps {
@@ -13,6 +13,9 @@ interface ShelfDropZoneProps {
   onSetQuickTableCalc?: (shelf: ShelfId, pillId: string, calcType?: QuickTableCalcType) => void;
   onSetSort?: (shelf: ShelfId, pillId: string, sort: 'asc' | 'desc' | 'none') => void;
   onSetDateTrunc?: (shelf: ShelfId, pillId: string, trunc: 'year' | 'quarter' | 'month' | 'day') => void;
+  onDrillDown?: (shelf: 'columns' | 'rows', pillId: string) => void;
+  onDrillUp?: (shelf: 'columns' | 'rows', pillId: string) => void;
+  onSetFormat?: (shelf: ShelfId, pillId: string, format: NumberFormatConfig) => void;
   placeholder?: string;
 }
 
@@ -27,6 +30,9 @@ export const ShelfDropZone: React.FC<ShelfDropZoneProps> = ({
   onSetQuickTableCalc,
   onSetSort,
   onSetDateTrunc,
+  onDrillDown,
+  onDrillUp,
+  onSetFormat,
   placeholder = 'Arrastra un campo aquí...',
 }) => {
   const [isOver, setIsOver] = useState(false);
@@ -95,6 +101,19 @@ export const ShelfDropZone: React.FC<ShelfDropZoneProps> = ({
               onSetSort={onSetSort ? (s) => onSetSort(shelfId, p.id, s) : undefined}
               onSetDateTrunc={
                 onSetDateTrunc ? (t) => onSetDateTrunc(shelfId, p.id, t) : undefined
+              }
+              onDrillDown={
+                onDrillDown && (shelfId === 'columns' || shelfId === 'rows')
+                  ? () => onDrillDown(shelfId, p.id)
+                  : undefined
+              }
+              onDrillUp={
+                onDrillUp && (shelfId === 'columns' || shelfId === 'rows')
+                  ? () => onDrillUp(shelfId, p.id)
+                  : undefined
+              }
+              onSetFormat={
+                onSetFormat ? (fmt) => onSetFormat(shelfId, p.id, fmt) : undefined
               }
             />
           ))

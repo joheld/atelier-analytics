@@ -57,40 +57,135 @@ export function substituteParameters(expression: string, parameters?: Parameter[
 }
 
 /**
+ * Compiles Tableau Level of Detail (LOD) expressions:
+ * - { FIXED [Dim1], [Dim2] : AGG([Measure]) }
+ * - { FIXED : AGG([Measure]) }
+ * - { EXCLUDE [Dim1] : AGG([Measure]) }
+ * - { INCLUDE [Dim1] : AGG([Measure]) }
+ */
+export function compileLodExpressions(
+  expression: string,
+  tableName: string,
+  currentVizDimensions: string[] = []
+): string {
+  if (!expression || !expression.includes('{')) return expression;
+
+  const lodRegex = /\{\s*(FIXED|INCLUDE|EXCLUDE)\s*([^:]*)\s*:\s*([^}]+)\}/gi;
+
+  return expression.replace(lodRegex, (_match, typeRaw, dimListRaw, aggExprRaw) => {
+    const lodType = typeRaw.toUpperCase() as 'FIXED' | 'INCLUDE' | 'EXCLUDE';
+    const rawDims = dimListRaw
+      .split(',')
+      .map((d: string) => d.trim().replace(/^\[|\]$/g, '').replace(/^"|"$/g, '').trim())
+      .filter((d: string) => d.length > 0);
+
+    let effectiveDims: string[] = [];
+    if (lodType === 'FIXED') {
+      effectiveDims = rawDims;
+    } else if (lodType === 'EXCLUDE') {
+      const excludedSet = new Set(rawDims.map((d: string) => d.toLowerCase()));
+      effectiveDims = currentVizDimensions.filter((d: string) => !excludedSet.has(d.toLowerCase()));
+    } else if (lodType === 'INCLUDE') {
+      const merged = new Set([...currentVizDimensions, ...rawDims]);
+      effectiveDims = Array.from(merged);
+    }
+
+    // Convert columns in inner aggregation expression to _lod."col"
+    let innerAgg = aggExprRaw.trim();
+    // 1. Replace [Field] -> _lod."Field"
+    innerAgg = innerAgg.replace(/\[([^\]]+)\]/g, (_m: string, col: string) => `_lod.${escapeIdentifier(col)}`);
+    // 2. Replace "Field" if not already prefixed
+    innerAgg = innerAgg.replace(/(?<!_lod\.)"([^"]+)"/g, (_m: string, col: string) => `_lod.${escapeIdentifier(col)}`);
+
+    const safeTable = escapeIdentifier(tableName || 'main_table');
+
+    if (effectiveDims.length === 0) {
+      return `(SELECT ${innerAgg} FROM ${safeTable} AS _lod)`;
+    }
+
+    const whereClauses = effectiveDims.map(
+      (dim) => `_lod.${escapeIdentifier(dim)} = ${safeTable}.${escapeIdentifier(dim)}`
+    );
+
+    return `(SELECT ${innerAgg} FROM ${safeTable} AS _lod WHERE ${whereClauses.join(' AND ')})`;
+  });
+}
+
+/**
  * Compiles an aggregation function to DuckDB SQL syntax
  */
-function compileAggregation(func: AggregationFunction, columnName: string, formula?: string, parameters?: Parameter[]): string {
-  const target = formula
-    ? `(${substituteParameters(formula, parameters)})`
-    : escapeIdentifier(columnName);
+function compileAggregation(
+  func: AggregationFunction,
+  columnName: string,
+  formula?: string,
+  parameters?: Parameter[],
+  tableName = '',
+  vizDims: string[] = []
+): string {
+  if (formula) {
+    const substituted = substituteParameters(formula, parameters);
+    const withLod = compileLodExpressions(substituted, tableName, vizDims);
+    // If formula already contains aggregate calls or is an LOD, treat as Tableau 'AGG' pill
+    if (/^\s*(SUM|AVG|MIN|MAX|COUNT|MEDIAN|COUNT_DISTINCT)\s*\(/i.test(formula.trim()) || formula.trim().startsWith('{')) {
+      return withLod;
+    }
+    const target = `(${withLod})`;
+    switch (func) {
+      case 'SUM':
+        return `SUM(${target})`;
+      case 'AVG':
+        return `AVG(${target})`;
+      case 'MIN':
+        return `MIN(${target})`;
+      case 'MAX':
+        return `MAX(${target})`;
+      case 'COUNT':
+        return `COUNT(${target})`;
+      case 'COUNT_DISTINCT':
+        return `COUNT(DISTINCT ${target})`;
+      case 'MEDIAN':
+        return `MEDIAN(${target})`;
+      default:
+        return `SUM(${target})`;
+    }
+  }
 
+  const safeCol = escapeIdentifier(columnName);
   switch (func) {
     case 'SUM':
-      return `SUM(${target})`;
+      return `SUM(${safeCol})`;
     case 'AVG':
-      return `AVG(${target})`;
+      return `AVG(${safeCol})`;
     case 'MIN':
-      return `MIN(${target})`;
+      return `MIN(${safeCol})`;
     case 'MAX':
-      return `MAX(${target})`;
+      return `MAX(${safeCol})`;
     case 'COUNT':
-      return `COUNT(${target})`;
+      return `COUNT(${safeCol})`;
     case 'COUNT_DISTINCT':
-      return `COUNT(DISTINCT ${target})`;
+      return `COUNT(DISTINCT ${safeCol})`;
     case 'MEDIAN':
-      return `MEDIAN(${target})`;
+      return `MEDIAN(${safeCol})`;
     default:
-      return `SUM(${target})`;
+      return `SUM(${safeCol})`;
   }
 }
 
 /**
  * Compiles a dimension expression (handles date truncation and calculated formulas)
  */
-function compileDimensionExpr(pill: Pill, parameters?: Parameter[]): { expr: string; alias: string } {
-  const target = pill.formula
-    ? `(${substituteParameters(pill.formula, parameters)})`
-    : escapeIdentifier(pill.columnName);
+function compileDimensionExpr(
+  pill: Pill,
+  parameters?: Parameter[],
+  tableName = '',
+  vizDims: string[] = []
+): { expr: string; alias: string } {
+  let target = escapeIdentifier(pill.columnName);
+  if (pill.formula) {
+    const substituted = substituteParameters(pill.formula, parameters);
+    const withLod = compileLodExpressions(substituted, tableName, vizDims);
+    target = withLod.startsWith('(') ? withLod : `(${withLod})`;
+  }
 
   const safeCol = escapeIdentifier(pill.columnName);
 
@@ -177,10 +272,11 @@ export function compileASTtoDuckDB(ast: WorksheetAST, parameters?: Parameter[]):
 
   const selectParts: string[] = [];
   const groupByParts: string[] = [];
+  const currentVizDims = ast.groupByDimensions.map((d) => d.columnName);
 
   // 1. Process Dimensions
   for (const dim of ast.groupByDimensions) {
-    const { expr, alias } = compileDimensionExpr(dim, parameters);
+    const { expr, alias } = compileDimensionExpr(dim, parameters, ast.tableName, currentVizDims);
     selectParts.push(`${expr} AS ${alias}`);
     groupByParts.push(expr);
     projections.push({
@@ -201,10 +297,13 @@ export function compileASTtoDuckDB(ast: WorksheetAST, parameters?: Parameter[]):
 
   for (const measure of ast.aggregatedMeasures) {
     const aggFunc = measure.aggregation || 'SUM';
-    const aggExpr = compileAggregation(aggFunc, measure.columnName, measure.formula, parameters);
-    const rawTarget = measure.formula
-      ? `(${substituteParameters(measure.formula, parameters)})`
-      : escapeIdentifier(measure.columnName);
+    const aggExpr = compileAggregation(aggFunc, measure.columnName, measure.formula, parameters, ast.tableName, currentVizDims);
+    let rawTarget = escapeIdentifier(measure.columnName);
+    if (measure.formula) {
+      const substituted = substituteParameters(measure.formula, parameters);
+      const withLod = compileLodExpressions(substituted, ast.tableName, currentVizDims);
+      rawTarget = withLod.startsWith('(') ? withLod : `(${withLod})`;
+    }
     const aliasRaw = getPillSqlIdentifier(measure);
     const safeAlias = escapeIdentifier(aliasRaw);
 

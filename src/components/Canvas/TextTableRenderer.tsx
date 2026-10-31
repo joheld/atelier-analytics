@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { WorksheetAST, Pill } from '../../core/ast/types';
 import { QueryExecutionResult } from '../../core/engine/duckdbClient';
 import { getPillSqlIdentifier } from '../../core/ast/builder';
+import { formatMetricValue } from '../../utils/numberFormatter';
 import {
   Search,
   ArrowUpDown,
@@ -165,17 +166,13 @@ export const TextTableRenderer: React.FC<TextTableRendererProps> = ({
     }
   };
 
-  const formatCell = (val: unknown, _role?: 'dimension' | 'measure'): string => {
+  const formatCell = (val: unknown, _role?: 'dimension' | 'measure', pill?: Pill): string => {
     if (val === null || val === undefined) return '—';
     if (typeof val === 'bigint') {
-      return Number(val).toLocaleString();
+      return formatMetricValue(Number(val), pill?.formatConfig);
     }
     if (typeof val === 'number') {
-      if (isNaN(val)) return '—';
-      return val.toLocaleString(undefined, {
-        minimumFractionDigits: Number.isInteger(val) ? 0 : 2,
-        maximumFractionDigits: 2,
-      });
+      return formatMetricValue(val, pill?.formatConfig);
     }
     if (val instanceof Date) {
       return val.toLocaleDateString();
@@ -356,7 +353,7 @@ export const TextTableRenderer: React.FC<TextTableRendererProps> = ({
                             : 'text-left text-stone-700 dark:text-stone-300'
                         }`}
                       >
-                        {formatCell(rawVal, col.role)}
+                        {formatCell(rawVal, col.role, col.pill)}
                       </td>
                     );
                   })}
@@ -383,12 +380,7 @@ export const TextTableRenderer: React.FC<TextTableRendererProps> = ({
                       key={col.key}
                       className="px-3.5 py-2.5 text-right font-bold text-stone-900 dark:text-stone-100"
                     >
-                      {totalVal !== undefined
-                        ? totalVal.toLocaleString(undefined, {
-                            minimumFractionDigits: 0,
-                            maximumFractionDigits: 2,
-                          })
-                        : ''}
+                      {totalVal !== undefined ? formatMetricValue(totalVal, col.pill?.formatConfig) : ''}
                     </td>
                   );
                 })}

@@ -120,6 +120,7 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
     role,
     dataType,
     aggregation: role === 'measure' ? 'SUM' : undefined,
+    dateTruncation: dataType === 'date' ? 'year' : undefined,
     isCalculated,
     formula,
   });

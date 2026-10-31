@@ -28,6 +28,32 @@ export default defineConfig({
     exclude: ['@duckdb/duckdb-wasm'],
   },
   build: {
-    chunkSizeWarningLimit: 1200,
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('@duckdb') || id.includes('apache-arrow')) {
+              return 'vendor-duckdb';
+            }
+            if (id.includes('xlsx')) {
+              return 'vendor-sheetjs';
+            }
+            if (id.includes('sql.js')) {
+              return 'vendor-sqljs';
+            }
+            if (id.includes('@observablehq/plot') || id.includes('/d3') || id.includes('d3-')) {
+              return 'vendor-plot';
+            }
+            if (id.includes('lucide-react')) {
+              return 'vendor-lucide';
+            }
+            if (id.includes('react') || id.includes('zustand')) {
+              return 'vendor-react-core';
+            }
+          }
+        },
+      },
+    },
   },
 });

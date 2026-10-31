@@ -64,6 +64,9 @@ export const App: React.FC = () => {
     setOpacity,
     swapShelves,
     clearAllShelves,
+    drillDownPill,
+    drillUpPill,
+    updatePillFormat,
     addAnalyticsLine,
     removeAnalyticsLine,
     toggleSQLDrawer,
@@ -336,6 +339,9 @@ export const App: React.FC = () => {
                       onSetQuickTableCalc={setPillQuickTableCalc}
                       onSetSort={setPillSort}
                       onSetDateTrunc={setPillDateTruncation}
+                      onDrillDown={drillDownPill}
+                      onDrillUp={drillUpPill}
+                      onSetFormat={updatePillFormat}
                       placeholder="Arrastra dimensiones o métricas para el Eje X..."
                     />
                     <ShelfDropZone
@@ -349,6 +355,9 @@ export const App: React.FC = () => {
                       onSetQuickTableCalc={setPillQuickTableCalc}
                       onSetSort={setPillSort}
                       onSetDateTrunc={setPillDateTruncation}
+                      onDrillDown={drillDownPill}
+                      onDrillUp={drillUpPill}
+                      onSetFormat={updatePillFormat}
                       placeholder="Arrastra dimensiones o métricas para el Eje Y..."
                     />
                   </div>

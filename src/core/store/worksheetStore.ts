@@ -19,6 +19,8 @@ import {
   UnionConfig,
   DataType,
   FieldRole,
+  NumberFormatConfig,
+  Hierarchy,
 } from '../ast/types';
 import { buildWorksheetAST } from '../ast/builder';
 import { compileASTtoDuckDB, CompiledQuery } from '../compiler/sqlCompiler';
@@ -147,6 +149,10 @@ export interface WorksheetStore extends WorksheetState {
   setOpacity: (opacity: number) => void;
   swapShelves: () => void;
   clearAllShelves: () => void;
+  drillDownPill: (shelf: 'columns' | 'rows', pillId: string) => void;
+  drillUpPill: (shelf: 'columns' | 'rows', pillId: string) => void;
+  updatePillFormat: (shelf: ShelfId, pillId: string, formatConfig: NumberFormatConfig) => void;
+  createHierarchy: (name: string, columnNames: string[]) => void;
 
   // Actions - Analytics Pane (Reference Lines, Trend Lines)
   addAnalyticsLine: (line: AnalyticsLine) => void;
@@ -1363,6 +1369,153 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
       };
     });
     void get().executeCurrentState();
+  },
+
+  drillDownPill: (shelf: 'columns' | 'rows', pillId: string) => {
+    set((state) => {
+      const targetPills = shelf === 'columns' ? [...state.columns] : [...state.rows];
+      const idx = targetPills.findIndex((p) => p.id === pillId);
+      if (idx === -1) return state;
+
+      const pill = targetPills[idx];
+
+      // Case 1: Date Hierarchy drill down (year -> quarter -> month -> week -> day)
+      if (pill.dataType === 'date') {
+        const dateProgression: ('year' | 'quarter' | 'month' | 'week' | 'day')[] = [
+          'year',
+          'quarter',
+          'month',
+          'week',
+          'day',
+        ];
+        const currentTrunc = pill.dateTruncation || 'year';
+        const currentLevel = dateProgression.indexOf(currentTrunc);
+
+        if (currentLevel < dateProgression.length - 1) {
+          const nextTrunc = dateProgression[currentLevel + 1];
+          if (!pill.dateTruncation) {
+            targetPills[idx] = { ...pill, dateTruncation: 'year' };
+          }
+          const childPill: Pill = {
+            id: `pill_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+            columnName: pill.columnName,
+            role: 'dimension',
+            dataType: 'date',
+            dateTruncation: nextTrunc,
+            isCalculated: pill.isCalculated,
+            formula: pill.formula,
+          };
+          targetPills.splice(idx + 1, 0, childPill);
+        }
+      } else if (pill.hierarchyId && state.currentDataset?.hierarchies) {
+        // Case 2: Custom Hierarchy drill down
+        const hier = state.currentDataset.hierarchies.find((h) => h.id === pill.hierarchyId);
+        if (hier) {
+          const curLevel = pill.hierarchyLevelIndex ?? hier.levels.indexOf(pill.columnName);
+          if (curLevel >= 0 && curLevel < hier.levels.length - 1) {
+            const nextCol = hier.levels[curLevel + 1];
+            const childPill: Pill = {
+              id: `pill_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+              columnName: nextCol,
+              role: 'dimension',
+              dataType: 'string',
+              hierarchyId: hier.id,
+              hierarchyLevelIndex: curLevel + 1,
+            };
+            targetPills.splice(idx + 1, 0, childPill);
+          }
+        }
+      }
+
+      const nextColumns = shelf === 'columns' ? targetPills : state.columns;
+      const nextRows = shelf === 'rows' ? targetPills : state.rows;
+      const nextSheets = state.sheets.map((s) =>
+        s.id === state.activeTabId
+          ? { ...s, columns: nextColumns, rows: nextRows }
+          : s
+      );
+
+      return {
+        columns: nextColumns,
+        rows: nextRows,
+        sheets: nextSheets,
+      };
+    });
+
+    void get().executeCurrentState();
+  },
+
+  drillUpPill: (shelf: 'columns' | 'rows', pillId: string) => {
+    set((state) => {
+      const targetPills = shelf === 'columns' ? [...state.columns] : [...state.rows];
+      const idx = targetPills.findIndex((p) => p.id === pillId);
+      if (idx === -1) return state;
+
+      targetPills.splice(idx, 1);
+
+      const nextColumns = shelf === 'columns' ? targetPills : state.columns;
+      const nextRows = shelf === 'rows' ? targetPills : state.rows;
+      const nextSheets = state.sheets.map((s) =>
+        s.id === state.activeTabId
+          ? { ...s, columns: nextColumns, rows: nextRows }
+          : s
+      );
+
+      return {
+        columns: nextColumns,
+        rows: nextRows,
+        sheets: nextSheets,
+      };
+    });
+
+    void get().executeCurrentState();
+  },
+
+  updatePillFormat: (_shelf: ShelfId, pillId: string, formatConfig: NumberFormatConfig) => {
+    set((state) => {
+      const updater = (p: Pill) => (p.id === pillId ? { ...p, formatConfig } : p);
+      const nextColumns = state.columns.map(updater);
+      const nextRows = state.rows.map(updater);
+      const nextMarks = {
+        ...state.marks,
+        color: state.marks.color?.id === pillId ? { ...state.marks.color, formatConfig } : state.marks.color,
+        size: state.marks.size?.id === pillId ? { ...state.marks.size, formatConfig } : state.marks.size,
+        detail: state.marks.detail.map(updater),
+        tooltip: state.marks.tooltip.map(updater),
+      };
+      const nextSheets = state.sheets.map((s) =>
+        s.id === state.activeTabId
+          ? { ...s, columns: nextColumns, rows: nextRows, marks: nextMarks }
+          : s
+      );
+      return {
+        columns: nextColumns,
+        rows: nextRows,
+        marks: nextMarks,
+        sheets: nextSheets,
+      };
+    });
+    void get().executeCurrentState();
+  },
+
+  createHierarchy: (name: string, columnNames: string[]) => {
+    set((state) => {
+      if (!state.currentDataset) return state;
+      const newHierarchy: Hierarchy = {
+        id: `hier_${Date.now()}`,
+        name,
+        levels: columnNames,
+      };
+      const updatedHierarchies = [...(state.currentDataset.hierarchies || []), newHierarchy];
+      const updatedDataset = { ...state.currentDataset, hierarchies: updatedHierarchies };
+      const updatedAvailable = state.availableDatasets.map((d) =>
+        d.id === updatedDataset.id ? updatedDataset : d
+      );
+      return {
+        currentDataset: updatedDataset,
+        availableDatasets: updatedAvailable,
+      };
+    });
   },
 
   setActiveFilterModal: (filter: FilterExpression | null) => {

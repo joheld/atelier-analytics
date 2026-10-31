@@ -138,6 +138,10 @@ gitGraph
     commit id: "fix-data-type-casting-and-sidebar-popover" tag: "v2.4.1"
     commit id: "tableau-splits-trim-and-bidirectional-casts" tag: "v2.5.0"
     commit id: "sqlite-tableau-packaged-and-relational-db-connectors" tag: "v2.6.0"
+    commit id: "tableau-lod-expressions" tag: "v2.7.0"
+    commit id: "hierarchies-and-dynamic-drill" tag: "v2.8.0"
+    commit id: "number-formatting-engine" tag: "v2.9.0"
+    commit id: "executive-export-and-bundle-optimization" tag: "v3.0.0"
 ```
 
 ---
@@ -172,6 +176,10 @@ gitGraph
 | **CP-24** | Robustecimiento del Cambio de Tipos de Datos (Cast) y Popover Interactivo en Panel Lateral | **Completado** | 1) Auto-sanación en `castColumn`: verificación y creación dinámica de la tabla física base `_base` si no existe; 2) Expresiones SQL multi-formato con `COALESCE` para números (limpieza de `$`, `€`, comas de miles y espacios), fechas (`%Y-%m-%d`, `%d/%m/%Y`, `%m/%d/%Y`, etc.) y booleanos (reconociendo 'si', 'sí', 'verdadero', 'false', '0', etc.); 3) Preservación estricta del orden original de columnas en DuckDB y preservación del flag `hidden`; 4) Sincronización automática de pastillas en todas las hojas (`pills`) al cambiar tipos o roles para evitar fallos de ejecución; 5) Popover interactivo estilo Tableau Desktop en el panel lateral (`DataSidebar.tsx`): clic en el icono (`#`, `Abc`, `📅`, `T/F`) o clic derecho para cambiar tipo, convertir dimensión/medida u ocultar; 6) 31/31 tests pasando en Vitest, 0 errores tsc, build limpio y HTTP 200. |
 | **CP-25** | Emulación Tableau Desktop: División de Columnas (Split / Custom Split), Limpieza de Texto (TRIM / Case) y Conversión Bidireccional de Tipos | **Completado** | 1) Helper universal `ensureBaseTable` para auto-sanación de tablas físicas `_base` en todas las operaciones de preparación (rename, cast, split, clean); 2) División de columnas (`splitColumn`) con convención Tableau `[Field] - Split 1..N` deduplicada contra colisiones de catálogo y soporte de modos First N, Last N (indexación negativa DuckDB) y All (cálculo de tokens máximos); 3) Modal interactivo dedicado para División Personalizada en `DataSourceWorkbench.tsx` (delimitador, selector First/Last/All y N columnas); 4) Limpieza de texto (`cleanColumn`) blindada con `CAST(... AS VARCHAR)` para evitar excepciones de binder en columnas numéricas o fechas; 5) Conversiones bidireccionales completas de tipos (número ⇄ cadena sin trailing `.0` en enteros, string ⇄ número con monedas/porcentajes/contabilidad, número ⇄ fecha con años 4 dígitos y días seriales de Excel, fecha ⇄ número con año/epoch); 6) Menú de campo en `DataSidebar.tsx` con acceso rápido a división y trim; 7) 34/34 tests unitarios pasando, 0 errores tsc, build limpio y HTTP 200. |
 | **CP-26** | Soporte Nativo de Bases SQLite, Archivos Tableau (.twbx/.tdsx/.twb/.tds) y Servidores Relacionales (PostgreSQL / MySQL) | **Completado** | 1) Ingesta SQLite (`sqliteIngestion.ts`) mediante `sql.js` (WebAssembly) con introspección automática de tablas de usuario y serialización RFC 4180; 2) Ingesta Tableau Desktop (`tableauIngestion.ts`) para descompresión de `.twbx` y `.tdsx` con `JSZip`, parsing XML de `.twb` y extracción de campos calculados y fórmulas; 3) Conector y puente backend local (`relationalDbBridge.ts` + `relationalDbClient.ts`) con drivers `pg` y `mysql2` para prueba de conexión e importación directa a DuckDB-WASM; 4) Modal de conexión a servidor estilo Tableau Desktop (`RelationalDbModal.tsx`) con pestañas PostgreSQL/MySQL, credenciales, selector de tablas o SQL personalizado; 5) Conectores integrados en StartPage, EmptyWorkspace y DataSidebar; 6) 39/39 tests unitarios pasando, 0 errores tsc, build limpio en 3.3s y HTTP 200 OK. |
+| **CP-27** | Motor de Expresiones LOD de Tableau (`FIXED`, `INCLUDE`, `EXCLUDE`) con Compilador Correlacionado Vectorial | **Completado** | 1) Parser y compilador LOD (`compileLodExpressions`) en `sqlCompiler.ts`: `{FIXED [Dim] : AGG([Field])}`, `{FIXED : AGG([Field])}` (table-scoped), `{EXCLUDE ...}` e `{INCLUDE ...}`; 2) Generación de subconsultas correlacionadas ultra-rápidas en DuckDB-WASM decorrelacionadas nativamente; 3) Detección de expresiones agregadas Tableau `AGG(...)` evitando anidamientos erróneos de agregación; 4) Biblioteca de funciones y recetas LOD integradas en `CalculatedFieldModal.tsx`; 5) 3/3 tests unitarios dedicados de compilación LOD en `sqlCompiler.test.ts`. |
+| **CP-28** | Jerarquías y Drill-down / Drill-up Dinámico (`+` / `-`) en Pastillas y Panel Lateral | **Completado** | 1) Desglose temporal Tableau: `year ➔ quarter ➔ month ➔ week ➔ day`; 2) Botones interactivos `[+]` y `[-]` en `PillBadge.tsx` que expanden y colapsan granularidad en vivo en Rows y Columns sin rehacer el lienzo; 3) Soporte para jerarquías dimensionales personalizadas (`hierarchies` en `DatasetMeta`); 4) Acciones `drillDownPill`, `drillUpPill` y `createHierarchy` en `worksheetStore.ts`; 5) 4/4 tests en `evolutionaryStore.test.ts`. |
+| **CP-29** | Motor Universal de Formato Numérico y Tipográfico por Métrica | **Completado** | 1) Utilidad universal `numberFormatter.ts` con soporte para Moneda (`$`, `€`, `£`, etc.), Porcentajes (`%`), Compacto (`K`, `M`, `B`), Notación Científica y Estándar con decimales y comas de miles; 2) Menú contextual en pastillas verdes de métrica (*"Formato de Número..."*) con badges visuales de formato; 3) Propagación reactiva a ejes X/Y de Observable Plot en `PlotRenderer.tsx`, tooltips nativos y celdas y fila de Total General en `TextTableRenderer.tsx`; 4) 6/6 tests unitarios en `numberFormatter.test.ts`. |
+| **CP-30** | Suite de Exportación Ejecutiva (PNG Retina, SVG, PDF) y Optimización Arquitectónica de Bundle | **Completado** | 1) Exportador visual `exportVisual.ts`: PNG Retina de alta resolución (escala 2x en Canvas con fondo adaptativo), Vectorial SVG puro con namespaces XML y PDF / Informe Impreso (`window.print()`); 2) Reglas `@media print` en `index.css` que ocultan chrome de UI (toolbars, estantes, sidebars) y renderizan reportes ejecutivos limpios; 3) Dropdown "Exportar" en `Header.tsx`; 4) Optimización de empaquetado en `vite.config.ts` (`manualChunks` dividiendo `vendor-duckdb`, `vendor-sheetjs`, `vendor-sqljs`, `vendor-plot`, `vendor-react-core`, `vendor-lucide`), eliminando advertencias de tamaño y reduciendo el chunk principal de 1,582 kB a 445 kB. |
 
 ---
 
@@ -259,22 +267,23 @@ atelier-analytics/
     │       ├── TextTableRenderer.test.tsx # Suite de pruebas de renderizado HTML y resistencia a BigInt
     │       └── SQLInspectorDrawer.tsx # Drawer para auditar el SQL DuckDB y memoria Arrow
     └── utils/
-        └── oklchColors.ts        # Paletas categóricas y secuenciales en espacio OKLCH
+        ├── oklchColors.ts        # Paletas categóricas y secuenciales en espacio OKLCH
+        ├── numberFormatter.ts    # Motor universal de formateo métrico y tipográfico (Moneda, %, Compacto, Estándar)
+        ├── numberFormatter.test.ts # Suite de pruebas de formateador numérico (6/6 pasados)
+        └── exportVisual.ts       # Suite de exportación visual ejecutiva: PNG Retina 2x, Vectorial SVG y PDF/Print
 ```
 
 ---
 
-- **Estado Actual:** Conectores Nativos para SQLite, Libros de Tableau (.twbx/.tdsx/.twb/.tds) y Servidores Relacionales (PostgreSQL / MySQL) (Checkpoint **CP-26**):
-  1. **Funcionalidades Implementadas:**
-     - Ingestión de Bases de Datos SQLite (.sqlite, .db, .sqlite3): Motor WebAssembly `sql.js` ejecutado 100% en el cliente que inspecciona el catálogo `sqlite_master`, extrae las tablas de usuario y las registra como tablas vectoriales independientes en DuckDB-WASM.
-     - Ingestión de Libros y Fuentes Tableau (.twbx, .tdsx, .twb, .tds): Desempaquetador client-side con `JSZip` que extrae los datos embebidos (.csv, .xlsx) e interpreta el archivo XML (`.twb`/`.tds`) rescatando automáticamente los campos calculados, títulos y fórmulas definidas por el usuario para poblarlos en la barra lateral.
-     - Conexión a Servidores Relacionales (PostgreSQL & MySQL):
-       - Puente backend local (`relationalDbBridge.ts`) integrado en Vite que aprovecha los drivers nativos de Node/Bun (`pg` y `mysql2`).
-       - Modal de conexión estilo Tableau Desktop (`RelationalDbModal.tsx`) con pestañas para PostgreSQL y MySQL, parámetros de host, puerto, base de datos, usuario, contraseña, SSL, botón de "Probar Conexión", selector de tablas con conteo de registros o consulta SQL personalizada libre.
-     - Acceso Unificado en la UI: Opciones añadidas en la pantalla de bienvenida (`StartPage.tsx`), en la zona de drop (`EmptyWorkspace.tsx`) y en el panel lateral de campos (`DataSidebar.tsx`).
+- **Estado Actual:** Plataforma de Analítica Visual Atelier v3.0 (Checkpoints **CP-27**, **CP-28**, **CP-29** y **CP-30** Completados):
+  1. **Capacidades Evolutivas Implementadas:**
+     - **Motor de Expresiones LOD de Tableau (CP-27)**: Parser y compilador para `{FIXED [Dim] : AGG([Field])}`, `{FIXED : AGG([Field])}` (table-scoped), `{EXCLUDE ...}` e `{INCLUDE ...}` con subconsultas correlacionadas vectorizadas en DuckDB-WASM y soporte para pastillas `AGG(...)`.
+     - **Jerarquías y Drill-down / Drill-up Dinámico (CP-28)**: Desglose jerárquico temporal continuo (`year ➔ quarter ➔ month ➔ week ➔ day`) y dimensional personalizado mediante botones interactivos `[+]` y `[-]` directamente en pastillas Rows/Columns sin rehacer el lienzo.
+     - **Motor Universal de Formato Numérico (CP-29)**: Formateador tipográfico para Moneda (`$`, `€`), Porcentaje (`%`), Compacto (`K`, `M`, `B`), Notación Científica y Estándar, sincronizado en ejes de Observable Plot, tooltips y celdas/totales de la tabla cruzada.
+     - **Exportación Ejecutiva y Optimización de Bundle (CP-30)**: Exportación a PNG Retina 2x, SVG vectorial puro, PDF/impresión con `@media print`, y empaquetado optimizado en Vite con 7 vendor chunks dedicados (`vendor-duckdb`, `vendor-sheetjs`, `vendor-sqljs`, `vendor-plot`, `vendor-react-core`, `vendor-lucide`), reduciendo el chunk principal de 1,582 kB a 445 kB.
   2. **Verificación Zero-Defect:**
-     - 39/39 tests unitarios pasando en Vitest (100% verde).
-     - Tipado estricto (`tsc --noEmit`) con 0 errores y 0 advertencias.
-     - Compilación estática de producción (`vite build`) en 3.3s limpia.
+     - 52/52 tests unitarios pasando en Vitest (100% verde).
+     - Tipado estricto (`tsc -b`) con 0 errores y 0 advertencias.
+     - Compilación estática de producción (`vite build`) en 3.04s sin advertencias de tamaño de chunk.
      - Servidor activo en macOS respondiendo `HTTP 200 OK` en `http://localhost:5173`.
-- **Siguiente Paso:** Entregar al usuario la funcionalidad y guiarlo en el uso de los nuevos conectores de bases de datos relacionales, SQLite y libros Tableau.
+- **Siguiente Paso:** Presentar al usuario la plataforma Atelier Analytics v3.0 con el conjunto completo de capacidades evolutivas ejecutadas.

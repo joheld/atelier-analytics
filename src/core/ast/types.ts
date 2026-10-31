@@ -41,6 +41,7 @@ export interface DatasetColumn {
   isCalculated?: boolean;
   formula?: string;
   hidden?: boolean; // Tableau "Ocultar campo"
+  formatConfig?: NumberFormatConfig;
 }
 
 export interface DatasetMeta {
@@ -50,6 +51,7 @@ export interface DatasetMeta {
   description: string;
   rowCount: number;
   columns: DatasetColumn[];
+  hierarchies?: Hierarchy[];
   sourceUrl?: string;
   // Tableau Data Interpreter
   isDataInterpreterAvailable?: boolean;
@@ -84,6 +86,32 @@ export interface AnalyticsLine {
   value?: number;
 }
 
+export type NumberFormatType = 'auto' | 'number' | 'currency' | 'percent' | 'compact' | 'scientific';
+
+export interface NumberFormatConfig {
+  type: NumberFormatType;
+  decimals?: number;
+  currencySymbol?: string; // '$', '€', '£', 'MXN $', etc.
+  useGrouping?: boolean;   // default true
+  prefix?: string;
+  suffix?: string;
+}
+
+export interface Hierarchy {
+  id: string;
+  name: string;
+  levels: string[]; // column names in order, e.g. ['Category', 'Sub-Category', 'Product Name']
+}
+
+export type LodType = 'FIXED' | 'INCLUDE' | 'EXCLUDE';
+
+export interface LodExpression {
+  type: LodType;
+  dimensions: string[];
+  aggregation: AggregationFunction;
+  targetField: string;
+}
+
 /**
  * A Pill represents an analytical field placed on a shelf.
  * - Dimension (Blue): Discrete field driving grouping and partitioning.
@@ -102,6 +130,11 @@ export interface Pill {
   alias?: string;
   // Date truncation if date dimension (e.g., 'year', 'month', 'day')
   dateTruncation?: 'year' | 'quarter' | 'month' | 'day' | 'week';
+  // Hierarchy tracking
+  hierarchyId?: string;
+  hierarchyLevelIndex?: number;
+  // Metric number formatting
+  formatConfig?: NumberFormatConfig;
   // Sorting preference
   sort?: 'asc' | 'desc' | 'none';
   // Custom calculated field metadata

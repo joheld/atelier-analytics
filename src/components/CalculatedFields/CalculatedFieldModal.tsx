@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { CalculatedField, DatasetColumn, Parameter, FieldRole, DataType } from '../../core/ast/types';
 import { duckdbEngine } from '../../core/engine/duckdbClient';
-import { substituteParameters } from '../../core/compiler/sqlCompiler';
+import { substituteParameters, compileLodExpressions } from '../../core/compiler/sqlCompiler';
 import {
   Calculator,
   CheckCircle2,
@@ -23,7 +23,7 @@ import {
 
 interface FunctionDoc {
   name: string;
-  category: 'logic' | 'numeric' | 'string' | 'date' | 'conversion' | 'stats' | 'advanced';
+  category: 'logic' | 'numeric' | 'string' | 'date' | 'conversion' | 'stats' | 'advanced' | 'lod';
   syntax: string;
   description: string;
   example: string;
@@ -31,6 +31,40 @@ interface FunctionDoc {
 }
 
 const FUNCTION_LIBRARY: FunctionDoc[] = [
+  // TABLEAU LEVEL OF DETAIL (LOD)
+  {
+    name: 'FIXED',
+    category: 'lod',
+    syntax: '{FIXED [Dim1], [Dim2] : AGG([Campo])}',
+    description: 'Calcula una métrica fijada exactamente a las dimensiones indicadas, ignorando las dimensiones activas en el lienzo de la hoja.',
+    example: '{FIXED [region] : SUM([sales])}',
+    snippet: '{FIXED [dim] : SUM([measure])}',
+  },
+  {
+    name: 'FIXED (Sin dimensiones)',
+    category: 'lod',
+    syntax: '{FIXED : AGG([Campo])}',
+    description: 'Calcula el total absoluto de toda la tabla independientemente de cualquier filtro o desglose dimensional en la hoja.',
+    example: '{FIXED : SUM([sales])}',
+    snippet: '{FIXED : SUM([measure])}',
+  },
+  {
+    name: 'INCLUDE',
+    category: 'lod',
+    syntax: '{INCLUDE [Dim] : AGG([Campo])}',
+    description: 'Calcula a un nivel de granularidad más detallado que el lienzo (añade la dimensión indicada a las dimensiones activas).',
+    example: '{INCLUDE [customer_id] : AVG([sales])}',
+    snippet: '{INCLUDE [dim] : AVG([measure])}',
+  },
+  {
+    name: 'EXCLUDE',
+    category: 'lod',
+    syntax: '{EXCLUDE [Dim] : AGG([Campo])}',
+    description: 'Calcula omitiendo una dimensión que está presente en la visualización, permitiendo comparar con el total superior.',
+    example: '{EXCLUDE [category] : SUM([sales])}',
+    snippet: '{EXCLUDE [dim] : SUM([measure])}',
+  },
+
   // LÓGICAS & CONDICIONALES
   {
     name: 'CASE WHEN',
@@ -312,6 +346,20 @@ const FUNCTION_LIBRARY: FunctionDoc[] = [
 
 const QUICK_RECIPES = [
   {
+    title: 'Benchmark Regional ({FIXED})',
+    desc: 'Total de ventas por región para comparar cualquier subsegmento',
+    formula: '{FIXED [region] : SUM([sales])}',
+    role: 'measure' as FieldRole,
+    type: 'number' as DataType,
+  },
+  {
+    title: '% del Total Global Fijo ({FIXED})',
+    desc: 'Porcentaje respecto al total global de toda la tabla',
+    formula: 'ROUND(100.0 * "sales" / NULLIF({FIXED : SUM([sales])}, 0), 2)',
+    role: 'measure' as FieldRole,
+    type: 'number' as DataType,
+  },
+  {
     title: 'Margen Porcentual (%)',
     desc: 'Ratio entre beneficio y ventas en base 100',
     formula: 'ROUND(("profit" / NULLIF("sales", 0)) * 100, 2)',
@@ -420,7 +468,7 @@ export const CalculatedFieldModal: React.FC<CalculatedFieldModalProps> = ({
 
     const timer = setTimeout(async () => {
       try {
-        const evaluated = substituteParameters(formula, parameters);
+        const evaluated = compileLodExpressions(substituteParameters(formula, parameters), tableName);
         const res = await duckdbEngine.validateCalculatedFormula(tableName, evaluated);
         if (res.valid && res.inferredRole && res.inferredDataType) {
           setAutoInferred({
@@ -460,7 +508,7 @@ export const CalculatedFieldModal: React.FC<CalculatedFieldModalProps> = ({
     if (!formula.trim() || !tableName) return;
     try {
       setIsValidating(true);
-      const evaluated = substituteParameters(formula, parameters);
+      const evaluated = compileLodExpressions(substituteParameters(formula, parameters), tableName);
       const res = await duckdbEngine.validateCalculatedFormula(tableName, evaluated);
       setValidationResult({
         tested: true,
@@ -487,7 +535,7 @@ export const CalculatedFieldModal: React.FC<CalculatedFieldModalProps> = ({
     if (!name.trim() || !formula.trim()) return;
 
     if (!validationResult?.tested) {
-      const evaluated = substituteParameters(formula, parameters);
+      const evaluated = compileLodExpressions(substituteParameters(formula, parameters), tableName);
       const res = await duckdbEngine.validateCalculatedFormula(tableName, evaluated);
       if (!res.valid) {
         setValidationResult({ tested: true, valid: false, error: res.error });
@@ -791,6 +839,7 @@ CASE WHEN "age" >= 50 THEN 'Senior' ELSE 'Junior' END`}
                     className="w-40 rounded-md border border-stone-200 bg-white px-2 py-1 text-xs text-stone-800 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200"
                   >
                     <option value="all">Todas las categorías</option>
+                    <option value="lod">Tableau LOD ({'{FIXED}'}, {'{EXCLUDE}'})</option>
                     <option value="stats">Estadística & ML (DuckDB)</option>
                     <option value="advanced">Regex, JSON & Arrays</option>
                     <option value="logic">Lógicas / Condicionales</option>

@@ -4,6 +4,7 @@ import { WorksheetAST, Pill } from '../../core/ast/types';
 import { getPillSqlIdentifier } from '../../core/ast/builder';
 import { QueryExecutionResult } from '../../core/engine/duckdbClient';
 import { EDITORIAL_OKLCH_CATEGORICAL, EDITORIAL_SEQUENTIAL_BLUE } from '../../utils/oklchColors';
+import { formatMetricValue } from '../../utils/numberFormatter';
 import { TextTableRenderer } from './TextTableRenderer';
 
 interface PlotRendererProps {
@@ -694,15 +695,24 @@ export const PlotRenderer: React.FC<PlotRendererProps> = ({ ast, result, theme }
             label: 'Valor de Métricas',
             grid: false,
             line: true,
-            tickFormat: (d) =>
-              typeof d === 'number' && d >= 1000 ? `${(d / 1000).toFixed(0)}k` : d,
+            tickFormat: (d) => {
+              if (typeof d === 'number') {
+                return formatMetricValue(d, xMeasures[0]?.formatConfig);
+              }
+              return d;
+            },
           }
         : {
             label: isMultiMeasureStandalone ? 'Métricas' : getPillDisplayLabel(xPill, xField || 'X'),
             grid: false,
             line: true,
             tickRotate: shouldRotateX ? -35 : 0,
-            tickFormat: formatXTick,
+            tickFormat: (d) => {
+              if (typeof d === 'number' && xPill?.role === 'measure') {
+                return formatMetricValue(d, xPill.formatConfig);
+              }
+              return formatXTick(d);
+            },
           },
       y: isMultiMeasureHorizontal
         ? {
@@ -717,8 +727,13 @@ export const PlotRenderer: React.FC<PlotRendererProps> = ({ ast, result, theme }
                 : getPillDisplayLabel(yPill, yField || 'Y'),
             grid: false,
             line: true,
-            tickFormat: (d) =>
-              typeof d === 'number' && d >= 1000 ? `${(d / 1000).toFixed(0)}k` : d,
+            tickFormat: (d) => {
+              if (typeof d === 'number') {
+                const measurePill = yMeasures[0] || (yPill?.role === 'measure' ? yPill : undefined);
+                return formatMetricValue(d, measurePill?.formatConfig);
+              }
+              return d;
+            },
           },
       color: colorScaleConfig,
       marks,
