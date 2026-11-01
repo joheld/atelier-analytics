@@ -147,6 +147,7 @@ gitGraph
     commit id: "table-calculations-advanced-analytics-crossfilter-and-maps" tag: "v3.3.0"
     commit id: "github-open-source-release-package" tag: "v1.0.0"
     commit id: "i18n-native-english-standard" tag: "v1.0.1"
+    commit id: "publish-public-github-and-pages" tag: "v1.0.2"
 ```
 
 ---
@@ -193,6 +194,7 @@ gitGraph
 | **CP-36** | Soporte de Cartografía y Geometrías Geoespaciales (`Plot.geo` / `MarkType: geo`) | **Completado** | 1) Incorporación de `'geo'` a `MarkType` en `types.ts` y en el selector de geometrías de `MarksCard.tsx`; 2) Renderizado cartográfico con `Plot.sphere` y `Plot.graticule` en proyección `equal-earth`; 3) Mapeo de dispersión espacial sobre coordenadas `(xField, yField)` con radio dinámico, tooltips y paleta editorial; 4) Anulación automática de ejes cartesianos estándar X/Y al proyectar mapas. |
 | **CP-37** | Empaquetado y Distribución Pública de Software Libre en GitHub (v1.0.0) | **Completado** | 1) Licencia legal abierta `LICENSE` (MIT estándar); 2) `README.md` editorial de primer nivel con insignias, arquitectura Mermaid, tabla de formatos (.parquet, .xlsx, .sqlite, .csv, .twbx) y guías de inicio rápido con Bun y NPM; 3) Guía de gobernanza comunitaria `CONTRIBUTING.md` con estándar Zero-Defect y `CODE_OF_CONDUCT.md`; 4) Automatización CI/CD con GitHub Actions (`ci.yml` para validación estricta y `deploy.yml` para GitHub Pages); 5) Dataset de prueba `public/superstore-sample.csv` y botón de carga en 1 clic en `EmptyWorkspace.tsx`; 6) Paridad multiplataforma Windows con `launch-desktop.bat` y `launch-desktop.ps1`; 7) Base relativa `base: './'` en `vite.config.ts`. Batería Zero-Defect: 54/54 tests, 0 errores tsc, build en 3.05s y HTTP 200 en puerto 5173. |
 | **CP-38** | Conversión Integral de UI y Terminología a Inglés Nativo Estándar (Option A) | **Completado** | UI 100% en inglés estándar Tableau/BI en todos los componentes (`Columns`, `Rows`, `Filters`, `Marks Card`, `Data Sources`, `Data Interpreter`, `Data Prep Grid`, `Calculated Fields`, `Parameters`, `Worksheets`, `Dashboards`, `Show Me`, `Storage Inspector`, `Start Page`), nombres por defecto (`'Sheet 1'`, `'Dashboard 1'`, `'Main Workbook'`), erradicación total de cadenas en español. 54/54 tests pasando (100% verde), 0 errores `tsc -b`, build en 3.28s y liveness HTTP 200 en puerto 5173. |
+| **CP-39** | Publicación Exitosa en GitHub y Despliegue Automatizado en GitHub Pages | **Completado** | Repositorio público oficial [joheld/atelier-analytics](https://github.com/joheld/atelier-analytics) creado y vinculado con branch `main`, flujos CI/CD (`ci.yml`, `deploy.yml`) automatizados y GitHub Pages habilitado con build de workflow en `https://joheld.github.io/atelier-analytics/`. |
 
 ---
 
@@ -288,13 +290,17 @@ atelier-analytics/
 
 ---
 
-- **Estado Actual:** Plataforma de Analítica Visual Atelier v1.0.1 (Checkpoints **CP-27** al **CP-38** Completados):
-  1. **Internacionalización y Alcance Global (CP-38):**
+- **Estado Actual:** Plataforma de Analítica Visual Atelier v1.0.2 (Checkpoints **CP-27** al **CP-39** Completados):
+  1. **Publicación y Distribución Oficial en GitHub (CP-39):**
+     - **Repositorio Público**: [joheld/atelier-analytics](https://github.com/joheld/atelier-analytics) publicado con licencia libre MIT.
+     - **Automatización CI/CD**: Flujos de GitHub Actions (`ci.yml` para batería Zero-Defect de 3 frentes y `deploy.yml` para despliegue continuo).
+     - **GitHub Pages Activo**: Despliegue estático web automático en [https://joheld.github.io/atelier-analytics/](https://joheld.github.io/atelier-analytics/).
+  2. **Internacionalización y Alcance Global (CP-38):**
      - **Inglés Nativo 100% Estándar Tableau / PowerBI**: Toda la interfaz gráfica, botones, modales, alertas, menús contextuales, selectores de agregación, bibliotecas de fórmulas, tarjetas de marcas, explorador de almacenamiento y páginas de bienvenida (`StartPage`) convertidos íntegramente a inglés nativo estándar.
      - **Nombres por defecto globales**: `'Sheet 1'` en vez de `'Hoja 1'`, `'Dashboard 1'` en vez de `'Tablero 1'`, `'Main Workbook'` en vez de `'Reporte Principal'`.
-  2. **Lanzamiento y Empaquetado Open Source (v1.0.0):**
-     - **Distribución Pública en GitHub (CP-37)**: Licencia abierta `LICENSE` (MIT), `README.md` editorial de primer nivel con badges, arquitectura y guías de ejecución, gobernanza comunitaria con `CONTRIBUTING.md` y `CODE_OF_CONDUCT.md`, flujos CI/CD automatizados (`.github/workflows/ci.yml` y `deploy.yml` para GitHub Pages), dataset demo integrado `superstore-sample.csv` con carga en 1 clic en `EmptyWorkspace.tsx`, paridad multiplataforma con scripts de Windows (`launch-desktop.bat` y `launch-desktop.ps1`) y base relativa universal en `vite.config.ts`.
-     - **Motor Integral de Cálculos de Tabla Tableau (CP-33)**: Soporte nativo para `RUNNING_SUM`, `RUNNING_AVG`, `RUNNING_COUNT`, `RUNNING_MIN`, `RUNNING_MAX`, `WINDOW_AVG`, `WINDOW_SUM`, `WINDOW_MIN`, `WINDOW_MAX`, `WINDOW_COUNT`, `RANK`, `RANK_DENSE`, `INDEX`, `FIRST`, `LAST` y `LOOKUP` transpildas a funciones de ventana DuckDB SQL sin doble agregación, y catálogo interactivo en `CalculatedFieldModal.tsx`.
+  3. **Lanzamiento y Empaquetado Open Source (v1.0.0):**
+     - **Distribución Pública en GitHub (CP-37)**: Licencia abierta `LICENSE` (MIT), `README.md` editorial de primer nivel con badges, arquitectura y guías de ejecución, gobernanza comunitaria con `CONTRIBUTING.md` y `CODE_OF_CONDUCT.md`, dataset demo integrado `superstore-sample.csv` con carga en 1 clic en `EmptyWorkspace.tsx`, paridad multiplataforma con scripts de Windows (`launch-desktop.bat` y `launch-desktop.ps1`) y base relativa universal en `vite.config.ts`.
+     - **Motor Integral de Cálculos de Tabla Tableau (CP-33)**: Soporte nativo para `RUNNING_SUM`, `RUNNING_AVG`, `RUNNING_COUNT`, `RUNNING_MIN`, `RUNNING_MAX`, `WINDOW_AVG`, `WINDOW_SUM`, `WINDOW_MIN`, `WINDOW_MAX`, `WINDOW_COUNT`, `RANK`, `RANK_DENSE`, `INDEX`, `FIRST`, `LAST` y `LOOKUP` transpiladas a funciones de ventana DuckDB SQL sin doble agregación, y catálogo interactivo en `CalculatedFieldModal.tsx`.
      - **Líneas de Análisis y Modelado Estadístico Avanzado (CP-34)**: Extensión de líneas de análisis con Mínimo (`min`), Máximo (`max`) y Media Móvil temporal continua (`moving_average` con `Plot.windowY({ k: 5 })`), gestionables con badges interactivos desde `DataSidebar.tsx`.
      - **Acciones de Filtro Cruzado Directas desde el Gráfico (CP-35)**: Filtro interactivo al hacer clic directamente en las marcas SVG (barras, dots, celdas) de gráficos en el Dashboard cuando `useAsFilter` está activo, con atenuación al 30% de elementos no seleccionados y borde activo en la marca seleccionada.
      - **Soporte Cartográfico y Geometrías Geoespaciales (CP-36)**: Geometría `'geo'` en `MarksCard.tsx` y proyección cartográfica `equal-earth` en Observable Plot con `Plot.sphere`, `Plot.graticule` y anulación automática de ejes cartesianos estándar.
@@ -304,9 +310,9 @@ atelier-analytics/
      - **Exportación Ejecutiva y Optimización de Bundle (CP-30)**: Exportación a PNG Retina 2x, SVG vectorial y PDF.
      - **Rediseño Técnico Unslop (CP-31)**: Precisión Suiza, biseles subpíxel `.rim-light` y blueprint `.bg-dot-grid`.
      - **Ergonomía Tableau y Experiencia Fluida (CP-32)**: Fórmulas Tableau `[Campo]`, `IF..THEN`, canal Tamaño, marcas compactas y cambio de tipos.
-  3. **Verificación Zero-Defect:**
+  4. **Verificación Zero-Defect:**
      - 54/54 tests unitarios pasando en Vitest (100% verde).
      - Tipado estricto (`tsc -b`) con 0 errores y 0 advertencias.
      - Compilación estática de producción (`vite build`) limpia en 3.28s.
      - Servidor activo en macOS respondiendo `HTTP 200 OK` en `http://localhost:5173`.
-- **Siguiente Paso:** Publicar el repositorio en GitHub y habilitar GitHub Pages para la demo pública interactiva.
+- **Siguiente Paso:** Monitorear feedback de usuarios, estrellas y sugerencias de la comunidad en GitHub.
