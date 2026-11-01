@@ -145,6 +145,7 @@ gitGraph
     commit id: "unslop-precision-swiss-density" tag: "v3.1.0"
     commit id: "tableau-formula-normalization-marks-compact-and-type-casting" tag: "v3.2.0"
     commit id: "table-calculations-advanced-analytics-crossfilter-and-maps" tag: "v3.3.0"
+    commit id: "github-open-source-release-package" tag: "v1.0.0"
 ```
 
 ---
@@ -189,6 +190,7 @@ gitGraph
 | **CP-34** | Líneas de Análisis y Modelado Estadístico Avanzado (Media Móvil, Mínimo y Máximo) | **Completado** | 1) Tipos ampliados `AnalyticsLineType` con `'min'`, `'max'` y `'moving_average'`; 2) Renderizado en `PlotRenderer.tsx` de líneas de referencia límite inferior (`min`) y superior (`max`), junto con alisado dinámico temporal de media móvil `Plot.windowY({ k: 5, reduce: 'mean' })`; 3) Controles interactivos dedicados en el dock de Analítica de `DataSidebar.tsx` con badges de estado y respuestas táctiles. |
 | **CP-35** | Acciones de Filtro Cruzado Interactivas Directas desde el Gráfico en Dashboard (*Mark Click Actions*) | **Completado** | 1) Soporte de evento `onMarkClick` y `selectedFilterValue` en `PlotRendererProps`; 2) Captura de clics sobre marcas SVG (barras, dots, celdas) para activar filtros cruzados en hojas con `useAsFilter`; 3) Efecto de resaltado visual Tableau: atenuación de elementos no seleccionados al 30% de opacidad y borde dorado `amber-500` con drop-shadow en la marca activa; 4) Conexión en `DashboardGrid.tsx` propagando el filtro al estado del dashboard. |
 | **CP-36** | Soporte de Cartografía y Geometrías Geoespaciales (`Plot.geo` / `MarkType: geo`) | **Completado** | 1) Incorporación de `'geo'` a `MarkType` en `types.ts` y en el selector de geometrías de `MarksCard.tsx`; 2) Renderizado cartográfico con `Plot.sphere` y `Plot.graticule` en proyección `equal-earth`; 3) Mapeo de dispersión espacial sobre coordenadas `(xField, yField)` con radio dinámico, tooltips y paleta editorial; 4) Anulación automática de ejes cartesianos estándar X/Y al proyectar mapas. |
+| **CP-37** | Empaquetado y Distribución Pública de Software Libre en GitHub (v1.0.0) | **Completado** | 1) Licencia legal abierta `LICENSE` (MIT estándar); 2) `README.md` editorial de primer nivel con insignias, arquitectura Mermaid, tabla de formatos (.parquet, .xlsx, .sqlite, .csv, .twbx) y guías de inicio rápido con Bun y NPM; 3) Guía de gobernanza comunitaria `CONTRIBUTING.md` con estándar Zero-Defect y `CODE_OF_CONDUCT.md`; 4) Automatización CI/CD con GitHub Actions (`ci.yml` para validación estricta y `deploy.yml` para GitHub Pages); 5) Dataset de prueba `public/superstore-sample.csv` y botón de carga en 1 clic en `EmptyWorkspace.tsx`; 6) Paridad multiplataforma Windows con `launch-desktop.bat` y `launch-desktop.ps1`; 7) Base relativa `base: './'` en `vite.config.ts`. Batería Zero-Defect: 54/54 tests, 0 errores tsc, build en 3.05s y HTTP 200 en puerto 5173. |
 
 ---
 
@@ -284,8 +286,9 @@ atelier-analytics/
 
 ---
 
-- **Estado Actual:** Plataforma de Analítica Visual Atelier v3.3.0 (Checkpoints **CP-27** al **CP-36** Completados):
-  1. **Capacidades Evolutivas de Tableau Integradas:**
+- **Estado Actual:** Plataforma de Analítica Visual Atelier v1.0.0 (Checkpoints **CP-27** al **CP-37** Completados):
+  1. **Lanzamiento y Empaquetado Open Source (v1.0.0):**
+     - **Distribución Pública en GitHub (CP-37)**: Licencia abierta `LICENSE` (MIT), `README.md` editorial de primer nivel con badges, arquitectura y guías de ejecución, gobernanza comunitaria con `CONTRIBUTING.md` y `CODE_OF_CONDUCT.md`, flujos CI/CD automatizados (`.github/workflows/ci.yml` y `deploy.yml` para GitHub Pages), dataset demo integrado `superstore-sample.csv` con carga en 1 clic en `EmptyWorkspace.tsx`, paridad multiplataforma con scripts de Windows (`launch-desktop.bat` y `launch-desktop.ps1`) y base relativa universal en `vite.config.ts`.
      - **Motor Integral de Cálculos de Tabla Tableau (CP-33)**: Soporte nativo para `RUNNING_SUM`, `RUNNING_AVG`, `RUNNING_COUNT`, `RUNNING_MIN`, `RUNNING_MAX`, `WINDOW_AVG`, `WINDOW_SUM`, `WINDOW_MIN`, `WINDOW_MAX`, `WINDOW_COUNT`, `RANK`, `RANK_DENSE`, `INDEX`, `FIRST`, `LAST` y `LOOKUP` transpildas a funciones de ventana DuckDB SQL sin doble agregación, y catálogo interactivo en `CalculatedFieldModal.tsx`.
      - **Líneas de Análisis y Modelado Estadístico Avanzado (CP-34)**: Extensión de líneas de análisis con Mínimo (`min`), Máximo (`max`) y Media Móvil temporal continua (`moving_average` con `Plot.windowY({ k: 5 })`), gestionables con badges interactivos desde `DataSidebar.tsx`.
      - **Acciones de Filtro Cruzado Directas desde el Gráfico (CP-35)**: Filtro interactivo al hacer clic directamente en las marcas SVG (barras, dots, celdas) de gráficos en el Dashboard cuando `useAsFilter` está activo, con atenuación al 30% de elementos no seleccionados y borde activo en la marca seleccionada.
@@ -299,6 +302,6 @@ atelier-analytics/
   2. **Verificación Zero-Defect:**
      - 54/54 tests unitarios pasando en Bun/Vitest (100% verde).
      - Tipado estricto (`tsc -b`) con 0 errores y 0 advertencias.
-     - Compilación estática de producción (`vite build`) limpia en 2.97s.
+     - Compilación estática de producción (`vite build`) limpia en 3.05s.
      - Servidor activo en macOS respondiendo `HTTP 200 OK` en `http://localhost:5173`.
-- **Siguiente Paso:** Presentar la versión v3.3.0 con la suite de características 100% viables de Tableau integradas mediante desarrollo evolutivo.
+- **Siguiente Paso:** Publicar el repositorio en GitHub y habilitar GitHub Pages para la demo pública interactiva.

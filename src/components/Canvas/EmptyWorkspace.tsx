@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FileSpreadsheet, Server, ArrowDownToLine, Cpu, Lock } from 'lucide-react';
+import { FileSpreadsheet, Server, ArrowDownToLine, Cpu, Lock, Sparkles } from 'lucide-react';
 
 interface EmptyWorkspaceProps {
   onFileUpload: (file: File) => void;
@@ -13,6 +13,22 @@ export const EmptyWorkspace: React.FC<EmptyWorkspaceProps> = ({
   onOpenRelationalModal,
 }) => {
   const [isDragOver, setIsDragOver] = useState(false);
+  const [isLoadingSample, setIsLoadingSample] = useState(false);
+
+  const handleLoadSample = async () => {
+    setIsLoadingSample(true);
+    try {
+      const response = await fetch('./superstore-sample.csv');
+      if (!response.ok) throw new Error('No se pudo cargar el dataset demo');
+      const blob = await response.blob();
+      const file = new File([blob], 'superstore-sample.csv', { type: 'text/csv' });
+      onFileUpload(file);
+    } catch (err) {
+      console.error('Error al cargar dataset demo:', err);
+    } finally {
+      setIsLoadingSample(false);
+    }
+  };
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -77,6 +93,16 @@ export const EmptyWorkspace: React.FC<EmptyWorkspaceProps> = ({
 
         {/* Action Controls */}
         <div className="mt-6 flex flex-wrap items-center justify-center gap-2.5">
+          <button
+            type="button"
+            onClick={handleLoadSample}
+            disabled={isUploading || isLoadingSample}
+            className="btn-tactile inline-flex items-center gap-2 rounded-md border border-amber-300/80 bg-amber-50/80 px-3.5 py-2 text-xs font-medium text-amber-900 shadow-2xs hover:bg-amber-100 hover:border-amber-400 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200 dark:hover:bg-amber-900/60 cursor-pointer"
+          >
+            <Sparkles className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+            <span>{isLoadingSample ? 'Cargando Demo...' : 'Probar Dataset Demo (Superstore)'}</span>
+          </button>
+
           <label className="btn-tactile inline-flex cursor-pointer items-center gap-2 rounded-md bg-stone-900 px-3.5 py-2 text-xs font-medium text-white shadow-xs hover:bg-stone-800 focus:outline-none dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-white rim-light">
             <FileSpreadsheet className="h-3.5 w-3.5" />
             <span>{isUploading ? 'Cargando en memoria...' : 'Seleccionar Archivo'}</span>
@@ -85,7 +111,7 @@ export const EmptyWorkspace: React.FC<EmptyWorkspaceProps> = ({
               type="file"
               accept=".parquet,.csv,.tsv,.json,.ndjson,.xlsx,.xls,.sqlite,.db,.sqlite3,.twbx,.tdsx,.twb,.tds"
               onChange={handleFileInputChange}
-              disabled={isUploading}
+              disabled={isUploading || isLoadingSample}
               className="hidden"
             />
           </label>

@@ -4,6 +4,7 @@ import path from 'node:path';
 import { relationalDbPlugin } from './src/server/relationalDbBridge';
 
 export default defineConfig({
+  base: './',
   plugins: [react(), relationalDbPlugin()],
   resolve: {
     alias: {

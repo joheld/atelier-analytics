@@ -1,8 +1,20 @@
 {
   "name": "atelier-analytics",
-  "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
+  "description": "Next-Gen In-Browser Visual Analytics Studio powered by DuckDB-WASM, Apache Arrow, and Observable Plot with Tableau declarative grammar.",
+  "license": "MIT",
   "type": "module",
+  "keywords": [
+    "analytics",
+    "bi",
+    "tableau",
+    "duckdb",
+    "wasm",
+    "observable-plot",
+    "data-visualization",
+    "arrow",
+    "sql"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",

@@ -1,0 +1,61 @@
+Order ID,Order Date,Region,State,Category,Sub-Category,Customer Name,Sales,Quantity,Discount,Profit
+CA-2024-1001,2024-01-15,East,New York,Technology,Phones,Claire Gute,731.94,3,0.0,219.58
+CA-2024-1002,2024-01-18,West,California,Furniture,Chairs,Darrin Van Huff,957.57,5,0.1,172.36
+CA-2024-1003,2024-02-04,Central,Texas,Office Supplies,Storage,Brosina Hoffman,22.36,2,0.2,-5.59
+CA-2024-1004,2024-02-12,South,Florida,Technology,Accessories,Andrew Allen,48.86,7,0.2,14.65
+CA-2024-1005,2024-03-01,East,Pennsylvania,Furniture,Tables,Irene Maddox,1044.63,4,0.3,-298.47
+CA-2024-1006,2024-03-15,West,Washington,Technology,Copiers,Harold Pawlan,1799.97,3,0.0,719.98
+CA-2024-1007,2024-04-02,Central,Illinois,Office Supplies,Binders,Pete Kriz,15.55,3,0.2,4.66
+CA-2024-1008,2024-04-18,East,New York,Technology,Machines,Alejandro Grove,679.98,2,0.1,135.99
+CA-2024-1009,2024-05-09,South,North Carolina,Furniture,Bookcases,Zuschuss Donatelli,421.28,2,0.2,-42.12
+CA-2024-1010,2024-05-22,West,California,Office Supplies,Paper,Ken Black,38.90,5,0.0,18.67
+CA-2024-1011,2024-06-11,East,Massachusetts,Technology,Phones,Sandra Flanagan,503.96,4,0.1,125.99
+CA-2024-1012,2024-06-25,Central,Michigan,Furniture,Chairs,Emily Phan,631.92,3,0.0,157.98
+CA-2024-1013,2024-07-08,West,California,Office Supplies,Art,Eric Hoffmann,14.62,2,0.0,6.57
+CA-2024-1014,2024-07-19,South,Georgia,Technology,Accessories,Tracy Blumstein,170.00,2,0.0,68.00
+CA-2024-1015,2024-08-03,East,New Jersey,Furniture,Furnishings,Matt Abelman,91.96,2,0.0,36.78
+CA-2024-1016,2024-08-21,Central,Ohio,Office Supplies,Appliances,Gene Hale,242.94,3,0.2,60.73
+CA-2024-1017,2024-09-05,West,Oregon,Technology,Phones,Steve Nguyen,449.95,5,0.1,112.48
+CA-2024-1018,2024-09-17,South,Florida,Furniture,Tables,Linda Cazamias,629.10,3,0.4,-188.73
+CA-2024-1019,2024-10-02,East,New York,Office Supplies,Storage,Ruben Ausman,139.80,2,0.0,41.94
+CA-2024-1020,2024-10-14,Central,Indiana,Technology,Copiers,Erin Smith,2999.95,5,0.0,1199.98
+CA-2024-1021,2024-11-06,West,California,Furniture,Chairs,Odella Nelson,71.37,1,0.1,14.27
+CA-2024-1022,2024-11-20,East,Pennsylvania,Office Supplies,Binders,Patrick O'Donnell,22.72,4,0.2,7.95
+CA-2024-1023,2024-12-01,South,Virginia,Technology,Accessories,Lena Cacioppo,198.00,3,0.0,79.20
+CA-2024-1024,2024-12-15,Central,Texas,Furniture,Bookcases,Troy Blackwell,173.94,2,0.3,-34.78
+CA-2025-1025,2025-01-10,East,New York,Technology,Phones,Barry Franz,902.97,3,0.0,270.89
+CA-2025-1026,2025-01-22,West,California,Furniture,Chairs,Anna Andreadi,1250.36,4,0.1,250.07
+CA-2025-1027,2025-02-05,Central,Wisconsin,Office Supplies,Paper,Clay Ludtke,53.28,3,0.0,25.57
+CA-2025-1028,2025-02-18,South,Florida,Technology,Copiers,Filia Liana,1499.97,3,0.1,599.98
+CA-2025-1029,2025-03-09,East,New York,Furniture,Tables,Mick Brown,850.50,2,0.2,-85.05
+CA-2025-1030,2025-03-24,West,Washington,Technology,Accessories,Sanjit Chand,220.00,4,0.0,88.00
+CA-2025-1031,2025-04-11,Central,Texas,Office Supplies,Storage,Arthur Prichep,184.40,4,0.2,-18.44
+CA-2025-1032,2025-04-29,South,Tennessee,Furniture,Chairs,Greg Tran,451.15,3,0.2,45.11
+CA-2025-1033,2025-05-14,East,Massachusetts,Technology,Machines,Maria Etezadi,1250.00,1,0.0,375.00
+CA-2025-1034,2025-05-30,West,California,Office Supplies,Binders,Hunter Lopez,45.60,3,0.0,21.88
+CA-2025-1035,2025-06-12,Central,Illinois,Furniture,Bookcases,Tamara Chand,689.94,3,0.3,-103.49
+CA-2025-1036,2025-06-28,East,New York,Technology,Phones,Craig Carstensen,689.90,2,0.0,206.97
+CA-2025-1037,2025-07-15,South,Georgia,Office Supplies,Art,Katherine Hughes,28.40,2,0.0,12.78
+CA-2025-1038,2025-07-27,West,California,Furniture,Furnishings,Rick Wilson,112.50,3,0.0,45.00
+CA-2025-1039,2025-08-14,Central,Michigan,Technology,Accessories,Jim Kethan,310.00,5,0.0,124.00
+CA-2025-1040,2025-08-30,East,Pennsylvania,Office Supplies,Appliances,Ken Dana,420.00,2,0.2,105.00
+CA-2025-1041,2025-09-12,South,Florida,Technology,Phones,Luke Foster,580.00,2,0.1,145.00
+CA-2025-1042,2025-09-28,West,Colorado,Furniture,Tables,Ted Butterfield,980.00,4,0.4,-294.00
+CA-2025-1043,2025-10-15,Central,Texas,Office Supplies,Paper,Sally Hughsby,75.00,5,0.2,22.50
+CA-2025-1044,2025-10-31,East,New York,Technology,Copiers,Roy Französisch,3299.90,2,0.0,1319.96
+CA-2025-1045,2025-11-14,West,California,Furniture,Chairs,Paul MacIntyre,820.00,4,0.1,164.00
+CA-2025-1046,2025-11-28,South,North Carolina,Office Supplies,Storage,Shirley Daniels,210.00,3,0.2,-21.00
+CA-2025-1047,2025-12-10,East,New Jersey,Technology,Accessories,Adam Bellavance,180.00,3,0.0,72.00
+CA-2025-1048,2025-12-22,Central,Ohio,Furniture,Bookcases,Dave Hallsten,540.00,2,0.3,-81.00
+CA-2026-1049,2026-01-11,West,California,Technology,Phones,Carlos Soltero,1150.00,2,0.0,345.00
+CA-2026-1050,2026-01-25,East,New York,Furniture,Chairs,Delfina Latchford,920.00,3,0.1,184.00
+CA-2026-1051,2026-02-08,Central,Illinois,Office Supplies,Binders,Seth Vernon,62.00,4,0.2,18.60
+CA-2026-1052,2026-02-24,South,Virginia,Technology,Accessories,Arthur Gainer,245.00,5,0.0,98.00
+CA-2026-1053,2026-03-10,West,Washington,Furniture,Tables,Brian Stugart,1120.00,3,0.2,-112.00
+CA-2026-1054,2026-03-26,East,New York,Technology,Copiers,Christopher Conant,2499.95,5,0.0,999.98
+CA-2026-1055,2026-04-12,Central,Texas,Office Supplies,Art,Daniel Byrd,35.00,2,0.2,7.00
+CA-2026-1056,2026-04-28,South,Georgia,Furniture,Chairs,Eric Barreto,780.00,2,0.0,234.00
+CA-2026-1057,2026-05-15,West,California,Technology,Machines,Ruben Dartt,1850.00,2,0.1,555.00
+CA-2026-1058,2026-05-29,East,Massachusetts,Office Supplies,Paper,Roland Schwarz,88.00,4,0.0,42.24
+CA-2026-1059,2026-06-14,Central,Indiana,Furniture,Furnishings,Jill Matthias,145.00,3,0.0,58.00
+CA-2026-1060,2026-06-30,South,Florida,Technology,Phones,Clayton Bierner,640.00,2,0.1,160.00
