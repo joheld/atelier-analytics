@@ -673,7 +673,7 @@ export const PlotRenderer: React.FC<PlotRendererProps> = ({
                 stroke: '#ef4444',
                 strokeWidth: 1.5,
                 strokeDasharray: '4 4',
-                title: () => `Promedio: ${avg.toFixed(2)}`,
+                title: () => `Average: ${avg.toFixed(2)}`,
               })
             );
           } else if (line.type === 'median') {
@@ -684,7 +684,7 @@ export const PlotRenderer: React.FC<PlotRendererProps> = ({
                 stroke: '#f59e0b',
                 strokeWidth: 1.5,
                 strokeDasharray: '4 4',
-                title: () => `Mediana: ${med.toFixed(2)}`,
+                title: () => `Median: ${med.toFixed(2)}`,
               })
             );
           } else if (line.type === 'constant' && line.value !== undefined) {
@@ -693,7 +693,7 @@ export const PlotRenderer: React.FC<PlotRendererProps> = ({
                 stroke: '#06b6d4',
                 strokeWidth: 1.5,
                 strokeDasharray: '4 4',
-                title: () => `Constante: ${line.value}`,
+                title: () => `Constant: ${line.value}`,
               })
             );
           } else if (line.type === 'trend_line' && xField) {
@@ -712,7 +712,7 @@ export const PlotRenderer: React.FC<PlotRendererProps> = ({
                 stroke: '#06b6d4',
                 strokeWidth: 1.5,
                 strokeDasharray: '4 4',
-                title: () => `Mínimo: ${minVal.toFixed(2)}`,
+                title: () => `Minimum: ${minVal.toFixed(2)}`,
               })
             );
           } else if (line.type === 'max') {
@@ -722,7 +722,7 @@ export const PlotRenderer: React.FC<PlotRendererProps> = ({
                 stroke: '#ec4899',
                 strokeWidth: 1.5,
                 strokeDasharray: '4 4',
-                title: () => `Máximo: ${maxVal.toFixed(2)}`,
+                title: () => `Maximum: ${maxVal.toFixed(2)}`,
               })
             );
           } else if (line.type === 'moving_average' && xField) {
@@ -737,7 +737,7 @@ export const PlotRenderer: React.FC<PlotRendererProps> = ({
                     stroke: '#10b981',
                     strokeWidth: 2,
                     strokeDasharray: '3 3',
-                    title: () => 'Media Móvil (k=5)',
+                    title: () => 'Moving Average (k=5)',
                   }
                 )
               )
@@ -817,7 +817,7 @@ export const PlotRenderer: React.FC<PlotRendererProps> = ({
           }
         : isMultiMeasureHorizontal
         ? {
-            label: 'Valor de Métricas',
+            label: 'Measure Values',
             grid: false,
             line: true,
             tickFormat: (d) => {
@@ -828,7 +828,7 @@ export const PlotRenderer: React.FC<PlotRendererProps> = ({
             },
           }
         : {
-            label: isMultiMeasureStandalone ? 'Métricas' : getPillDisplayLabel(xPill, xField || 'X'),
+            label: isMultiMeasureStandalone ? 'Measure Names' : getPillDisplayLabel(xPill, xField || 'X'),
             grid: false,
             line: true,
             tickRotate: shouldRotateX ? -35 : 0,
@@ -850,9 +850,9 @@ export const PlotRenderer: React.FC<PlotRendererProps> = ({
         : {
             label:
               isMultiMeasureVertical || isMultiMeasureStandalone
-                ? 'Valor de Métricas'
+                ? 'Measure Values'
                 : markType === 'histogram'
-                ? 'Frecuencia (Count)'
+                ? 'Frequency (Count)'
                 : getPillDisplayLabel(yPill, yField || 'Y'),
             grid: false,
             line: true,
@@ -943,10 +943,10 @@ export const PlotRenderer: React.FC<PlotRendererProps> = ({
           </svg>
         </div>
         <h3 className="font-editorial text-xl font-medium text-stone-700 dark:text-stone-300">
-          Lienzo Analítico Vacío
+          Empty Analytical Canvas
         </h3>
         <p className="mt-1 max-w-sm text-xs leading-relaxed text-stone-500 dark:text-stone-400">
-          Arrastra dimensiones (azules) y métricas (verdes) a los estantes de <strong>Columns</strong> y <strong>Rows</strong> para generar una visualización.
+          Drag dimensions (blue) and measures (green) to <strong>Columns</strong> and <strong>Rows</strong> shelves to build a visualization.
         </p>
       </div>
     );

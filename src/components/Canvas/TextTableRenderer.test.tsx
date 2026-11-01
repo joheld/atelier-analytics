@@ -76,7 +76,7 @@ describe('TextTableRenderer (Cross-Tab / Tabla de Texto)', () => {
     expect(html).toContain('-500');
 
     // Verify Grand Totals Footer Row
-    expect(html).toContain('Total General');
+    expect(html).toContain('Grand Total');
     expect(html).toContain('37,000'); // 15000 + 22000
     expect(html).toContain('2,700');  // 3200 + (-500)
   });
@@ -127,6 +127,6 @@ describe('TextTableRenderer (Cross-Tab / Tabla de Texto)', () => {
 
     expect(html).toContain('Furniture');
     expect(html).toContain('42');
-    expect(html).toContain('Total General');
+    expect(html).toContain('Grand Total');
   });
 });

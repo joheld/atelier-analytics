@@ -63,138 +63,138 @@ export const ShowMeDrawer: React.FC<ShowMeDrawerProps> = ({
   const chartOptions: ChartTypeOption[] = [
     {
       id: 'text_table',
-      name: 'Tabla de Texto',
+      name: 'Text Table',
       markType: 'text',
       icon: <Table className="h-5 w-5" />,
-      reqText: '1+ dimensiones o métricas',
+      reqText: '1+ dimensions or measures',
       checkEnabled: (d, m) => d >= 1 || m >= 1,
       recommended: (d, m) => (d >= 1 && m >= 1) || d >= 2,
     },
     {
       id: 'heatmap',
-      name: 'Mapa de Calor / Matriz',
+      name: 'Heatmap Cell',
       markType: 'rect',
       icon: <Grid className="h-5 w-5" />,
-      reqText: '1+ dimensiones, 1 métrica',
+      reqText: '1+ dimensions, 1 measure',
       checkEnabled: (d, m) => d >= 1 && m >= 1,
       recommended: (d, m) => d === 2 && m === 1,
     },
     {
       id: 'bar_vertical',
-      name: 'Barras Verticales',
+      name: 'Vertical Bars',
       markType: 'bar',
       icon: <BarChart2 className="h-5 w-5" />,
-      reqText: '1 dimensión en X, 1+ métricas en Y',
+      reqText: '1 dimension on X, 1+ measures on Y',
       checkEnabled: (d, m) => d >= 1 && m >= 1,
       recommended: (d, m, date) => d >= 1 && m >= 1 && !date,
       action: 'swap_if_needed_vertical',
     },
     {
       id: 'bar_horizontal',
-      name: 'Barras Horizontales',
+      name: 'Horizontal Bars',
       markType: 'bar',
       icon: <AlignLeft className="h-5 w-5" />,
-      reqText: '1 métrica en X, 1 dimensión en Y',
+      reqText: '1 measure on X, 1 dimension on Y',
       checkEnabled: (d, m) => d >= 1 && m >= 1,
       recommended: () => false,
       action: 'swap_if_needed_horizontal',
     },
     {
       id: 'line_chart',
-      name: 'Líneas Continuas',
+      name: 'Continuous Lines',
       markType: 'line',
       icon: <LineChart className="h-5 w-5" />,
-      reqText: '1 fecha/dimensión, 1+ métricas',
+      reqText: '1 date/dimension, 1+ measures',
       checkEnabled: (d, m) => d >= 1 && m >= 1,
       recommended: (_d, _m, date) => date,
     },
     {
       id: 'area_chart',
-      name: 'Área Continua',
+      name: 'Continuous Area',
       markType: 'area',
       icon: <AreaChart className="h-5 w-5" />,
-      reqText: '1 fecha/dimensión, 1+ métricas',
+      reqText: '1 date/dimension, 1+ measures',
       checkEnabled: (d, m) => d >= 1 && m >= 1,
       recommended: () => false,
     },
     {
       id: 'scatter_plot',
-      name: 'Dispersión (Scatter)',
+      name: 'Scatter Plot',
       markType: 'dot',
       icon: <ScatterChart className="h-5 w-5" />,
-      reqText: '2 métricas (1 en X, 1 en Y)',
+      reqText: '2 measures (1 on X, 1 on Y)',
       checkEnabled: (_d, m) => m >= 2,
       recommended: (d, m) => d === 0 && m >= 2,
     },
     {
       id: 'boxplot',
-      name: 'Diagrama de Caja',
+      name: 'Box Plot',
       markType: 'box',
       icon: <Box className="h-5 w-5" />,
-      reqText: '1 dimensión, 1 métrica (o 1 métrica sola)',
+      reqText: '1 dimension, 1 measure (or 1 measure alone)',
       checkEnabled: (_d, m) => m >= 1,
       recommended: (d, m) => d === 1 && m === 1,
     },
     {
       id: 'histogram',
-      name: 'Histograma Continuo',
+      name: 'Continuous Histogram',
       markType: 'histogram',
       icon: <BarChart3 className="h-5 w-5" />,
-      reqText: '1 métrica cuantitativa (frecuencias)',
+      reqText: '1 quantitative measure (frequencies)',
       checkEnabled: (_d, m) => m >= 1,
       recommended: (d, m) => d === 0 && m === 1,
     },
     {
       id: 'density',
-      name: 'Densidad 2D / Contorno',
+      name: '2D Density Contour',
       markType: 'density',
       icon: <Flame className="h-5 w-5" />,
-      reqText: '2 métricas cuantitativas (concentración)',
+      reqText: '2 quantitative measures (concentration)',
       checkEnabled: (_d, m) => m >= 2,
       recommended: () => false,
     },
     {
       id: 'hexbin',
-      name: 'Agrupamiento Hexagonal',
+      name: 'Hexbin Clustering',
       markType: 'hexbin',
       icon: <Hexagon className="h-5 w-5" />,
-      reqText: '2 métricas (reducción de overplotting)',
+      reqText: '2 measures (overplotting reduction)',
       checkEnabled: (_d, m) => m >= 2,
       recommended: () => false,
     },
     {
       id: 'difference',
-      name: 'Gráfico de Diferencia',
+      name: 'Difference Chart',
       markType: 'difference',
       icon: <TrendingUp className="h-5 w-5" />,
-      reqText: '1 fecha/dimensión, 1 métrica',
+      reqText: '1 date/dimension, 1 measure',
       checkEnabled: (d, m) => d >= 1 && m >= 1,
       recommended: () => false,
     },
     {
       id: 'spike',
-      name: 'Gráfico de Picos',
+      name: 'Spike Chart',
       markType: 'spike',
       icon: <Activity className="h-5 w-5" />,
-      reqText: '1 dimensión, 1 métrica (picos esbeltos)',
+      reqText: '1 dimension, 1 measure (slender spikes)',
       checkEnabled: (d, m) => d >= 1 && m >= 1,
       recommended: () => false,
     },
     {
       id: 'tick_plot',
-      name: 'Gráfico de Marcas (Tick)',
+      name: 'Tick Mark Plot',
       markType: 'tick',
       icon: <Columns className="h-5 w-5" />,
-      reqText: '1 dimensión, 1 métrica',
+      reqText: '1 dimension, 1 measure',
       checkEnabled: (d, m) => d >= 1 && m >= 1,
       recommended: () => false,
     },
     {
       id: 'waffle',
-      name: 'Gráfico Waffle',
+      name: 'Waffle Chart',
       markType: 'waffle',
       icon: <Grid3X3 className="h-5 w-5" />,
-      reqText: '1 dimensión categórica',
+      reqText: '1 categorical dimension',
       checkEnabled: (d) => d >= 1,
       recommended: () => false,
     },
@@ -217,7 +217,7 @@ export const ShowMeDrawer: React.FC<ShowMeDrawerProps> = ({
         <div className="flex items-center gap-1.5">
           <Sparkles className="h-4 w-4 text-amber-500" />
           <h3 className="font-editorial text-sm font-bold text-stone-900 dark:text-stone-100">
-            Show Me ({chartOptions.length} Arquetipos)
+            Show Me ({chartOptions.length} Types)
           </h3>
         </div>
         <button
@@ -231,9 +231,9 @@ export const ShowMeDrawer: React.FC<ShowMeDrawerProps> = ({
 
       {/* Summary of Shelves */}
       <div className="my-2 flex items-center justify-between rounded bg-stone-100/70 px-2 py-1 text-[10px] font-mono text-stone-600 dark:bg-stone-800/60 dark:text-stone-400 shrink-0">
-        <span>Dimensiones: {dims}</span>
+        <span>Dimensions: {dims}</span>
         <span>•</span>
-        <span>Métricas: {measures}</span>
+        <span>Measures: {measures}</span>
       </div>
 
       {/* Scrollable Grid of Visual Charts */}
@@ -262,7 +262,7 @@ export const ShowMeDrawer: React.FC<ShowMeDrawerProps> = ({
             >
               {isRecommended && (
                 <span className="absolute -top-1.5 right-1 rounded-full bg-amber-500 px-1.5 py-0.2 text-[8px] font-bold text-white shadow-xs">
-                  ÓPTIMO
+                  RECOMMENDED
                 </span>
               )}
               <div className="mb-1 text-stone-600 dark:text-stone-300">{opt.icon}</div>
@@ -274,7 +274,7 @@ export const ShowMeDrawer: React.FC<ShowMeDrawerProps> = ({
 
       {/* Footer Info */}
       <div className="mt-2.5 border-t border-stone-200/80 pt-2 text-[10px] text-stone-500 dark:border-stone-800 dark:text-stone-400 leading-snug shrink-0">
-        Las opciones activas se habilitan dinámicamente según las pastillas en Columns y Rows.
+        Visual types enable dynamically based on pills placed on Columns and Rows.
       </div>
     </div>
   );

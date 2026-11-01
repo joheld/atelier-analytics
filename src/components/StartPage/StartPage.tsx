@@ -90,11 +90,11 @@ export const StartPage: React.FC<StartPageProps> = ({
     const diffHours = Math.floor(diffMins / 60);
     const diffDays = Math.floor(diffHours / 24);
 
-    if (diffMins < 1) return 'Recién guardado';
-    if (diffMins < 60) return `Hace ${diffMins} min`;
-    if (diffHours < 24) return `Hace ${diffHours} h`;
-    if (diffDays === 1) return 'Ayer';
-    if (diffDays < 7) return `Hace ${diffDays} días`;
+    if (diffMins < 1) return 'Just saved';
+    if (diffMins < 60) return `${diffMins} min ago`;
+    if (diffHours < 24) return `${diffHours} h ago`;
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays} days ago`;
     return new Date(timestamp).toLocaleDateString();
   };
 
@@ -161,7 +161,7 @@ export const StartPage: React.FC<StartPageProps> = ({
           <div className="space-y-1.5">
             <div className="flex items-center justify-between px-1">
               <h2 className="text-[10px] font-bold uppercase tracking-wider text-stone-400 font-mono">
-                Conectar a Archivo
+                Connect to File
               </h2>
               <span className="text-[9px] font-mono text-stone-400">Local I/O</span>
             </div>
@@ -186,7 +186,7 @@ export const StartPage: React.FC<StartPageProps> = ({
               >
                 <div className="flex items-center gap-2.5 min-w-0">
                   <FileSpreadsheet className="h-3.5 w-3.5 shrink-0 text-stone-400 group-hover:text-stone-700 dark:group-hover:text-stone-200 transition-colors" />
-                  <span className="font-medium truncate">CSV / Texto Delimitado</span>
+                  <span className="font-medium truncate">CSV / Delimited Text</span>
                 </div>
                 <span className="font-mono text-[9px] text-stone-500 bg-stone-200/50 dark:bg-white/[0.06] px-1 py-0.5 rounded">.csv</span>
               </button>
@@ -245,7 +245,7 @@ export const StartPage: React.FC<StartPageProps> = ({
           <div className="space-y-1.5 pt-3 border-t border-stone-200/70 dark:border-white/[0.06]">
             <div className="flex items-center justify-between px-1">
               <h2 className="text-[10px] font-bold uppercase tracking-wider text-stone-400 font-mono">
-                Servidor Relacional
+                Relational Server
               </h2>
               <span className="text-[9px] font-mono text-stone-400">RDBMS</span>
             </div>
@@ -280,7 +280,7 @@ export const StartPage: React.FC<StartPageProps> = ({
           {/* Section: Fuentes de Datos de Muestra */}
           <div className="space-y-1.5 pt-3 border-t border-stone-200/70 dark:border-white/[0.06]">
             <h2 className="text-[10px] font-bold uppercase tracking-wider text-stone-400 font-mono px-1">
-              Datasets de Prueba
+              Sample Datasets
             </h2>
 
             <div className="space-y-1.5">
@@ -299,7 +299,7 @@ export const StartPage: React.FC<StartPageProps> = ({
                       Superstore Sales
                     </span>
                     <span className="block text-[10px] font-mono text-stone-400 truncate">
-                      600 filas • Ventas, Margen
+                      600 rows • Sales, Profit
                     </span>
                   </div>
                 </div>
@@ -318,10 +318,10 @@ export const StartPage: React.FC<StartPageProps> = ({
                   <Globe className="h-3.5 w-3.5 shrink-0 text-stone-400 group-hover:text-stone-900 dark:group-hover:text-stone-100 transition-colors" />
                   <div className="truncate">
                     <span className="block font-medium text-xs text-stone-900 dark:text-stone-100 truncate">
-                      Indicadores Mundiales
+                      World Indicators
                     </span>
                     <span className="block text-[10px] font-mono text-stone-400 truncate">
-                      PIB, Población, Inflación
+                      GDP, Population, Inflation
                     </span>
                   </div>
                 </div>
@@ -340,7 +340,7 @@ export const StartPage: React.FC<StartPageProps> = ({
           >
             <span className="flex items-center gap-2">
               <Upload className="h-3.5 w-3.5 text-stone-400" />
-              <span>Abrir proyecto...</span>
+              <span>Open project...</span>
             </span>
             <kbd className="kbd-shortcut">⌘ O</kbd>
           </button>
@@ -352,7 +352,7 @@ export const StartPage: React.FC<StartPageProps> = ({
           >
             <span className="flex items-center gap-1.5">
               <HardDrive className="h-3.5 w-3.5 text-stone-400" />
-              <span>Almacenamiento Local</span>
+              <span>Local Storage</span>
             </span>
             <span className="text-[10px] text-stone-400 font-mono">IndexedDB</span>
           </button>
@@ -365,10 +365,10 @@ export const StartPage: React.FC<StartPageProps> = ({
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h2 className="text-lg font-semibold tracking-[-0.02em] text-stone-950 dark:text-stone-100">
-              Libros de trabajo recientes
+              Recent Workbooks
             </h2>
             <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">
-              Continúa analizando sesiones en memoria o inicializa un libro de trabajo
+              Continue analyzing in-memory sessions or initialize a new workbook
             </p>
           </div>
 
@@ -378,7 +378,7 @@ export const StartPage: React.FC<StartPageProps> = ({
               <Search className="h-3.5 w-3.5 absolute left-2.5 top-2 text-stone-400" />
               <input
                 type="text"
-                placeholder="Filtrar reportes..."
+                placeholder="Filter workbooks..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="h-7 pl-7 pr-2.5 text-xs rounded-md border border-stone-200/80 bg-white dark:border-white/[0.08] dark:bg-stone-900 dark:text-stone-100 font-mono text-[11px] focus:outline-none focus:border-stone-400 w-44 shadow-2xs transition-colors"
@@ -392,7 +392,7 @@ export const StartPage: React.FC<StartPageProps> = ({
               className="btn-tactile flex items-center gap-1.5 rounded-md bg-stone-900 px-3 py-1.5 text-xs font-medium text-white shadow-xs hover:bg-stone-800 dark:bg-stone-100 dark:text-stone-950 dark:hover:bg-white transition-all"
             >
               <Plus className="h-3.5 w-3.5" />
-              <span>Nuevo Libro</span>
+              <span>New Workbook</span>
               <kbd className="kbd-shortcut ml-1 bg-white/10 dark:bg-black/10 border-white/20 text-inherit">⌘ N</kbd>
             </button>
           </div>
@@ -405,18 +405,18 @@ export const StartPage: React.FC<StartPageProps> = ({
               <div className="flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-emerald-500 ring-4 ring-emerald-500/10" />
                 <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 font-mono">
-                  Sesión Activa en Memoria
+                  Active In-Memory Session
                 </span>
               </div>
               <h3 className="text-sm font-semibold tracking-tight text-stone-950 dark:text-stone-100 truncate">
                 {currentWorkbookName}
               </h3>
               <p className="text-[11px] font-mono text-stone-500 dark:text-stone-400 flex items-center gap-2">
-                <span>Fuente: <strong className="font-semibold text-stone-800 dark:text-stone-200">{currentDataset.name}</strong></span>
+                <span>Source: <strong className="font-semibold text-stone-800 dark:text-stone-200">{currentDataset.name}</strong></span>
                 <span>•</span>
-                <span className="tabular-nums font-mono">{currentDataset.rowCount.toLocaleString()} filas</span>
+                <span className="tabular-nums font-mono">{currentDataset.rowCount.toLocaleString()} rows</span>
                 <span>•</span>
-                <span>{sheetsCount} {sheetsCount === 1 ? 'vista' : 'vistas'}</span>
+                <span>{sheetsCount} {sheetsCount === 1 ? 'sheet' : 'sheets'}</span>
               </p>
             </div>
 
@@ -425,7 +425,7 @@ export const StartPage: React.FC<StartPageProps> = ({
               onClick={onOpenWorkspace}
               className="btn-tactile flex items-center gap-2 rounded-md bg-stone-900 px-3.5 py-1.5 text-xs font-medium text-white shadow-xs hover:bg-stone-800 dark:bg-stone-100 dark:text-stone-950 dark:hover:bg-white shrink-0 transition-all"
             >
-              <span>Volver al lienzo</span>
+              <span>Return to canvas</span>
               <ArrowRight className="h-3.5 w-3.5" />
             </button>
           </div>
@@ -435,7 +435,7 @@ export const StartPage: React.FC<StartPageProps> = ({
         <div className="space-y-2.5">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 font-mono">
-              Catálogo Guardado ({filteredWorkbooks.length})
+              Saved Catalog ({filteredWorkbooks.length})
             </span>
           </div>
 
@@ -465,7 +465,7 @@ export const StartPage: React.FC<StartPageProps> = ({
                         {isActive ? (
                           <span className="flex items-center gap-1 rounded bg-stone-900 text-white dark:bg-white dark:text-stone-950 px-1 py-0.2 font-mono text-[9px] font-medium">
                             <Check className="h-2.5 w-2.5" />
-                            Activo
+                            Active
                           </span>
                         ) : (
                           <span className="text-[9px] text-stone-400 font-mono">SQLite</span>
@@ -495,12 +495,12 @@ export const StartPage: React.FC<StartPageProps> = ({
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              if (confirm(`¿Eliminar reporte "${wb.name}"?`)) {
+                              if (confirm(`Delete workbook "${wb.name}"?`)) {
                                 onDeleteWorkbook(wb.id);
                               }
                             }}
                             className="opacity-0 group-hover:opacity-100 p-0.5 text-stone-400 hover:text-rose-600 rounded transition-opacity"
-                            title="Eliminar reporte"
+                            title="Delete workbook"
                           >
                             <Trash2 className="h-3 w-3" />
                           </button>
@@ -508,14 +508,14 @@ export const StartPage: React.FC<StartPageProps> = ({
                       </div>
 
                       <p className="text-[10px] font-mono text-stone-400 truncate">
-                        {snap.currentDatasetName || 'Sin fuente vinculada'}
+                        {snap.currentDatasetName || 'No linked data source'}
                       </p>
                     </div>
 
                     {/* Card Footer */}
                     <div className="mt-2.5 pt-2 border-t border-stone-100 dark:border-white/[0.06] flex items-center justify-between text-[10px] text-stone-400 font-mono">
                       <span>
-                        {sheetCount} {sheetCount === 1 ? 'vista' : 'vistas'}
+                        {sheetCount} {sheetCount === 1 ? 'sheet' : 'sheets'}
                         {hasDashboards ? ' • dash' : ''}
                       </span>
                       <span className="flex items-center gap-1">
@@ -532,10 +532,10 @@ export const StartPage: React.FC<StartPageProps> = ({
             <div className="flex flex-col items-center justify-center rounded-lg border border-stone-200/80 dark:border-white/[0.08] bg-dot-grid p-10 text-center">
               <Layers className="h-6 w-6 text-stone-400 mb-2" />
               <p className="text-xs font-semibold text-stone-800 dark:text-stone-200">
-                No hay libros de trabajo guardados
+                No saved workbooks
               </p>
               <p className="text-[11px] text-stone-500 dark:text-stone-400 max-w-sm mt-0.5">
-                Conecta un archivo en el panel izquierdo o carga una muestra para comenzar tu análisis.
+                Connect a file in the left panel or load a sample dataset to begin your analysis.
               </p>
             </div>
           )}
@@ -547,22 +547,22 @@ export const StartPage: React.FC<StartPageProps> = ({
         <div className="space-y-4">
           <div>
             <h2 className="text-[10px] font-bold uppercase tracking-wider text-stone-400 font-mono px-0.5">
-              Diagnóstico del Motor
+              Engine Diagnostics
             </h2>
-            <p className="text-[10px] font-mono text-stone-400 mt-0.5">Arquitectura Local</p>
+            <p className="text-[10px] font-mono text-stone-400 mt-0.5">Local Architecture</p>
           </div>
 
           <div className="rounded-md border border-stone-200/80 bg-white p-3 dark:border-white/[0.08] dark:bg-stone-900 rim-light-subtle shadow-2xs space-y-2">
             <div className="flex items-center justify-between text-[11px]">
-              <span className="text-stone-500 dark:text-stone-400">Motor SQL</span>
+              <span className="text-stone-500 dark:text-stone-400">SQL Engine</span>
               <span className="font-mono font-medium text-emerald-700 dark:text-emerald-400 text-[10px]">DuckDB WASM</span>
             </div>
             <div className="flex items-center justify-between text-[11px]">
-              <span className="text-stone-500 dark:text-stone-400">Instrucciones</span>
+              <span className="text-stone-500 dark:text-stone-400">Instructions</span>
               <span className="font-mono text-stone-700 dark:text-stone-300 text-[10px]">ARM64 / SIMD</span>
             </div>
             <div className="flex items-center justify-between text-[11px]">
-              <span className="text-stone-500 dark:text-stone-400">Persistencia</span>
+              <span className="text-stone-500 dark:text-stone-400">Persistence</span>
               <span className="font-mono text-stone-700 dark:text-stone-300 text-[10px]">IndexedDB / OPFS</span>
             </div>
             <div className="flex items-center justify-between text-[11px]">
@@ -573,24 +573,24 @@ export const StartPage: React.FC<StartPageProps> = ({
 
           <div className="space-y-1.5">
             <h3 className="text-[10px] font-bold uppercase tracking-wider text-stone-400 font-mono px-0.5">
-              Atajos de Teclado
+              Keyboard Shortcuts
             </h3>
 
             <div className="rounded-md border border-stone-200/80 bg-white p-2.5 dark:border-white/[0.08] dark:bg-stone-900 rim-light-subtle space-y-1.5 text-[11px]">
               <div className="flex items-center justify-between text-stone-600 dark:text-stone-400">
-                <span>Abrir Archivo</span>
+                <span>Open File</span>
                 <kbd className="kbd-shortcut">⌘ O</kbd>
               </div>
               <div className="flex items-center justify-between text-stone-600 dark:text-stone-400">
-                <span>Nuevo Reporte</span>
+                <span>New Workbook</span>
                 <kbd className="kbd-shortcut">⌘ N</kbd>
               </div>
               <div className="flex items-center justify-between text-stone-600 dark:text-stone-400">
-                <span>Exportar Retina 2x</span>
+                <span>Export Retina 2x</span>
                 <kbd className="kbd-shortcut">⌘ E</kbd>
               </div>
               <div className="flex items-center justify-between text-stone-600 dark:text-stone-400">
-                <span>Volver al Lienzo</span>
+                <span>Return to Canvas</span>
                 <kbd className="kbd-shortcut">Esc</kbd>
               </div>
             </div>

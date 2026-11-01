@@ -118,10 +118,10 @@ export const FilterModal: React.FC<FilterModalProps> = ({
             <Filter className="h-4 w-4 text-sky-600 dark:text-sky-400" />
             <div>
               <h3 className="font-editorial text-base font-bold text-stone-900 dark:text-stone-100">
-                Filtro: {filter.columnName}
+                Filter: {filter.columnName}
               </h3>
               <p className="text-[11px] font-mono text-stone-500">
-                {isDimension ? 'Selección Categórica (IN)' : 'Rango Numérico (BETWEEN)'}
+                {isDimension ? 'Categorical Selection (IN)' : 'Quantitative Range (BETWEEN)'}
               </p>
             </div>
           </div>
@@ -139,7 +139,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-12 text-stone-400">
               <Loader2 className="h-6 w-6 animate-spin text-sky-600 mb-2" />
-              <span className="text-xs font-mono">Consultando DuckDB-WASM...</span>
+              <span className="text-xs font-mono">Querying DuckDB-WASM...</span>
             </div>
           ) : isDimension ? (
             /* Categorical Filter List */
@@ -149,7 +149,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                   <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-stone-400" />
                   <input
                     type="text"
-                    placeholder="Buscar valores..."
+                    placeholder="Search values..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full rounded-md border border-stone-200 bg-stone-50 py-1.5 pl-8 pr-2.5 text-xs text-stone-900 focus:border-stone-400 focus:outline-none dark:border-stone-700 dark:bg-stone-800 dark:text-stone-100"
@@ -160,21 +160,21 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                   onClick={handleSelectAll}
                   className="rounded border border-stone-200 bg-white px-2 py-1 text-[11px] font-medium text-stone-600 hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-300"
                 >
-                  Todos
+                  All
                 </button>
                 <button
                   type="button"
                   onClick={handleDeselectAll}
                   className="rounded border border-stone-200 bg-white px-2 py-1 text-[11px] font-medium text-stone-600 hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-300"
                 >
-                  Ninguno
+                  None
                 </button>
               </div>
 
               <div className="rounded-lg border border-stone-200 bg-stone-50/50 p-1.5 max-h-[220px] overflow-y-auto space-y-0.5 dark:border-stone-800 dark:bg-stone-950/40">
                 {filteredDistinctValues.length === 0 ? (
                   <div className="py-4 text-center text-xs text-stone-400 italic">
-                    No se encontraron valores coincidentes
+                    No matching values found
                   </div>
                 ) : (
                   filteredDistinctValues.map((val) => {
@@ -202,7 +202,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
               </div>
 
               <div className="text-[11px] text-stone-500 font-mono text-right">
-                {selectedValues.size} de {distinctValues.length} seleccionados
+                {selectedValues.size} of {distinctValues.length} selected
               </div>
             </div>
           ) : (
@@ -210,12 +210,12 @@ export const FilterModal: React.FC<FilterModalProps> = ({
             <div className="space-y-4 py-2">
               <div className="flex items-center gap-2 text-xs text-stone-600 dark:text-stone-400 font-medium">
                 <Sliders className="h-4 w-4 text-emerald-600" />
-                <span>Rango cuantitativo permitido:</span>
+                <span>Allowed quantitative range:</span>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[10px] font-mono uppercase text-stone-400">Mínimo</label>
+                  <label className="text-[10px] font-mono uppercase text-stone-400">Minimum</label>
                   <input
                     type="number"
                     value={rangeMin}
@@ -224,11 +224,11 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                     onChange={(e) => setRangeMin(Number(e.target.value))}
                     className="mt-1 w-full rounded-md border border-stone-200 bg-stone-50 px-2.5 py-1.5 font-mono text-xs text-stone-900 focus:border-stone-400 focus:outline-none dark:border-stone-700 dark:bg-stone-800 dark:text-stone-100"
                   />
-                  <div className="mt-1 text-[10px] text-stone-400 font-mono">Límite mín: {minBound}</div>
+                  <div className="mt-1 text-[10px] text-stone-400 font-mono">Min bound: {minBound}</div>
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-mono uppercase text-stone-400">Máximo</label>
+                  <label className="text-[10px] font-mono uppercase text-stone-400">Maximum</label>
                   <input
                     type="number"
                     value={rangeMax}
@@ -237,7 +237,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                     onChange={(e) => setRangeMax(Number(e.target.value))}
                     className="mt-1 w-full rounded-md border border-stone-200 bg-stone-50 px-2.5 py-1.5 font-mono text-xs text-stone-900 focus:border-stone-400 focus:outline-none dark:border-stone-700 dark:bg-stone-800 dark:text-stone-100"
                   />
-                  <div className="mt-1 text-[10px] text-stone-400 font-mono">Límite máx: {maxBound}</div>
+                  <div className="mt-1 text-[10px] text-stone-400 font-mono">Max bound: {maxBound}</div>
                 </div>
               </div>
             </div>
@@ -251,7 +251,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
             onClick={onRemove}
             className="text-xs font-medium text-rose-600 hover:text-rose-700 dark:text-rose-400"
           >
-            Quitar Filtro
+            Remove Filter
           </button>
 
           <div className="flex items-center gap-2">
@@ -260,7 +260,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
               onClick={onClose}
               className="rounded-lg border border-stone-200 bg-white px-3 py-1.5 text-xs font-medium text-stone-700 shadow-xs hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-300 dark:hover:bg-stone-700"
             >
-              Cancelar
+              Cancel
             </button>
             <button
               type="button"
@@ -268,7 +268,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
               className="flex items-center gap-1 rounded-lg bg-stone-900 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-stone-800 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-white"
             >
               <Check className="h-3.5 w-3.5" />
-              <span>Aplicar</span>
+              <span>Apply</span>
             </button>
           </div>
         </div>

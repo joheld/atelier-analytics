@@ -370,7 +370,7 @@ export const TextTableRenderer: React.FC<TextTableRendererProps> = ({
                   if (col.role === 'dimension') {
                     return (
                       <td key={col.key} className="px-3.5 py-2.5 text-stone-800 dark:text-stone-200">
-                        {idx === 0 ? 'Total General' : ''}
+                        {idx === 0 ? 'Grand Total' : ''}
                       </td>
                     );
                   }

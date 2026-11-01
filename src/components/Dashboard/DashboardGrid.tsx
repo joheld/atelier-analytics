@@ -143,7 +143,7 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
           </h2>
           <span className="text-stone-300 dark:text-stone-700">•</span>
           <span className="font-mono text-xs text-stone-500">
-            {selectedWorksheets.length} visuales activos
+            {selectedWorksheets.length} active sheets
           </span>
         </div>
 
@@ -183,7 +183,7 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
                   ? 'bg-white shadow-2xs text-stone-900 dark:bg-stone-800 dark:text-stone-100'
                   : 'text-stone-500'
               }`}
-              title="1 Columna (Vertical)"
+              title="1 Column (Vertical)"
             >
               <Columns2 className="h-3.5 w-3.5 rotate-90" />
             </button>
@@ -195,7 +195,7 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
                   ? 'bg-white shadow-2xs text-stone-900 dark:bg-stone-800 dark:text-stone-100'
                   : 'text-stone-500'
               }`}
-              title="2 Columnas (Grid)"
+              title="2 Columns (Grid)"
             >
               <Grid className="h-3.5 w-3.5" />
             </button>
@@ -209,7 +209,7 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-sky-800 dark:text-sky-300 font-mono pr-2 border-r border-stone-200 dark:border-stone-800">
             <Filter className="h-3.5 w-3.5 text-sky-600 dark:text-sky-400" />
-            <span>Filtros ({dashboardFilters.length})</span>
+            <span>Filters ({dashboardFilters.length})</span>
           </div>
 
           {/* Filter Cards */}
@@ -217,15 +217,15 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
             {dashboardFilters.map((df) => {
               const scopeLabel =
                 df.applyScope === 'selected'
-                  ? `${df.targetSheetIds?.length || 0} hojas`
-                  : 'Todas';
+                  ? `${df.targetSheetIds?.length || 0} sheets`
+                  : 'All';
 
               const filterSummary =
                 df.operator === 'range'
                   ? `${df.rangeMin ?? 'min'} - ${df.rangeMax ?? 'max'}`
                   : df.values && df.values.length > 0
                   ? df.values.slice(0, 2).join(', ') + (df.values.length > 2 ? ` (+${df.values.length - 2})` : '')
-                  : 'Todos';
+                  : '(All)';
 
               return (
                 <div
@@ -236,7 +236,7 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
                   <div
                     onClick={() => onOpenFilterModal(df)}
                     className="flex items-center gap-1 cursor-pointer hover:opacity-80"
-                    title="Editar valores de este filtro"
+                    title="Edit filter values"
                   >
                     <span className="font-semibold text-stone-800 dark:text-stone-200">
                       {df.columnName}:
@@ -253,14 +253,14 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
                       setScopingTarget({
                         type: 'filter',
                         id: df.id,
-                        title: 'Aplicar Filtro a Hojas de Trabajo',
-                        name: `Filtro: ${df.columnName}`,
+                        title: 'Apply Filter to Worksheets',
+                        name: `Filter: ${df.columnName}`,
                         currentScope: df.applyScope,
                         currentTargetSheetIds: df.targetSheetIds,
                       })
                     }
                     className="flex items-center gap-1 rounded bg-stone-100 px-1.5 py-0.5 text-[10px] font-mono text-stone-600 hover:bg-sky-100 hover:text-sky-900 dark:bg-stone-800 dark:text-stone-300 dark:hover:bg-sky-950 transition-colors"
-                    title="Configurar a qué hojas aplica este filtro"
+                    title="Configure target worksheets for this filter"
                   >
                     <Layers className="h-2.5 w-2.5 text-sky-600 dark:text-sky-400" />
                     <span>{scopeLabel}</span>
@@ -270,7 +270,7 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
                     type="button"
                     onClick={() => onRemoveDashboardFilter(activeDashboard.id, df.id)}
                     className="rounded p-0.5 text-stone-400 hover:text-rose-600 transition-colors"
-                    title="Eliminar filtro del dashboard"
+                    title="Remove dashboard filter"
                   >
                     <Trash2 className="h-3 w-3" />
                   </button>
@@ -286,18 +286,18 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
                 className="flex items-center gap-1 rounded-md border border-dashed border-sky-300 bg-sky-50/50 px-2.5 py-1 text-xs font-medium text-sky-700 hover:bg-sky-100 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-300 transition-colors"
               >
                 <Plus className="h-3.5 w-3.5" />
-                <span>Añadir Filtro</span>
+                <span>Add Filter</span>
                 <ChevronDown className="h-3 w-3 opacity-60" />
               </button>
 
               {isAddFilterOpen && (
                 <div className="absolute left-0 top-full mt-1 z-30 w-52 rounded-xl border border-stone-200 bg-white py-1 shadow-xl dark:border-stone-800 dark:bg-stone-900 max-h-60 overflow-y-auto">
                   <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-stone-400 font-mono">
-                    Selecciona Columna
+                    Select Field
                   </div>
                   {datasetColumns.length === 0 ? (
                     <div className="p-2 text-xs text-stone-400 italic text-center">
-                      No hay columnas
+                      No fields available
                     </div>
                   ) : (
                     datasetColumns.map((col) => (
@@ -326,7 +326,7 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300 font-mono pr-2 border-r border-stone-200 dark:border-stone-800">
             <Sliders className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
-            <span>Parámetros ({visibleParams.length})</span>
+            <span>Parameters ({visibleParams.length})</span>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -335,8 +335,8 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
               const isBoolean = param.dataType === 'boolean';
               const scopeLabel =
                 param.applyScope === 'selected'
-                  ? `${param.targetSheetIds?.length || 0} hojas`
-                  : 'Todas';
+                  ? `${param.targetSheetIds?.length || 0} sheets`
+                  : 'All';
 
               return (
                 <div
@@ -346,7 +346,7 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
                   <div
                     onClick={() => onOpenParameterModal(param)}
                     className="flex items-center gap-1 cursor-pointer font-semibold text-stone-800 dark:text-stone-200 hover:text-amber-700"
-                    title="Editar parámetro"
+                    title="Edit parameter"
                   >
                     <span className="font-mono text-amber-600">[{param.name}]</span>:
                   </div>
@@ -441,14 +441,14 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
                       setScopingTarget({
                         type: 'parameter',
                         id: param.id,
-                        title: 'Alcance del Parámetro',
-                        name: `Parámetro: [${param.name}]`,
+                        title: 'Parameter Scope',
+                        name: `Parameter: [${param.name}]`,
                         currentScope: param.applyScope,
                         currentTargetSheetIds: param.targetSheetIds,
                       })
                     }
                     className="flex items-center gap-1 rounded bg-stone-100 px-1.5 py-0.5 text-[10px] font-mono text-stone-600 hover:bg-amber-100 hover:text-amber-900 dark:bg-stone-800 dark:text-stone-300 dark:hover:bg-amber-950 transition-colors"
-                    title="Configurar a qué hojas afecta este parámetro"
+                    title="Configure target worksheets for this parameter"
                   >
                     <Layers className="h-2.5 w-2.5 text-amber-600 dark:text-amber-400" />
                     <span>{scopeLabel}</span>
@@ -466,7 +466,7 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
           <div className="flex items-center gap-2">
             <Filter className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
             <span>
-              Acción de Filtro Activa: <strong className="font-mono">{activeDashboard.dashboardCrossFilter.columnName}</strong> = <span className="font-bold underline">{String(activeDashboard.dashboardCrossFilter.value)}</span>
+              Active Filter Action: <strong className="font-mono">{activeDashboard.dashboardCrossFilter.columnName}</strong> = <span className="font-bold underline">{String(activeDashboard.dashboardCrossFilter.value)}</span>
             </span>
           </div>
           <button
@@ -474,7 +474,7 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
             onClick={() => onSetCrossFilter?.(activeDashboard.id, null)}
             className="rounded bg-amber-200/80 px-2 py-0.5 font-mono text-[11px] font-bold text-amber-900 hover:bg-amber-300 dark:bg-amber-900/60 dark:text-amber-200 transition-colors"
           >
-            × Limpiar Filtro Cruzado
+            × Clear Cross-Filter
           </button>
         </div>
       )}
@@ -484,8 +484,8 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
         {selectedWorksheets.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center text-center text-stone-400">
             <LayoutGrid className="h-10 w-10 text-stone-300 mb-2 dark:text-stone-700" />
-            <p className="text-sm font-medium">No hay hojas seleccionadas para este Dashboard.</p>
-            <p className="text-xs text-stone-500 mt-1">Activa las hojas arriba para combinarlas en el lienzo.</p>
+            <p className="text-sm font-medium">No worksheets selected for this Dashboard.</p>
+            <p className="text-xs text-stone-500 mt-1">Toggle worksheets above to compose the dashboard.</p>
           </div>
         ) : (
           <div
@@ -520,7 +520,7 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
                       {sheet.tableName && (
                         <span
                           className="inline-flex items-center gap-1 rounded bg-stone-100/90 px-1.5 py-0.5 text-[9.5px] font-mono text-stone-600 dark:bg-stone-800 dark:text-stone-300 border border-stone-200/80 dark:border-stone-700"
-                          title={`Fuente de datos: tabla "${sheet.tableName}"`}
+                          title={`Data source: table "${sheet.tableName}"`}
                         >
                           <Database className="h-2 w-2 text-sky-500" />
                           <span>{sheet.tableName}</span>
@@ -542,7 +542,7 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
                         </div>
                       ) : (
                         <span className="text-[10px] text-stone-400 italic">
-                          (Sin filtros de dashboard)
+                          (No dashboard filters)
                         </span>
                       )}
                     </div>
@@ -556,19 +556,19 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
                             ? 'bg-amber-100 text-amber-900 border border-amber-300 dark:bg-amber-950/60 dark:text-amber-200 dark:border-amber-800 font-bold'
                             : 'text-stone-400 hover:bg-stone-200/70 dark:hover:bg-stone-800 hover:text-stone-700'
                         }`}
-                        title="Usar esta hoja como filtro interactivo (Tableau Dashboard Action)"
+                        title="Use this worksheet as interactive cross-filter (Tableau Dashboard Action)"
                       >
                         <Filter className="h-3 w-3" />
-                        <span>{sheet.useAsFilter ? 'Filtro Activo' : 'Usar como filtro'}</span>
+                        <span>{sheet.useAsFilter ? 'Filter Active' : 'Use as Filter'}</span>
                       </button>
 
                       <button
                         type="button"
                         onClick={() => onSwitchTab(sheet.id)}
                         className="flex items-center gap-1 rounded px-2 py-0.5 text-[11px] font-mono text-stone-500 hover:bg-stone-200/70 hover:text-stone-800 dark:hover:bg-stone-800 dark:hover:text-stone-200 transition-colors"
-                        title="Abrir y editar estantes de esta hoja"
+                        title="Open and edit worksheet shelves"
                       >
-                        <span>Editar Hoja</span>
+                        <span>Edit Sheet</span>
                         <ExternalLink className="h-3 w-3" />
                       </button>
                     </div>
@@ -578,13 +578,13 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
                   <div className="flex-1 p-3 flex flex-col">
                     {!hasPills ? (
                       <div className="flex h-full flex-col items-center justify-center text-center text-stone-400 p-6">
-                        <p className="text-xs">Esta hoja aún no tiene pastillas en Columns o Rows.</p>
+                        <p className="text-xs">This worksheet does not have pills on Columns or Rows yet.</p>
                         <button
                           type="button"
                           onClick={() => onSwitchTab(sheet.id)}
                           className="mt-2 text-xs font-mono text-sky-600 hover:underline dark:text-sky-400"
                         >
-                          Ir a configurar {sheet.name} &rarr;
+                          Go to {sheet.name} &rarr;
                         </button>
                       </div>
                     ) : exec?.error ? (
@@ -593,7 +593,7 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
                       </div>
                     ) : (
                       <div className="h-full w-full min-h-[300px] flex-1 flex flex-col">
-                        <CanvasErrorBoundary fallbackTitle={`Error en ${sheet.name}`}>
+                        <CanvasErrorBoundary fallbackTitle={`Error in ${sheet.name}`}>
                           <PlotRenderer
                             ast={exec?.ast || null}
                             result={exec?.queryResult || null}
@@ -622,7 +622,7 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
                         {sheet.useAsFilter && exec?.queryResult?.rows && exec.queryResult.rows.length > 0 && (
                           <div className="mt-2 border-t border-stone-100 pt-2 dark:border-stone-800">
                             <div className="flex flex-wrap items-center gap-1">
-                              <span className="text-[10px] font-mono text-stone-400 mr-1">Filtrar por:</span>
+                              <span className="text-[10px] font-mono text-stone-400 mr-1">Filter by:</span>
                               {exec.queryResult.rows.slice(0, 8).map((row, idx) => {
                                 const dimCol =
                                   sheet.columns.find((c) => c.role === 'dimension') ||

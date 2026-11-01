@@ -190,12 +190,12 @@ export const ParameterModal: React.FC<ParameterModalProps> = ({
             </div>
             <div>
               <h3 className="font-editorial text-sm font-bold text-stone-900 dark:text-stone-100">
-                {initialParam ? 'Editar Parámetro' : 'Crear Parámetro'}
+                {initialParam ? 'Edit Parameter' : 'Create Parameter'}
               </h3>
               <p className="text-[11px] text-stone-500">
-                Variable global interactiva (Estilo Tableau Desktop) • Referenciable como{' '}
+                Interactive global variable (Tableau Desktop style) • Referenceable as{' '}
                 <span className="font-mono text-amber-700 dark:text-amber-300 font-semibold">
-                  [{name.trim() || 'Nombre'}]
+                  [{name.trim() || 'Name'}]
                 </span>
               </p>
             </div>
@@ -215,11 +215,11 @@ export const ParameterModal: React.FC<ParameterModalProps> = ({
           <div className="grid grid-cols-3 gap-4">
             <div className="col-span-2">
               <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
-                Nombre
+                Name
               </label>
               <input
                 type="text"
-                placeholder="ej. Top N Clientes, Descuento Objetivo, Métrica Dinámica..."
+                placeholder="e.g. Top N Customers, Target Discount, Dynamic Measure..."
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs font-medium text-stone-900 focus:border-stone-400 focus:ring-1 focus:ring-stone-400 focus:outline-none dark:border-stone-700 dark:bg-stone-950 dark:text-stone-100 font-sans"
@@ -228,10 +228,10 @@ export const ParameterModal: React.FC<ParameterModalProps> = ({
 
             <div>
               <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
-                Token en Fórmulas
+                Formula Token
               </label>
               <div className="flex h-9 items-center rounded-lg border border-stone-200 bg-stone-50 px-3 font-mono text-xs text-amber-700 dark:border-stone-800 dark:bg-stone-950/80 dark:text-amber-400 truncate">
-                [{name.trim() || 'Nombre'}]
+                [{name.trim() || 'Name'}]
               </div>
             </div>
           </div>
@@ -239,11 +239,11 @@ export const ParameterModal: React.FC<ParameterModalProps> = ({
           {/* Comment / Description (Tableau Comment Box) */}
           <div>
             <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
-              Comentario / Propósito (Opcional)
+              Comment / Purpose (Optional)
             </label>
             <input
               type="text"
-              placeholder="ej. Variable de corte dinámico para análisis de Top N o filtrado condicional..."
+              placeholder="e.g. Dynamic cutoff variable for Top N analysis or conditional filtering..."
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               className="w-full rounded-lg border border-stone-200 bg-white px-3 py-1.5 text-xs text-stone-900 focus:border-stone-400 focus:ring-1 focus:ring-stone-400 focus:outline-none dark:border-stone-700 dark:bg-stone-950 dark:text-stone-100"
@@ -253,14 +253,14 @@ export const ParameterModal: React.FC<ParameterModalProps> = ({
           {/* Properties Section (Tableau Properties Box) */}
           <div className="rounded-xl border border-stone-200/90 bg-stone-50/50 p-4 dark:border-stone-800 dark:bg-stone-900/40 space-y-3.5">
             <span className="text-[11px] font-bold uppercase tracking-wider text-stone-500 font-mono">
-              Propiedades del Parámetro
+              Parameter Properties
             </span>
 
             <div className="grid grid-cols-3 gap-3">
               {/* Data Type */}
               <div>
                 <label className="block text-[11px] font-medium text-stone-600 dark:text-stone-400 mb-1">
-                  Tipo de Datos
+                  Data Type
                 </label>
                 <select
                   value={dataType === 'number' ? numberSubtype : dataType}
@@ -275,18 +275,18 @@ export const ParameterModal: React.FC<ParameterModalProps> = ({
                   }}
                   className="w-full rounded-lg border border-stone-200 bg-white px-2.5 py-1.5 text-xs text-stone-900 focus:border-stone-400 focus:outline-none dark:border-stone-700 dark:bg-stone-950 dark:text-stone-100"
                 >
-                  <option value="float">Flotante (Decimal)</option>
-                  <option value="integer">Entero (Integer)</option>
-                  <option value="string">Cadena de Texto (String)</option>
-                  <option value="boolean">Booleano (True/False)</option>
-                  <option value="date">Fecha (Date)</option>
+                  <option value="float">Float (Decimal)</option>
+                  <option value="integer">Integer</option>
+                  <option value="string">String</option>
+                  <option value="boolean">Boolean (True/False)</option>
+                  <option value="date">Date</option>
                 </select>
               </div>
 
               {/* Display Format */}
               <div>
                 <label className="block text-[11px] font-medium text-stone-600 dark:text-stone-400 mb-1">
-                  Formato de Visualización
+                  Display Format
                 </label>
                 <select
                   value={displayFormat}
@@ -297,18 +297,18 @@ export const ParameterModal: React.FC<ParameterModalProps> = ({
                   }
                   className="w-full rounded-lg border border-stone-200 bg-white px-2.5 py-1.5 text-xs text-stone-900 focus:border-stone-400 focus:outline-none dark:border-stone-700 dark:bg-stone-950 dark:text-stone-100"
                 >
-                  <option value="automatic">Automático</option>
-                  <option value="number">Número estándar (1,234.56)</option>
-                  <option value="currency">Moneda ($ 1,234)</option>
-                  <option value="percentage">Porcentaje (12.5 %)</option>
-                  <option value="date">Fecha (YYYY-MM-DD)</option>
+                  <option value="automatic">Automatic</option>
+                  <option value="number">Standard Number (1,234.56)</option>
+                  <option value="currency">Currency ($ 1,234)</option>
+                  <option value="percentage">Percentage (12.5 %)</option>
+                  <option value="date">Date (YYYY-MM-DD)</option>
                 </select>
               </div>
 
               {/* Current Value */}
               <div>
                 <label className="block text-[11px] font-medium text-stone-600 dark:text-stone-400 mb-1">
-                  Valor Actual
+                  Current Value
                 </label>
                 {allowableType === 'list' && listItems.length > 0 ? (
                   <select
@@ -328,8 +328,8 @@ export const ParameterModal: React.FC<ParameterModalProps> = ({
                     onChange={(e) => setCurrentValue(e.target.value)}
                     className="w-full rounded-lg border border-stone-200 bg-white px-2.5 py-1.5 text-xs text-stone-900 focus:border-stone-400 focus:outline-none dark:border-stone-700 dark:bg-stone-950 dark:text-stone-100"
                   >
-                    <option value="true">True (Verdadero)</option>
-                    <option value="false">False (Falso)</option>
+                    <option value="true">True</option>
+                    <option value="false">False</option>
                   </select>
                 ) : (
                   <input
@@ -348,10 +348,10 @@ export const ParameterModal: React.FC<ParameterModalProps> = ({
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-stone-700 dark:text-stone-300">
-                Valores Permisibles (Allowable Values)
+                Allowable Values
               </span>
               <span className="text-[11px] text-stone-400 font-mono">
-                Modo de Entrada
+                Input Mode
               </span>
             </div>
 
@@ -366,7 +366,7 @@ export const ParameterModal: React.FC<ParameterModalProps> = ({
                   onChange={() => setAllowableType('all')}
                   className="h-3.5 w-3.5 text-amber-600 focus:ring-amber-500"
                 />
-                <span>Todos (All)</span>
+                <span>All</span>
               </label>
 
               <label className="flex items-center gap-2 text-xs font-medium text-stone-800 dark:text-stone-200 cursor-pointer">
@@ -378,7 +378,7 @@ export const ParameterModal: React.FC<ParameterModalProps> = ({
                   onChange={() => setAllowableType('list')}
                   className="h-3.5 w-3.5 text-amber-600 focus:ring-amber-500"
                 />
-                <span>Lista (List)</span>
+                <span>List</span>
               </label>
 
               <label
@@ -397,7 +397,7 @@ export const ParameterModal: React.FC<ParameterModalProps> = ({
                   onChange={() => setAllowableType('range')}
                   className="h-3.5 w-3.5 text-amber-600 focus:ring-amber-500"
                 />
-                <span>Rango (Range)</span>
+                <span>Range</span>
               </label>
             </div>
 
@@ -405,11 +405,11 @@ export const ParameterModal: React.FC<ParameterModalProps> = ({
             {allowableType === 'all' && (
               <div className="rounded-xl border border-dashed border-stone-200 p-4 text-center dark:border-stone-800">
                 <p className="text-xs text-stone-500 dark:text-stone-400">
-                  Cualquier valor del tipo{' '}
+                  Any value of type{' '}
                   <span className="font-semibold text-stone-800 dark:text-stone-200 font-mono">
                     {dataType}
                   </span>{' '}
-                  puede ser ingresado directamente en el control del libro de trabajo.
+                  can be entered directly into the workbook control.
                 </p>
               </div>
             )}
@@ -426,7 +426,7 @@ export const ParameterModal: React.FC<ParameterModalProps> = ({
                       className="flex items-center gap-1 rounded-md bg-stone-100 px-2.5 py-1 text-xs font-medium text-stone-700 hover:bg-stone-200 dark:bg-stone-800 dark:text-stone-300 dark:hover:bg-stone-700 transition-colors"
                     >
                       <Plus className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
-                      <span>Añadir fila</span>
+                      <span>Add Row</span>
                     </button>
 
                     <button
@@ -434,14 +434,14 @@ export const ParameterModal: React.FC<ParameterModalProps> = ({
                       onClick={handleClearList}
                       className="rounded-md border border-stone-200 px-2 py-1 text-xs text-stone-500 hover:text-rose-600 hover:bg-rose-50 dark:border-stone-800 dark:text-stone-400 dark:hover:bg-rose-950/40 transition-colors"
                     >
-                      Limpiar lista
+                      Clear List
                     </button>
                   </div>
 
                   {/* Add from field dropdown (Tableau iconic feature) */}
                   {columns.length > 0 && (
                     <div className="flex items-center gap-1.5">
-                      <span className="text-[11px] text-stone-400">Añadir de campo:</span>
+                      <span className="text-[11px] text-stone-400">Add from field:</span>
                       <select
                         value={selectedFieldSource}
                         onChange={(e) => {
@@ -454,7 +454,7 @@ export const ParameterModal: React.FC<ParameterModalProps> = ({
                         disabled={isLoadingField}
                         className="rounded-md border border-amber-300 bg-amber-50/50 px-2 py-1 text-xs font-medium text-amber-900 focus:border-amber-500 focus:outline-none dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200"
                       >
-                        <option value="">Seleccionar columna...</option>
+                        <option value="">Select field...</option>
                         {columns.map((c) => (
                           <option key={c.name} value={c.name}>
                             "{c.name}" ({c.dataType})
@@ -473,8 +473,8 @@ export const ParameterModal: React.FC<ParameterModalProps> = ({
                   <table className="w-full text-left text-xs">
                     <thead className="bg-stone-50 border-b border-stone-200 text-stone-500 font-mono text-[10px] uppercase dark:bg-stone-900 dark:border-stone-800">
                       <tr>
-                        <th className="py-1.5 px-3 w-1/2">Valor (Valor Interno)</th>
-                        <th className="py-1.5 px-3 w-1/2">Mostrar como (Etiqueta UI)</th>
+                        <th className="py-1.5 px-3 w-1/2">Value (Internal)</th>
+                        <th className="py-1.5 px-3 w-1/2">Display As (UI Label)</th>
                         <th className="py-1.5 px-2 w-8 text-center"></th>
                       </tr>
                     </thead>
@@ -482,7 +482,7 @@ export const ParameterModal: React.FC<ParameterModalProps> = ({
                       {listItems.length === 0 ? (
                         <tr>
                           <td colSpan={3} className="py-4 text-center text-xs text-stone-400 italic">
-                            No hay elementos en la lista. Añade filas o importa valores desde una columna.
+                            No items in the list. Add rows or import values from a field.
                           </td>
                         </tr>
                       ) : (
@@ -495,7 +495,7 @@ export const ParameterModal: React.FC<ParameterModalProps> = ({
                                 onChange={(e) =>
                                   handleUpdateListItem(idx, 'value', e.target.value)
                                 }
-                                placeholder="Valor"
+                                placeholder="Value"
                                 className="w-full rounded border border-transparent bg-transparent px-1.5 py-0.5 text-xs text-stone-900 focus:border-stone-300 focus:bg-white focus:outline-none dark:text-stone-100 dark:focus:bg-stone-900"
                               />
                             </td>
@@ -506,7 +506,7 @@ export const ParameterModal: React.FC<ParameterModalProps> = ({
                                 onChange={(e) =>
                                   handleUpdateListItem(idx, 'label', e.target.value)
                                 }
-                                placeholder="Mostrar como"
+                                placeholder="Display as"
                                 className="w-full rounded border border-transparent bg-transparent px-1.5 py-0.5 text-xs text-stone-900 focus:border-stone-300 focus:bg-white focus:outline-none dark:text-stone-100 dark:focus:bg-stone-900"
                               />
                             </td>
@@ -515,7 +515,7 @@ export const ParameterModal: React.FC<ParameterModalProps> = ({
                                 type="button"
                                 onClick={() => handleDeleteListItem(idx)}
                                 className="rounded p-0.5 text-stone-400 hover:text-rose-600 transition-colors"
-                                title="Eliminar fila"
+                                title="Delete row"
                               >
                                 <Trash2 className="h-3 w-3" />
                               </button>
@@ -535,12 +535,12 @@ export const ParameterModal: React.FC<ParameterModalProps> = ({
                 {/* Range Action Bar */}
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-medium text-stone-600 dark:text-stone-400">
-                    Definición de Rango Numérico
+                    Numeric Range Definition
                   </span>
 
                   {numericColumns.length > 0 && (
                     <div className="flex items-center gap-1.5">
-                      <span className="text-[11px] text-stone-400">Establecer desde campo:</span>
+                      <span className="text-[11px] text-stone-400">Set from field:</span>
                       <select
                         value={selectedFieldSource}
                         onChange={(e) => {
@@ -553,7 +553,7 @@ export const ParameterModal: React.FC<ParameterModalProps> = ({
                         disabled={isLoadingField}
                         className="rounded-md border border-amber-300 bg-amber-50/50 px-2 py-1 text-xs font-medium text-amber-900 focus:border-amber-500 focus:outline-none dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200"
                       >
-                        <option value="">Seleccionar columna...</option>
+                        <option value="">Select field...</option>
                         {numericColumns.map((c) => (
                           <option key={c.name} value={c.name}>
                             "{c.name}"
@@ -571,7 +571,7 @@ export const ParameterModal: React.FC<ParameterModalProps> = ({
                 <div className="grid grid-cols-3 gap-3">
                   <div>
                     <label className="block text-[11px] font-mono text-stone-500 mb-1">
-                      Mínimo
+                      Minimum
                     </label>
                     <input
                       type="number"
@@ -584,7 +584,7 @@ export const ParameterModal: React.FC<ParameterModalProps> = ({
 
                   <div>
                     <label className="block text-[11px] font-mono text-stone-500 mb-1">
-                      Máximo
+                      Maximum
                     </label>
                     <input
                       type="number"
@@ -597,7 +597,7 @@ export const ParameterModal: React.FC<ParameterModalProps> = ({
 
                   <div>
                     <label className="block text-[11px] font-mono text-stone-500 mb-1">
-                      Tamaño del Paso (Step)
+                      Step Size
                     </label>
                     <input
                       type="number"
@@ -622,7 +622,7 @@ export const ParameterModal: React.FC<ParameterModalProps> = ({
               onChange={(e) => setShowControl(e.target.checked)}
               className="rounded text-amber-600 focus:ring-amber-500"
             />
-            <span>Mostrar control de parámetro en el libro de trabajo</span>
+            <span>Show parameter card in workbook</span>
           </label>
 
           <div className="flex items-center gap-2.5">
@@ -631,7 +631,7 @@ export const ParameterModal: React.FC<ParameterModalProps> = ({
               onClick={onClose}
               className="rounded-lg border border-stone-200 bg-white px-3.5 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700 transition-colors"
             >
-              Cancelar
+              Cancel
             </button>
 
             <button
@@ -641,7 +641,7 @@ export const ParameterModal: React.FC<ParameterModalProps> = ({
               className="flex items-center gap-1.5 rounded-lg bg-stone-900 px-4 py-1.5 text-xs font-medium text-white shadow-xs hover:bg-stone-800 disabled:opacity-40 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-white transition-colors"
             >
               <Check className="h-3.5 w-3.5" />
-              <span>Guardar Parámetro</span>
+              <span>Save Parameter</span>
             </button>
           </div>
         </div>

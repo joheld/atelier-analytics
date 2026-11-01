@@ -24,7 +24,7 @@ export const ParameterControlsBar: React.FC<ParameterControlsBarProps> = ({
     <div className="flex flex-wrap items-center gap-3 border-b border-stone-200/80 bg-white/60 px-4 py-2 backdrop-blur-xs dark:border-stone-800/80 dark:bg-stone-900/60 transition-all select-none">
       <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 font-mono pr-2 border-r border-stone-200 dark:border-stone-800">
         <Sliders className="h-3.5 w-3.5" />
-        <span>Parámetros</span>
+        <span>Parameters</span>
       </div>
 
       {visibleParams.map((param) => {
@@ -43,7 +43,7 @@ export const ParameterControlsBar: React.FC<ParameterControlsBarProps> = ({
               <div
                 className="flex items-center gap-1.5 min-w-0 cursor-pointer"
                 onClick={() => onOpenParameterModal(param)}
-                title="Clic para editar parámetro"
+                title="Click to edit parameter"
               >
                 {isNumber ? (
                   <span className="font-mono text-[10px] font-bold text-amber-600 dark:text-amber-400">
@@ -69,7 +69,7 @@ export const ParameterControlsBar: React.FC<ParameterControlsBarProps> = ({
                 type="button"
                 onClick={() => onToggleParameterControl(param.id)}
                 className="opacity-0 group-hover:opacity-100 rounded p-0.5 text-stone-400 hover:bg-stone-100 hover:text-stone-700 dark:hover:bg-stone-800 dark:hover:text-stone-200 transition-opacity"
-                title="Ocultar control de parámetro"
+                title="Hide parameter card"
               >
                 <X className="h-3 w-3" />
               </button>
@@ -105,7 +105,7 @@ export const ParameterControlsBar: React.FC<ParameterControlsBarProps> = ({
                       onSetParameterValue(param.id, param.numberSubtype === 'integer' ? Math.round(next) : next);
                     }}
                     className="rounded p-0.5 text-stone-400 hover:bg-stone-100 hover:text-stone-700 dark:hover:bg-stone-800 dark:hover:text-stone-200"
-                    title="Disminuir paso"
+                    title="Decrease step"
                   >
                     <Minus className="h-2.5 w-2.5" />
                   </button>
@@ -129,7 +129,7 @@ export const ParameterControlsBar: React.FC<ParameterControlsBarProps> = ({
                       onSetParameterValue(param.id, param.numberSubtype === 'integer' ? Math.round(next) : next);
                     }}
                     className="rounded p-0.5 text-stone-400 hover:bg-stone-100 hover:text-stone-700 dark:hover:bg-stone-800 dark:hover:text-stone-200"
-                    title="Aumentar paso"
+                    title="Increase step"
                   >
                     <Plus className="h-2.5 w-2.5" />
                   </button>
@@ -151,8 +151,8 @@ export const ParameterControlsBar: React.FC<ParameterControlsBarProps> = ({
                 onChange={(e) => onSetParameterValue(param.id, e.target.value === 'true')}
                 className="w-full rounded border border-stone-200 bg-stone-50/70 px-2 py-1 text-xs text-stone-900 focus:border-amber-400 focus:bg-white focus:outline-none dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100 cursor-pointer"
               >
-                <option value="true">True (Verdadero)</option>
-                <option value="false">False (Falso)</option>
+                <option value="true">True</option>
+                <option value="false">False</option>
               </select>
             ) : (
               <input

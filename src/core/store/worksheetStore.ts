@@ -208,7 +208,7 @@ export interface WorksheetStore extends WorksheetState {
 
 const defaultSheet: WorksheetTab = {
   id: 'sheet_1',
-  name: 'Hoja 1',
+  name: 'Sheet 1',
   type: 'worksheet',
   columns: [],
   rows: [],
@@ -266,7 +266,7 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
   closeRelationalModal: () => set({ isRelationalModalOpen: false }),
 
   currentWorkbookId: 'wb_default',
-  currentWorkbookName: 'Reporte Principal',
+  currentWorkbookName: 'Main Workbook',
   savedWorkbooks: [],
   isStorageModalOpen: false,
 
@@ -317,7 +317,7 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
 
     // 2. Initialize new blank workbook
     const newId = `wb_${Date.now()}`;
-    const newName = name || `Reporte ${state.savedWorkbooks.length + 2}`;
+    const newName = name || `Workbook ${state.savedWorkbooks.length + 2}`;
     const defaultTab = {
       ...defaultSheet,
       datasetId: state.currentDataset?.id,
@@ -490,7 +490,7 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
               filters: activeSheet.filters || [],
               marks: activeSheet.marks || defaultSheet.marks,
               currentWorkbookId: session.currentWorkbookId || 'wb_default',
-              currentWorkbookName: session.currentWorkbookName || 'Reporte Principal',
+              currentWorkbookName: session.currentWorkbookName || 'Main Workbook',
               isExecuting: false,
             });
 
@@ -524,7 +524,7 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
       await get().refreshSavedWorkbooks();
     } catch (err: unknown) {
       set({
-        engineError: err instanceof Error ? err.message : 'Error al inicializar DuckDB-WASM',
+        engineError: err instanceof Error ? err.message : 'Error initializing DuckDB-WASM',
         isExecuting: false,
       });
     }
@@ -601,7 +601,7 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
     } catch (err: unknown) {
       set({
         isExecuting: false,
-        engineError: err instanceof Error ? err.message : 'Error al cargar archivo en memoria',
+        engineError: err instanceof Error ? err.message : 'Error loading file into memory',
       });
     }
   },
@@ -614,7 +614,7 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
     try {
       set({ isExecuting: true, engineError: null });
       const queryResult = await queryRelationalDb(dbType, config, target);
-      const rawName = target.table || 'consulta_sql';
+      const rawName = target.table || 'custom_sql_query';
       const cleanName = rawName.toLowerCase().replace(/[^a-z0-9_]/g, '_');
       const tableName = `${dbType}_${cleanName}`;
       const displayName = `${dbType === 'postgres' ? 'PostgreSQL' : 'MySQL'}: ${rawName}`;
@@ -623,7 +623,7 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
         tableName,
         displayName,
         queryResult.csv,
-        `Importado desde ${dbType.toUpperCase()} (${queryResult.rowCount.toLocaleString()} filas)`
+        `Imported from ${dbType.toUpperCase()} (${queryResult.rowCount.toLocaleString()} rows)`
       );
       const allDatasets = duckdbEngine.getAvailableDatasets();
 
@@ -661,10 +661,10 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
 
       await get().executeCurrentState();
     } catch (err: unknown) {
-      console.error('[Store] Error al importar datos relacionales:', err);
+      console.error('[Store] Error importing relational data:', err);
       set({
         isExecuting: false,
-        engineError: err instanceof Error ? err.message : 'Error al importar datos relacionales',
+        engineError: err instanceof Error ? err.message : 'Error importing relational data',
       });
       throw err;
     }
@@ -741,7 +741,7 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
     } catch (err) {
       set({
         isExecuting: false,
-        engineError: err instanceof Error ? err.message : 'Error al alternar Intérprete de datos',
+        engineError: err instanceof Error ? err.message : 'Error toggling Data Interpreter',
       });
     }
   },
@@ -764,7 +764,7 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
     } catch (err) {
       set({
         isExecuting: false,
-        engineError: err instanceof Error ? err.message : 'Error al aplicar filtro de fuente de datos',
+        engineError: err instanceof Error ? err.message : 'Error applying data source filter',
       });
     }
   },
@@ -791,7 +791,7 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
     } catch (err) {
       set({
         isExecuting: false,
-        engineError: err instanceof Error ? err.message : 'Error al eliminar filtro de fuente de datos',
+        engineError: err instanceof Error ? err.message : 'Error removing data source filter',
       });
     }
   },
@@ -812,10 +812,10 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
         await get().executeCurrentState();
       }
     } catch (err) {
-      console.error('[Store] Error al renombrar columna:', err);
+      console.error('[Store] Error renaming column:', err);
       set({
         isExecuting: false,
-        engineError: err instanceof Error ? err.message : 'Error al renombrar columna',
+        engineError: err instanceof Error ? err.message : 'Error renaming column',
       });
     }
   },
@@ -872,10 +872,10 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
         await get().executeCurrentState();
       }
     } catch (err) {
-      console.error('[Store] Error al cambiar tipo de dato:', err);
+      console.error('[Store] Error changing data type:', err);
       set({
         isExecuting: false,
-        engineError: err instanceof Error ? err.message : 'Error al cambiar tipo de dato',
+        engineError: err instanceof Error ? err.message : 'Error changing data type',
       });
     }
   },
@@ -928,10 +928,10 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
         await get().executeCurrentState();
       }
     } catch (err) {
-      console.error('[Store] Error al cambiar rol de columna:', err);
+      console.error('[Store] Error changing column role:', err);
       set({
         isExecuting: false,
-        engineError: err instanceof Error ? err.message : 'Error al cambiar rol',
+        engineError: err instanceof Error ? err.message : 'Error changing field role',
       });
     }
   },
@@ -963,10 +963,10 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
         await get().executeCurrentState();
       }
     } catch (err) {
-      console.error('[Store] Error al dividir columna:', err);
+      console.error('[Store] Error splitting column:', err);
       set({
         isExecuting: false,
-        engineError: err instanceof Error ? err.message : 'Error al dividir columna',
+        engineError: err instanceof Error ? err.message : 'Error splitting column',
       });
     }
   },
@@ -987,10 +987,10 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
         await get().executeCurrentState();
       }
     } catch (err) {
-      console.error('[Store] Error al limpiar texto de columna:', err);
+      console.error('[Store] Error cleaning column text:', err);
       set({
         isExecuting: false,
-        engineError: err instanceof Error ? err.message : 'Error al limpiar texto de columna',
+        engineError: err instanceof Error ? err.message : 'Error cleaning column text',
       });
     }
   },
@@ -1047,7 +1047,7 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
     } catch (err: unknown) {
       set({
         isExecuting: false,
-        engineError: err instanceof Error ? err.message : 'Error al crear relación (JOIN)',
+        engineError: err instanceof Error ? err.message : 'Error creating JOIN relationship',
       });
       throw err;
     }
@@ -1087,7 +1087,7 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
     } catch (err: unknown) {
       set({
         isExecuting: false,
-        engineError: err instanceof Error ? err.message : 'Error al crear unión (UNION)',
+        engineError: err instanceof Error ? err.message : 'Error creating UNION model',
       });
       throw err;
     }
@@ -1636,7 +1636,7 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
   addSheet: (type: SheetType = 'worksheet') => {
     const { sheets } = get();
     const count = sheets.filter((s) => s.type === type).length + 1;
-    const newName = type === 'worksheet' ? `Hoja ${count}` : `Dashboard ${count}`;
+    const newName = type === 'worksheet' ? `Sheet ${count}` : `Dashboard ${count}`;
     const newId = `${type}_${Date.now()}`;
 
     const newTab: WorksheetTab = {
@@ -1707,7 +1707,7 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
     const newTab: WorksheetTab = {
       ...target,
       id: newId,
-      name: `${target.name} (Copia)`,
+      name: `${target.name} (Copy)`,
       columns: [...target.columns],
       rows: [...target.rows],
       filters: [...target.filters],
@@ -1962,7 +1962,7 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
     const duplicated: Parameter = {
       ...target,
       id: `param_${Date.now()}`,
-      name: `${target.name}_Copia`,
+      name: `${target.name}_Copy`,
     };
     set((state) => ({
       parameters: [...state.parameters, duplicated],
@@ -2007,7 +2007,7 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
       const project = JSON.parse(text) as WorkbookProject;
 
       if (!project.sheets || project.sheets.length === 0) {
-        throw new Error('El archivo no contiene hojas válidas.');
+        throw new Error('Project file does not contain valid sheets.');
       }
 
       const activeSheet = project.sheets.find((s) => s.id === project.activeTabId) || project.sheets[0];
@@ -2030,7 +2030,7 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
 
       await get().executeCurrentState();
     } catch (err: unknown) {
-      alert(`Error al importar proyecto: ${err instanceof Error ? err.message : String(err)}`);
+      alert(`Error importing project: ${err instanceof Error ? err.message : String(err)}`);
     }
   },
 
@@ -2217,7 +2217,7 @@ export const useWorksheetStore = create<WorksheetStore>((set, get) => ({
     } catch (err: unknown) {
       set({
         isExecuting: false,
-        engineError: err instanceof Error ? err.message : 'Error ejecutando consulta en DuckDB-WASM',
+        engineError: err instanceof Error ? err.message : 'Error executing query in DuckDB-WASM',
       });
     }
   },

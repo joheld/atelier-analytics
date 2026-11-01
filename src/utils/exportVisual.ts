@@ -76,7 +76,7 @@ export function exportPlotAsPng(
 
         canvas.toBlob((blob) => {
           if (!blob) {
-            reject(new Error('Error al serializar Canvas a Blob PNG'));
+            reject(new Error('Failed to serialize Canvas to PNG Blob'));
             return;
           }
           const pngUrl = URL.createObjectURL(blob);
@@ -98,7 +98,7 @@ export function exportPlotAsPng(
 
     img.onerror = (e) => {
       URL.revokeObjectURL(url);
-      reject(new Error(`Error al renderizar imagen SVG: ${e}`));
+      reject(new Error(`Error rendering SVG image: ${e}`));
     };
 
     img.src = url;

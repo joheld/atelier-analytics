@@ -78,12 +78,12 @@ export const Header: React.FC<HeaderProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isReportDropdownOpen, setIsReportDropdownOpen] = useState(false);
   const [isExportDropdownOpen, setIsExportDropdownOpen] = useState(false);
-  const [renameInput, setRenameInput] = useState(currentWorkbookName || 'Reporte Principal');
+  const [renameInput, setRenameInput] = useState(currentWorkbookName || 'Main Workbook');
   const dropdownRef = useRef<HTMLDivElement>(null);
   const exportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setRenameInput(currentWorkbookName || 'Reporte Principal');
+    setRenameInput(currentWorkbookName || 'Main Workbook');
   }, [currentWorkbookName]);
 
   useEffect(() => {
@@ -110,7 +110,7 @@ export const Header: React.FC<HeaderProps> = ({
           type="button"
           onClick={onToggleStartPage}
           className="btn-tactile flex h-7 w-7 items-center justify-center rounded-md bg-stone-950 text-white dark:bg-stone-100 dark:text-stone-950 shadow-xs rim-light-subtle"
-          title={isStartPageVisible ? 'Ir al espacio de trabajo (Lienzo)' : 'Página de inicio'}
+          title={isStartPageVisible ? 'Go to Workspace (Canvas)' : 'Start Page'}
         >
           <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <rect width="7" height="9" x="3" y="3" rx="1" />
@@ -125,7 +125,7 @@ export const Header: React.FC<HeaderProps> = ({
             type="button"
             onClick={onToggleStartPage}
             className="text-xs font-semibold tracking-[-0.01em] text-stone-950 dark:text-stone-100 hover:text-stone-600 dark:hover:text-stone-300 transition-colors"
-            title={isStartPageVisible ? 'Ir al espacio de trabajo' : 'Ver página de inicio y archivos recientes'}
+            title={isStartPageVisible ? 'Go to Workspace' : 'View Start Page and Recent Files'}
           >
             Atelier
           </button>
@@ -133,7 +133,7 @@ export const Header: React.FC<HeaderProps> = ({
 
           {isStartPageVisible ? (
             <span className="rounded bg-stone-100 dark:bg-stone-800 px-1.5 py-0.5 text-[11px] font-mono text-stone-600 dark:text-stone-300">
-              Inicio
+              Start
             </span>
           ) : (
             /* Report Switcher Dropdown */
@@ -142,10 +142,10 @@ export const Header: React.FC<HeaderProps> = ({
                 type="button"
                 onClick={() => setIsReportDropdownOpen(!isReportDropdownOpen)}
                 className="btn-tactile flex items-center gap-1.5 rounded-md border border-stone-200/90 bg-white px-2 py-1 text-xs font-medium text-stone-800 hover:bg-stone-50 dark:border-white/[0.08] dark:bg-stone-900 dark:text-stone-200 rim-light-subtle shadow-2xs transition-colors"
-                title="Catálogo de reportes: cambia de reporte o crea uno nuevo"
+                title="Workbook catalog: switch workbooks or create a new one"
               >
                 <Folder className="h-3.5 w-3.5 text-stone-400" />
-                <span className="max-w-[130px] truncate">{currentWorkbookName || 'Reporte Principal'}</span>
+                <span className="max-w-[130px] truncate">{currentWorkbookName || 'Main Workbook'}</span>
                 <ChevronDown className="h-3 w-3 text-stone-400" />
               </button>
 
@@ -155,7 +155,7 @@ export const Header: React.FC<HeaderProps> = ({
                 {/* Header with Rename input */}
                 <div className="px-2 py-1 mb-1">
                   <div className="text-[10px] font-bold uppercase tracking-wider text-stone-400 font-mono">
-                    Nombre del Reporte
+                    Workbook Name
                   </div>
                   <div className="mt-1 flex items-center gap-1.5">
                     <input
@@ -166,14 +166,14 @@ export const Header: React.FC<HeaderProps> = ({
                         onRenameWorkbook?.(e.target.value);
                       }}
                       className="w-full rounded border border-stone-200 bg-white px-2 py-1 text-xs font-medium text-stone-900 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-100 focus:outline-none focus:ring-1 focus:ring-stone-400 font-sans"
-                      placeholder="Nombre del reporte..."
+                      placeholder="Workbook name..."
                     />
                   </div>
                 </div>
 
                 <div className="my-1.5 border-t border-stone-100 dark:border-white/[0.06]" />
 
-                {/* + Nuevo Reporte Action */}
+                {/* + New Blank Workbook Action */}
                 <button
                   type="button"
                   onClick={() => {
@@ -184,7 +184,7 @@ export const Header: React.FC<HeaderProps> = ({
                 >
                   <span className="flex items-center gap-2">
                     <Plus className="h-3.5 w-3.5 text-stone-400" />
-                    <span>Nuevo Reporte en Blanco</span>
+                    <span>New Blank Workbook</span>
                   </span>
                   <kbd className="kbd-shortcut">⌘ N</kbd>
                 </button>
@@ -193,7 +193,7 @@ export const Header: React.FC<HeaderProps> = ({
 
                 {/* Saved Workbooks List */}
                 <div className="text-[10px] font-bold uppercase tracking-wider text-stone-400 font-mono px-2 py-1">
-                  Catálogo Guardado ({savedWorkbooks?.length || 1})
+                  Saved Workbooks ({savedWorkbooks?.length || 1})
                 </div>
 
                 <div className="max-h-48 overflow-y-auto space-y-0.5">
@@ -231,7 +231,7 @@ export const Header: React.FC<HeaderProps> = ({
                           <div className="flex items-center gap-1 shrink-0">
                             {isActive && (
                               <span className="rounded bg-stone-900 text-white dark:bg-white dark:text-stone-900 px-1 py-0.2 text-[9px] font-mono">
-                                Activo
+                                Active
                               </span>
                             )}
                             {savedWorkbooks.length > 1 && !isActive && onDeleteWorkbook && (
@@ -239,12 +239,12 @@ export const Header: React.FC<HeaderProps> = ({
                                 type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  if (confirm(`¿Eliminar reporte "${wb.name}"?`)) {
+                                  if (confirm(`Delete workbook "${wb.name}"?`)) {
                                     onDeleteWorkbook(wb.id);
                                   }
                                 }}
                                 className="p-1 text-stone-400 hover:text-rose-600 rounded transition-colors"
-                                title="Eliminar reporte del catálogo"
+                                title="Delete workbook from catalog"
                               >
                                 <Trash2 className="h-3 w-3" />
                               </button>
@@ -255,7 +255,7 @@ export const Header: React.FC<HeaderProps> = ({
                     })
                   ) : (
                     <div className="px-2 py-2 text-center text-[11px] text-stone-400 font-mono">
-                      Reporte actual activo
+                      Current active workbook
                     </div>
                   )}
                 </div>
@@ -273,7 +273,7 @@ export const Header: React.FC<HeaderProps> = ({
                 >
                   <span className="flex items-center gap-1.5">
                     <Database className="h-3 w-3 text-stone-400" />
-                    <span>Almacenamiento Local</span>
+                    <span>Local Storage</span>
                   </span>
                   <Info className="h-3 w-3" />
                 </button>
@@ -295,14 +295,14 @@ export const Header: React.FC<HeaderProps> = ({
               </span>
               <span className="text-stone-300 dark:text-stone-700">•</span>
               <span className="text-stone-500 dark:text-stone-400 tabular-nums">
-                {currentDataset.rowCount.toLocaleString()} filas
+                {currentDataset.rowCount.toLocaleString()} rows
               </span>
               {onCloseDataset && (
                 <button
                   type="button"
                   onClick={onCloseDataset}
                   className="ml-1 rounded p-0.5 text-stone-400 hover:bg-stone-200 hover:text-stone-700 dark:hover:bg-stone-800 dark:hover:text-stone-200 transition-colors"
-                  title="Cerrar dataset"
+                  title="Close data source"
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -314,26 +314,26 @@ export const Header: React.FC<HeaderProps> = ({
               type="button"
               onClick={onOpenStorageModal}
               className="hidden sm:flex items-center gap-1.5 rounded-md border border-stone-200/80 bg-white px-2 py-1 text-[11px] font-mono text-stone-600 hover:text-stone-900 hover:bg-stone-50 dark:border-white/[0.08] dark:bg-stone-900 dark:text-stone-400 dark:hover:text-stone-100 rim-light-subtle shadow-2xs transition-colors"
-              title="Guardado automáticamente en Mac (IndexedDB)"
+              title="Autosaved locally in browser (IndexedDB)"
             >
               <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
-              <span>Mac Local</span>
+              <span>Local Storage</span>
               <Info className="h-2.5 w-2.5 text-stone-400 ml-0.5" />
             </button>
           </>
         ) : (
           <div className="flex items-center gap-2">
             <span className="rounded-md border border-stone-200/70 bg-stone-50 px-2.5 py-1 text-xs font-mono text-stone-500 dark:border-white/[0.06] dark:bg-stone-900 dark:text-stone-400">
-              DuckDB-WASM Motor Listo
+              DuckDB-WASM Ready
             </span>
             <button
               type="button"
               onClick={onOpenStorageModal}
               className="hidden sm:flex items-center gap-1 rounded-md border border-stone-200/80 bg-white px-2 py-0.5 text-[10px] font-mono text-stone-500 hover:text-stone-800 dark:border-white/[0.08] dark:bg-stone-900 dark:text-stone-400 dark:hover:text-stone-200"
-              title="Ver estado de almacenamiento local en Mac"
+              title="View local storage inspector"
             >
               <Database className="h-3 w-3 text-stone-400" />
-              <span>Almacenamiento</span>
+              <span>Storage</span>
             </button>
           </div>
         )}
@@ -349,7 +349,7 @@ export const Header: React.FC<HeaderProps> = ({
             </span>
             {rowCount !== undefined && (
               <span className="text-stone-400 dark:text-stone-500">
-                ({rowCount.toLocaleString()} marcas)
+                ({rowCount.toLocaleString()} marks)
               </span>
             )}
           </div>
@@ -375,10 +375,10 @@ export const Header: React.FC<HeaderProps> = ({
           type="button"
           onClick={() => fileInputRef.current?.click()}
           className="btn-tactile flex items-center gap-1.5 rounded-md border border-stone-200/90 bg-white px-2 py-1 text-xs font-medium text-stone-700 shadow-2xs hover:bg-stone-50 dark:border-white/[0.08] dark:bg-stone-900 dark:text-stone-300 dark:hover:bg-white/[0.04] rim-light-subtle"
-          title="Abrir archivo de proyecto (.atelier)"
+          title="Open project file (.atelier)"
         >
           <Upload className="h-3 w-3 text-stone-400" />
-          <span>Abrir</span>
+          <span>Open</span>
         </button>
 
         {/* Executive Visual Export Dropdown */}
@@ -387,30 +387,30 @@ export const Header: React.FC<HeaderProps> = ({
             type="button"
             onClick={() => setIsExportDropdownOpen(!isExportDropdownOpen)}
             className="btn-tactile flex items-center gap-1.5 rounded-md border border-stone-200/90 bg-white px-2 py-1 text-xs font-medium text-stone-700 shadow-2xs hover:bg-stone-50 dark:border-white/[0.08] dark:bg-stone-900 dark:text-stone-300 dark:hover:bg-white/[0.04] rim-light-subtle"
-            title="Exportar gráfico o informe ejecutivo"
+            title="Export visual or executive report"
           >
             <Download className="h-3 w-3 text-stone-400" />
-            <span>Exportar</span>
+            <span>Export</span>
             <ChevronDown className="h-3 w-3 opacity-50" />
           </button>
 
           {isExportDropdownOpen && (
             <div className="absolute right-0 top-full z-50 mt-1 w-56 rounded-lg border border-stone-200/90 bg-white py-1 shadow-xl dark:border-white/[0.08] dark:bg-stone-950 text-stone-900 dark:text-stone-100 rim-light-subtle">
               <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-stone-400 font-mono">
-                Gráficos & Visuales
+                Visuals & Charts
               </div>
               <button
                 type="button"
                 onClick={() => {
                   setIsExportDropdownOpen(false);
                   const el = document.querySelector('svg')?.parentElement || document.body;
-                  void exportPlotAsPng(el as HTMLElement, `${currentWorkbookName || 'atelier'}-grafico`);
+                  void exportPlotAsPng(el as HTMLElement, `${currentWorkbookName || 'atelier'}-chart`);
                 }}
                 className="flex w-full items-center justify-between px-2.5 py-1.5 text-xs hover:bg-stone-100 dark:hover:bg-white/[0.04] text-stone-700 dark:text-stone-300 transition-colors"
               >
                 <span className="flex items-center gap-2">
                   <Image className="h-3.5 w-3.5 text-stone-400" />
-                  <span>Imagen Retina 2x</span>
+                  <span>Retina Image (2x)</span>
                 </span>
                 <span className="text-[10px] font-mono text-stone-400">PNG</span>
               </button>
@@ -419,13 +419,13 @@ export const Header: React.FC<HeaderProps> = ({
                 onClick={() => {
                   setIsExportDropdownOpen(false);
                   const el = document.querySelector('svg')?.parentElement || document.body;
-                  exportPlotAsSvg(el as HTMLElement, `${currentWorkbookName || 'atelier'}-grafico`);
+                  exportPlotAsSvg(el as HTMLElement, `${currentWorkbookName || 'atelier'}-chart`);
                 }}
                 className="flex w-full items-center justify-between px-2.5 py-1.5 text-xs hover:bg-stone-100 dark:hover:bg-white/[0.04] text-stone-700 dark:text-stone-300 transition-colors"
               >
                 <span className="flex items-center gap-2">
                   <Code className="h-3.5 w-3.5 text-stone-400" />
-                  <span>Vectorial</span>
+                  <span>Vector SVG</span>
                 </span>
                 <span className="text-[10px] font-mono text-stone-400">SVG</span>
               </button>
@@ -439,7 +439,7 @@ export const Header: React.FC<HeaderProps> = ({
               >
                 <span className="flex items-center gap-2">
                   <Printer className="h-3.5 w-3.5 text-stone-400" />
-                  <span>Informe Ejecutivo</span>
+                  <span>Executive Report</span>
                 </span>
                 <span className="text-[10px] font-mono text-stone-400">PDF</span>
               </button>
@@ -447,7 +447,7 @@ export const Header: React.FC<HeaderProps> = ({
               <div className="my-1 border-t border-stone-100 dark:border-white/[0.06]" />
 
               <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-stone-400 font-mono">
-                Proyecto & Datos
+                Project & Data
               </div>
               {onExportProject && (
                 <button
@@ -460,7 +460,7 @@ export const Header: React.FC<HeaderProps> = ({
                 >
                   <span className="flex items-center gap-2">
                     <Download className="h-3.5 w-3.5 text-stone-400" />
-                    <span>Libro Completo</span>
+                    <span>Full Workbook</span>
                   </span>
                   <span className="text-[10px] font-mono text-stone-400">.atelier</span>
                 </button>
@@ -473,7 +473,7 @@ export const Header: React.FC<HeaderProps> = ({
           type="button"
           onClick={onToggleSQLDrawer}
           className="btn-tactile flex items-center gap-1.5 rounded-md border border-stone-200/90 bg-white px-2 py-1 text-xs font-medium text-stone-700 shadow-2xs hover:bg-stone-50 dark:border-white/[0.08] dark:bg-stone-900 dark:text-stone-300 dark:hover:bg-white/[0.04] rim-light-subtle"
-          title="Ver SQL DuckDB"
+          title="Inspect DuckDB SQL"
         >
           <Code className="h-3.5 w-3.5 text-stone-400" />
           <span>SQL</span>
@@ -484,7 +484,7 @@ export const Header: React.FC<HeaderProps> = ({
             type="button"
             onClick={onClearShelves}
             className="btn-tactile rounded-md border border-stone-200/90 bg-white p-1 text-stone-500 shadow-2xs hover:bg-stone-50 hover:text-stone-900 dark:border-white/[0.08] dark:bg-stone-900 dark:text-stone-400 dark:hover:bg-white/[0.04] dark:hover:text-stone-100 rim-light-subtle"
-            title="Limpiar estantes"
+            title="Clear shelves"
           >
             <RotateCcw className="h-3.5 w-3.5" />
           </button>
@@ -494,7 +494,7 @@ export const Header: React.FC<HeaderProps> = ({
           type="button"
           onClick={onToggleTheme}
           className="btn-tactile rounded-md border border-stone-200/90 bg-white p-1 text-stone-500 shadow-2xs hover:bg-stone-50 hover:text-stone-900 dark:border-white/[0.08] dark:bg-stone-900 dark:text-stone-400 dark:hover:bg-white/[0.04] dark:hover:text-stone-100 rim-light-subtle"
-          title="Cambiar tema claro/oscuro"
+          title="Toggle light/dark theme"
         >
           {theme === 'light' ? <Moon className="h-3.5 w-3.5" /> : <Sun className="h-3.5 w-3.5" />}
         </button>

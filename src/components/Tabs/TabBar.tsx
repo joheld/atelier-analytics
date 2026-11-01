@@ -70,14 +70,14 @@ export const TabBar: React.FC<TabBarProps> = ({
               ? 'bg-white border-stone-300 text-stone-900 shadow-2xs dark:bg-stone-900 dark:border-white/[0.1] dark:text-stone-100 rim-light-subtle'
               : 'border-transparent text-stone-600 hover:bg-stone-200/50 dark:text-stone-400 dark:hover:bg-white/[0.04]'
           }`}
-          title="Fuente de datos: Intérprete de datos, filtros de fuente y preparación"
+          title="Data Source: Data Interpreter, source filters, and prep"
         >
           <Database
             className={`h-3.5 w-3.5 ${
               isDataSourceActive ? 'text-stone-700 dark:text-stone-200' : 'text-stone-400'
             }`}
           />
-          <span className="font-mono text-[11px]">Fuente de datos</span>
+          <span className="font-mono text-[11px]">Data Source</span>
         </button>
 
         {sheets.map((tab) => {
@@ -128,7 +128,7 @@ export const TabBar: React.FC<TabBarProps> = ({
                     startRename(tab);
                   }}
                   className="truncate max-w-[140px] font-mono text-[11px]"
-                  title="Doble clic para renombrar"
+                  title="Double-click to rename"
                 >
                   {tab.name}
                 </span>
@@ -143,7 +143,7 @@ export const TabBar: React.FC<TabBarProps> = ({
                     startRename(tab);
                   }}
                   className="rounded p-0.5 text-stone-400 hover:text-stone-700 dark:hover:text-stone-200"
-                  title="Renombrar hoja"
+                  title="Rename sheet"
                 >
                   <Edit2 className="h-2.5 w-2.5" />
                 </button>
@@ -155,7 +155,7 @@ export const TabBar: React.FC<TabBarProps> = ({
                     onDuplicateTab(tab.id);
                   }}
                   className="rounded p-0.5 text-stone-400 hover:text-stone-700 dark:hover:text-stone-200"
-                  title="Duplicar hoja"
+                  title="Duplicate sheet"
                 >
                   <Copy className="h-2.5 w-2.5" />
                 </button>
@@ -168,7 +168,7 @@ export const TabBar: React.FC<TabBarProps> = ({
                       onDeleteTab(tab.id);
                     }}
                     className="rounded p-0.5 text-stone-400 hover:text-rose-600"
-                    title="Eliminar hoja"
+                    title="Delete sheet"
                   >
                     <X className="h-2.5 w-2.5" />
                   </button>
@@ -185,17 +185,17 @@ export const TabBar: React.FC<TabBarProps> = ({
           type="button"
           onClick={() => onAddSheet('worksheet')}
           className="btn-tactile flex items-center gap-1 rounded px-2 py-1 text-[11px] font-mono font-medium text-stone-600 hover:bg-stone-200/60 hover:text-stone-900 transition-colors dark:text-stone-300 dark:hover:bg-white/[0.04] dark:hover:text-stone-100"
-          title="Crear nueva hoja analítica (Worksheet)"
+          title="New Worksheet"
         >
           <Plus className="h-3 w-3 text-stone-400" />
-          <span>Hoja</span>
+          <span>Sheet</span>
         </button>
 
         <button
           type="button"
           onClick={() => onAddSheet('dashboard')}
           className="btn-tactile flex items-center gap-1 rounded px-2 py-1 text-[11px] font-mono font-medium text-stone-600 hover:bg-stone-200/60 hover:text-stone-900 transition-colors dark:text-stone-300 dark:hover:bg-white/[0.04] dark:hover:text-stone-100"
-          title="Crear nuevo panel compuesto (Dashboard)"
+          title="New Dashboard"
         >
           <LayoutGrid className="h-3 w-3 text-stone-400" />
           <span>Dashboard</span>

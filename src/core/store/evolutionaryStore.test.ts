@@ -11,7 +11,7 @@ describe('Evolutionary Store Features: Hierarchies, Drill-down & Number Formatti
       sheets: [
         {
           id: 'sheet_1',
-          name: 'Hoja 1',
+          name: 'Sheet 1',
           type: 'worksheet',
           columns: [],
           rows: [],

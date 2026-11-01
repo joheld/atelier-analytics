@@ -62,7 +62,7 @@ export const MarksCard: React.FC<MarksCardProps> = ({
         onAddPillToChannel(channel, droppedPill);
       }
     } catch (err) {
-      console.error('Error soltando pastilla en marca:', err);
+      console.error('Error dropping pill on mark channel:', err);
     }
   };
 
@@ -71,37 +71,37 @@ export const MarksCard: React.FC<MarksCardProps> = ({
       {/* Marks Card Header */}
       <div className="flex items-center justify-between pb-2 border-b border-stone-100 dark:border-stone-800">
         <span className="text-xs font-bold uppercase tracking-wider text-stone-700 dark:text-stone-300 font-mono">
-          Marcas (Marks)
+          Marks
         </span>
         <span className="rounded bg-stone-100 px-1.5 py-0.5 text-[10px] font-mono font-medium text-stone-500 dark:bg-stone-800 dark:text-stone-400">
-          Geometría
+          Geometry
         </span>
       </div>
 
       {/* Mark Type Selector */}
       <div className="mt-2.5">
-        <label className="text-[11px] font-medium text-stone-500 dark:text-stone-400">Tipo de Marca</label>
+        <label className="text-[11px] font-medium text-stone-500 dark:text-stone-400">Mark Type</label>
         <select
           value={markType}
           onChange={(e) => onSetMarkType(e.target.value as MarkType)}
           className="mt-1 w-full rounded-md border border-stone-200 bg-stone-50 px-2 py-1.5 text-xs font-medium text-stone-800 focus:border-stone-400 focus:outline-none dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200"
         >
-          <option value="auto">Automático (Show Me)</option>
-          <option value="bar">Barras (Bar)</option>
-          <option value="line">Líneas Continuas (Line)</option>
-          <option value="area">Área Continua (Area)</option>
-          <option value="dot">Puntos / Dispersión (Dot)</option>
-          <option value="box">Diagrama de Caja (Boxplot)</option>
-          <option value="histogram">Histograma Continuo (Histogram)</option>
-          <option value="rect">Mapa de Calor / Matriz (Cell)</option>
-          <option value="density">Densidad 2D / Contornos (Density)</option>
-          <option value="hexbin">Agrupamiento Hexagonal (Hexbin)</option>
-          <option value="spike">Gráfico de Picos (Spike)</option>
-          <option value="difference">Gráfico de Diferencia (Difference)</option>
-          <option value="tick">Líneas de Marca (Tick)</option>
-          <option value="waffle">Gráfico Waffle (Waffle)</option>
-          <option value="geo">Mapa Cartográfico (Geo / Map)</option>
-          <option value="text">Texto / Métrica (Text)</option>
+          <option value="auto">Automatic (Show Me)</option>
+          <option value="bar">Bar</option>
+          <option value="line">Line</option>
+          <option value="area">Area</option>
+          <option value="dot">Circle / Scatter</option>
+          <option value="box">Box Plot</option>
+          <option value="histogram">Histogram</option>
+          <option value="rect">Heatmap Cell</option>
+          <option value="density">Density Contour</option>
+          <option value="hexbin">Hexbin</option>
+          <option value="spike">Spike</option>
+          <option value="difference">Difference</option>
+          <option value="tick">Tick</option>
+          <option value="waffle">Waffle</option>
+          <option value="geo">Map (Geo)</option>
+          <option value="text">Text</option>
         </select>
       </div>
 
@@ -128,10 +128,10 @@ export const MarksCard: React.FC<MarksCardProps> = ({
                 type="button"
                 onClick={() => onRemovePillFromChannel('color', color.id)}
                 className="text-[10px] font-mono flex items-center gap-0.5 text-stone-400 hover:text-rose-600 cursor-pointer transition-colors"
-                title="Quitar marca de Color"
+                title="Remove Color mark"
               >
                 <X className="h-2.5 w-2.5" />
-                <span>Quitar</span>
+                <span>Remove</span>
               </button>
             )}
           </div>
@@ -146,7 +146,7 @@ export const MarksCard: React.FC<MarksCardProps> = ({
                 onChangeRole={onChangeColumnRole ? (r) => void onChangeColumnRole(color.columnName, r) : undefined}
               />
             ) : (
-              <span className="text-[10px] italic text-stone-400 select-none">Soltar dimensión o métrica</span>
+              <span className="text-[10px] italic text-stone-400 select-none">Drop dimension or measure</span>
             )}
           </div>
         </div>
@@ -165,17 +165,17 @@ export const MarksCard: React.FC<MarksCardProps> = ({
           <div className="flex items-center justify-between text-[11px] font-semibold text-stone-600 dark:text-stone-400">
             <span className="flex items-center gap-1.5">
               <Maximize2 className="h-3.5 w-3.5 text-stone-500" />
-              Tamaño (Size)
+              Size
             </span>
             {size && (
               <button
                 type="button"
                 onClick={() => onRemovePillFromChannel('size', size.id)}
                 className="text-[10px] font-mono flex items-center gap-0.5 text-stone-400 hover:text-rose-600 cursor-pointer transition-colors"
-                title="Quitar marca de Tamaño"
+                title="Remove Size mark"
               >
                 <X className="h-2.5 w-2.5" />
-                <span>Quitar</span>
+                <span>Remove</span>
               </button>
             )}
           </div>
@@ -190,7 +190,7 @@ export const MarksCard: React.FC<MarksCardProps> = ({
                 onChangeRole={onChangeColumnRole ? (r) => void onChangeColumnRole(size.columnName, r) : undefined}
               />
             ) : (
-              <span className="text-[10px] italic text-stone-400 select-none">Soltar métrica continua</span>
+              <span className="text-[10px] italic text-stone-400 select-none">Drop continuous measure</span>
             )}
           </div>
         </div>
@@ -209,11 +209,11 @@ export const MarksCard: React.FC<MarksCardProps> = ({
           <div className="flex items-center justify-between text-[11px] font-semibold text-stone-600 dark:text-stone-400">
             <span className="flex items-center gap-1.5">
               <Layers className="h-3.5 w-3.5 text-stone-500" />
-              Detalle (Detail)
+              Detail
             </span>
             <span
               className="cursor-help text-stone-400 hover:text-stone-600"
-              title="Altera la granularidad del GROUP BY de la consulta sin añadir ejes visuales en X o Y"
+              title="Alters query GROUP BY level of detail without adding X or Y visual axes"
             >
               <HelpCircle className="h-3 w-3" />
             </span>
@@ -221,7 +221,7 @@ export const MarksCard: React.FC<MarksCardProps> = ({
           <div className="mt-1.5 flex flex-col gap-1 min-h-[26px]">
             {detail.length === 0 ? (
               <span className="text-[10px] italic text-stone-400 select-none">
-                Añade dimensiones para subdividir marcas
+                Drop dimensions to subdivide marks
               </span>
             ) : (
               detail.map((p) => (
@@ -258,7 +258,7 @@ export const MarksCard: React.FC<MarksCardProps> = ({
           </div>
           <div className="mt-1.5 flex flex-col gap-1 min-h-[26px]">
             {tooltip.length === 0 ? (
-              <span className="text-[10px] italic text-stone-400 select-none">Campos adicionales al hover</span>
+              <span className="text-[10px] italic text-stone-400 select-none">Additional fields on hover</span>
             ) : (
               tooltip.map((p) => (
                 <PillBadge
@@ -279,7 +279,7 @@ export const MarksCard: React.FC<MarksCardProps> = ({
       {/* Opacity Slider */}
       <div className="mt-3 pt-2 border-t border-stone-100 dark:border-stone-800">
         <div className="flex items-center justify-between text-[11px] text-stone-500 dark:text-stone-400">
-          <span>Opacidad</span>
+          <span>Opacity</span>
           <span className="font-mono text-[10px]">{Math.round(opacity * 100)}%</span>
         </div>
         <input

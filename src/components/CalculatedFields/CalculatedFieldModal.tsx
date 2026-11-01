@@ -35,48 +35,48 @@ const FUNCTION_LIBRARY: FunctionDoc[] = [
   {
     name: 'RUNNING_SUM',
     category: 'table_calc',
-    syntax: 'RUNNING_SUM(AGG([Campo]))',
-    description: 'Calcula la suma acumulada de la métrica desde la primera fila hasta la fila actual.',
+    syntax: 'RUNNING_SUM(AGG([Field]))',
+    description: 'Calculates the running sum of a measure from the first row to the current row.',
     example: 'RUNNING_SUM(SUM([sales]))',
     snippet: 'RUNNING_SUM(SUM([measure]))',
   },
   {
     name: 'RUNNING_AVG',
     category: 'table_calc',
-    syntax: 'RUNNING_AVG(AGG([Campo]))',
-    description: 'Calcula el promedio acumulado continuo desde la primera fila hasta la actual.',
+    syntax: 'RUNNING_AVG(AGG([Field]))',
+    description: 'Calculates the running average of a measure from the first row to the current row.',
     example: 'RUNNING_AVG(AVG([profit]))',
     snippet: 'RUNNING_AVG(AVG([measure]))',
   },
   {
     name: 'WINDOW_AVG',
     category: 'table_calc',
-    syntax: 'WINDOW_AVG(AGG([Campo]))',
-    description: 'Calcula el promedio de la expresión en toda la partición o ventana visible.',
+    syntax: 'WINDOW_AVG(AGG([Field]))',
+    description: 'Calculates the average of the expression across the window partition.',
     example: 'WINDOW_AVG(SUM([sales]))',
     snippet: 'WINDOW_AVG(SUM([measure]))',
   },
   {
     name: 'WINDOW_SUM',
     category: 'table_calc',
-    syntax: 'WINDOW_SUM(AGG([Campo]))',
-    description: 'Calcula la suma total de la expresión en toda la partición o ventana visible.',
+    syntax: 'WINDOW_SUM(AGG([Field]))',
+    description: 'Calculates the sum of the expression across the window partition.',
     example: 'WINDOW_SUM(SUM([profit]))',
     snippet: 'WINDOW_SUM(SUM([measure]))',
   },
   {
     name: 'RANK',
     category: 'table_calc',
-    syntax: 'RANK(AGG([Campo]))',
-    description: 'Asigna un ranking estándar (con saltos ante empates) según la métrica indicada en orden descendente.',
+    syntax: 'RANK(AGG([Field]))',
+    description: 'Assigns standard rank (with gaps for ties) based on the specified measure in descending order.',
     example: 'RANK(SUM([sales]))',
     snippet: 'RANK(SUM([measure]))',
   },
   {
     name: 'RANK_DENSE',
     category: 'table_calc',
-    syntax: 'RANK_DENSE(AGG([Campo]))',
-    description: 'Asigna un ranking denso continuo (sin saltos de posición ante empates).',
+    syntax: 'RANK_DENSE(AGG([Field]))',
+    description: 'Assigns dense rank (no gaps for ties) based on the specified measure in descending order.',
     example: 'RANK_DENSE(SUM([sales]))',
     snippet: 'RANK_DENSE(SUM([measure]))',
   },
@@ -84,7 +84,7 @@ const FUNCTION_LIBRARY: FunctionDoc[] = [
     name: 'INDEX',
     category: 'table_calc',
     syntax: 'INDEX()',
-    description: 'Devuelve el número de fila actual en la partición (comenzando en 1).',
+    description: 'Returns the index of the current row in the partition (starting at 1).',
     example: 'INDEX()',
     snippet: 'INDEX()',
   },
@@ -92,7 +92,7 @@ const FUNCTION_LIBRARY: FunctionDoc[] = [
     name: 'FIRST',
     category: 'table_calc',
     syntax: 'FIRST()',
-    description: 'Devuelve la distancia relativa desde la fila actual hasta la primera fila (0 para la primera, -1 para la segunda, etc.).',
+    description: 'Returns the relative distance from the current row to the first row (0 for first, -1 for second, etc.).',
     example: 'FIRST()',
     snippet: 'FIRST()',
   },
@@ -100,15 +100,15 @@ const FUNCTION_LIBRARY: FunctionDoc[] = [
     name: 'LAST',
     category: 'table_calc',
     syntax: 'LAST()',
-    description: 'Devuelve el número de filas desde la fila actual hasta la última fila de la partición.',
+    description: 'Returns the number of rows from the current row to the last row in the partition.',
     example: 'LAST()',
     snippet: 'LAST()',
   },
   {
     name: 'LOOKUP',
     category: 'table_calc',
-    syntax: 'LOOKUP(AGG([Campo]), [offset])',
-    description: 'Devuelve el valor de la métrica en la fila desplazada por el offset (por ejemplo, -1 para el período anterior).',
+    syntax: 'LOOKUP(AGG([Field]), [offset])',
+    description: 'Returns the value of the measure in a target row specified by relative offset (e.g. -1 for previous period).',
     example: 'LOOKUP(SUM([sales]), -1)',
     snippet: 'LOOKUP(SUM([measure]), -1)',
   },
@@ -117,192 +117,192 @@ const FUNCTION_LIBRARY: FunctionDoc[] = [
   {
     name: 'FIXED',
     category: 'lod',
-    syntax: '{FIXED [Dim1], [Dim2] : AGG([Campo])}',
-    description: 'Calcula una métrica fijada exactamente a las dimensiones indicadas, ignorando las dimensiones activas en el lienzo de la hoja.',
+    syntax: '{FIXED [Dim1], [Dim2] : AGG([Field])}',
+    description: 'Computes a measure at the exact specified dimensions, ignoring dimensions present in the view.',
     example: '{FIXED [region] : SUM([sales])}',
     snippet: '{FIXED [dim] : SUM([measure])}',
   },
   {
-    name: 'FIXED (Sin dimensiones)',
+    name: 'FIXED (Without dimensions)',
     category: 'lod',
-    syntax: '{FIXED : AGG([Campo])}',
-    description: 'Calcula el total absoluto de toda la tabla independientemente de cualquier filtro o desglose dimensional en la hoja.',
+    syntax: '{FIXED : AGG([Field])}',
+    description: 'Computes the grand total for the entire table regardless of filters or view dimensions.',
     example: '{FIXED : SUM([sales])}',
     snippet: '{FIXED : SUM([measure])}',
   },
   {
     name: 'INCLUDE',
     category: 'lod',
-    syntax: '{INCLUDE [Dim] : AGG([Campo])}',
-    description: 'Calcula a un nivel de granularidad más detallado que el lienzo (añade la dimensión indicada a las dimensiones activas).',
+    syntax: '{INCLUDE [Dim] : AGG([Field])}',
+    description: 'Computes at a more granular level than the view (adds the specified dimension to active view dimensions).',
     example: '{INCLUDE [customer_id] : AVG([sales])}',
     snippet: '{INCLUDE [dim] : AVG([measure])}',
   },
   {
     name: 'EXCLUDE',
     category: 'lod',
-    syntax: '{EXCLUDE [Dim] : AGG([Campo])}',
-    description: 'Calcula omitiendo una dimensión que está presente en la visualización, permitiendo comparar con el total superior.',
+    syntax: '{EXCLUDE [Dim] : AGG([Field])}',
+    description: 'Computes omitting a dimension present in the view, enabling comparison against parent total.',
     example: '{EXCLUDE [category] : SUM([sales])}',
     snippet: '{EXCLUDE [dim] : SUM([measure])}',
   },
 
-  // LÓGICAS & CONDICIONALES
+  // LOGICAL & CONDITIONAL
   {
     name: 'CASE WHEN',
     category: 'logic',
-    syntax: 'CASE WHEN condición THEN valor1 ELSE valor2 END',
-    description: 'Evalúa una condición lógica y devuelve un resultado específico. Ideal para segmentar y clasificar categorías.',
+    syntax: 'CASE WHEN condition THEN val1 ELSE val2 END',
+    description: 'Evaluates logical conditions and returns a specific value. Ideal for categorizing data.',
     example: "CASE WHEN \"age\" >= 50 THEN 'Senior' ELSE 'Junior' END",
     snippet: "CASE WHEN condition THEN 'A' ELSE 'B' END",
   },
   {
     name: 'COALESCE',
     category: 'logic',
-    syntax: 'COALESCE(expresión, valor_por_defecto)',
-    description: 'Devuelve el primer valor no nulo. Clave para evitar valores vacíos o nulos en tablas y gráficos.',
+    syntax: 'COALESCE(expr, default_val)',
+    description: 'Returns the first non-null value. Essential for replacing nulls in calculations and charts.',
     example: 'COALESCE("bonus", 0)',
     snippet: 'COALESCE(col, 0)',
   },
   {
     name: 'NULLIF',
     category: 'logic',
-    syntax: 'NULLIF(valor1, valor2)',
-    description: 'Devuelve NULL si valor1 es igual a valor2. Es la mejor forma de evitar errores de división por cero.',
+    syntax: 'NULLIF(val1, val2)',
+    description: 'Returns NULL if val1 equals val2. Essential for preventing division by zero errors.',
     example: '"sales" / NULLIF("units", 0)',
     snippet: 'NULLIF(col, 0)',
   },
   {
     name: 'IFNULL',
     category: 'logic',
-    syntax: 'IFNULL(expresión, reemplazo)',
-    description: 'Si la expresión es NULL, devuelve el reemplazo indicado.',
-    example: "IFNULL(\"country\", 'Desconocido')",
+    syntax: 'IFNULL(expr, replacement)',
+    description: 'Returns the replacement value if the expression is NULL.',
+    example: "IFNULL(\"country\", 'Unknown')",
     snippet: 'IFNULL(col, default_val)',
   },
 
-  // NUMÉRICAS & MATEMÁTICAS
+  // NUMERIC & MATH
   {
     name: 'ROUND',
     category: 'numeric',
-    syntax: 'ROUND(número, decimales)',
-    description: 'Redondea un número al número indicado de posiciones decimales.',
+    syntax: 'ROUND(number, decimals)',
+    description: 'Rounds a numeric expression to the specified number of decimal places.',
     example: 'ROUND("sales" * 0.16, 2)',
     snippet: 'ROUND(expr, 2)',
   },
   {
     name: 'ABS',
     category: 'numeric',
-    syntax: 'ABS(número)',
-    description: 'Devuelve el valor absoluto (siempre positivo) de un número.',
+    syntax: 'ABS(number)',
+    description: 'Returns the absolute (positive) value of a number.',
     example: 'ABS("profit")',
     snippet: 'ABS(col)',
   },
   {
     name: 'CEIL',
     category: 'numeric',
-    syntax: 'CEIL(número)',
-    description: 'Redondea hacia arriba al número entero más cercano.',
+    syntax: 'CEIL(number)',
+    description: 'Rounds a number up to the nearest integer.',
     example: 'CEIL("duration_minutes")',
     snippet: 'CEIL(col)',
   },
   {
     name: 'FLOOR',
     category: 'numeric',
-    syntax: 'FLOOR(número)',
-    description: 'Redondea hacia abajo al número entero más cercano.',
+    syntax: 'FLOOR(number)',
+    description: 'Rounds a number down to the nearest integer.',
     example: 'FLOOR("score")',
     snippet: 'FLOOR(col)',
   },
   {
     name: 'POWER',
     category: 'numeric',
-    syntax: 'POWER(base, exponente)',
-    description: 'Eleva la base a la potencia indicada.',
+    syntax: 'POWER(base, exponent)',
+    description: 'Raises a base number to the specified power.',
     example: 'POWER("radius", 2)',
     snippet: 'POWER(col, 2)',
   },
   {
     name: 'SQRT',
     category: 'numeric',
-    syntax: 'SQRT(número)',
-    description: 'Calcula la raíz cuadrada de un valor positivo.',
+    syntax: 'SQRT(number)',
+    description: 'Calculates the square root of a positive number.',
     example: 'SQRT("variance")',
     snippet: 'SQRT(col)',
   },
 
-  // TEXTO & CADENAS
+  // TEXT & STRINGS
   {
     name: 'CONCAT',
     category: 'string',
-    syntax: "CONCAT(texto1, ' ', texto2)",
-    description: 'Concatena dos o más cadenas de texto en una sola.',
+    syntax: "CONCAT(text1, ' ', text2)",
+    description: 'Concatenates two or more strings into a single string.',
     example: "CONCAT(\"first_name\", ' ', \"last_name\")",
     snippet: "CONCAT(col1, ' ', col2)",
   },
   {
     name: 'UPPER',
     category: 'string',
-    syntax: 'UPPER(texto)',
-    description: 'Convierte todos los caracteres de la cadena a mayúsculas.',
+    syntax: 'UPPER(text)',
+    description: 'Converts all characters in the string to uppercase.',
     example: 'UPPER("city")',
     snippet: 'UPPER(col)',
   },
   {
     name: 'LOWER',
     category: 'string',
-    syntax: 'LOWER(texto)',
-    description: 'Convierte todos los caracteres de la cadena a minúsculas.',
+    syntax: 'LOWER(text)',
+    description: 'Converts all characters in the string to lowercase.',
     example: 'LOWER("email")',
     snippet: 'LOWER(col)',
   },
   {
     name: 'LENGTH',
     category: 'string',
-    syntax: 'LENGTH(texto)',
-    description: 'Calcula la longitud en número de caracteres del texto.',
+    syntax: 'LENGTH(text)',
+    description: 'Returns the character length of the text string.',
     example: 'LENGTH("product_name")',
     snippet: 'LENGTH(col)',
   },
   {
     name: 'SUBSTRING',
     category: 'string',
-    syntax: 'SUBSTRING(texto, inicio, longitud)',
-    description: 'Extrae un fragmento de texto a partir de la posición especificada.',
+    syntax: 'SUBSTRING(text, start, length)',
+    description: 'Extracts a substring starting at the specified position.',
     example: 'SUBSTRING("postal_code", 1, 3)',
     snippet: 'SUBSTRING(col, 1, 3)',
   },
   {
     name: 'TRIM',
     category: 'string',
-    syntax: 'TRIM(texto)',
-    description: 'Elimina los espacios en blanco iniciales y finales de la cadena.',
+    syntax: 'TRIM(text)',
+    description: 'Removes leading and trailing whitespace from the string.',
     example: 'TRIM("company_name")',
     snippet: 'TRIM(col)',
   },
   {
     name: 'REPLACE',
     category: 'string',
-    syntax: "REPLACE(texto, 'antiguo', 'nuevo')",
-    description: 'Reemplaza todas las coincidencias de un texto por otro.',
+    syntax: "REPLACE(text, 'old', 'new')",
+    description: 'Replaces all occurrences of a search string with a new string.',
     example: "REPLACE(\"phone\", '-', '')",
     snippet: "REPLACE(col, 'old', 'new')",
   },
 
-  // FECHA Y TIEMPO
+  // DATE & TIME
   {
     name: 'DATE_TRUNC',
     category: 'date',
-    syntax: "DATE_TRUNC('unidad', fecha)",
-    description: "Trunca una fecha al inicio del período ('year', 'quarter', 'month', 'week', 'day').",
+    syntax: "DATE_TRUNC('unit', date)",
+    description: "Truncates a date/timestamp to the specified period ('year', 'quarter', 'month', 'week', 'day').",
     example: "DATE_TRUNC('month', \"order_date\")",
     snippet: "DATE_TRUNC('month', col)",
   },
   {
     name: 'EXTRACT',
     category: 'date',
-    syntax: 'EXTRACT(parte FROM fecha)',
-    description: 'Extrae una porción numérica de la fecha (year, month, day, dow).',
+    syntax: 'EXTRACT(part FROM date)',
+    description: 'Extracts a specific date part (year, month, day, dow) as a number.',
     example: 'EXTRACT(year FROM "order_date")',
     snippet: 'EXTRACT(year FROM col)',
   },
@@ -310,43 +310,43 @@ const FUNCTION_LIBRARY: FunctionDoc[] = [
     name: 'CURRENT_DATE',
     category: 'date',
     syntax: 'CURRENT_DATE()',
-    description: 'Devuelve la fecha actual del sistema en formato DATE.',
+    description: 'Returns the current system date as a DATE value.',
     example: 'CURRENT_DATE()',
     snippet: 'CURRENT_DATE()',
   },
   {
     name: 'DATE_DIFF',
     category: 'date',
-    syntax: "DATE_DIFF('day', fecha_inicio, fecha_fin)",
-    description: "Calcula la diferencia numérica entre dos fechas ('day', 'month', 'year').",
+    syntax: "DATE_DIFF('day', start_date, end_date)",
+    description: "Calculates the numeric difference between two dates in specified units ('day', 'month', 'year').",
     example: "DATE_DIFF('day', \"order_date\", \"ship_date\")",
     snippet: "DATE_DIFF('day', col1, col2)",
   },
 
-  // CONVERSIÓN DE TIPO
+  // TYPE CONVERSION
   {
     name: 'CAST',
     category: 'conversion',
-    syntax: 'CAST(expresión AS tipo)',
-    description: 'Convierte un dato a otro tipo: VARCHAR, DOUBLE, BIGINT, DATE o BOOLEAN.',
+    syntax: 'CAST(expr AS type)',
+    description: 'Converts data to another type: VARCHAR, DOUBLE, BIGINT, DATE, or BOOLEAN.',
     example: 'CAST("zip_code" AS VARCHAR)',
     snippet: 'CAST(col AS VARCHAR)',
   },
   {
     name: 'TRY_CAST',
     category: 'conversion',
-    syntax: 'TRY_CAST(expresión AS tipo)',
-    description: 'Convierte el tipo de forma segura. Si el formato es erróneo, devuelve NULL sin romper la consulta.',
+    syntax: 'TRY_CAST(expr AS type)',
+    description: 'Safely converts data type, returning NULL without failing if format is invalid.',
     example: 'TRY_CAST("raw_number" AS DOUBLE)',
     snippet: 'TRY_CAST(col AS DOUBLE)',
   },
 
-  // ESTADÍSTICA AVANZADA & MACHINE LEARNING (SUPERPODERES DUCKDB)
+  // ADVANCED STATISTICS & MACHINE LEARNING (DUCKDB SUPERPOWERS)
   {
     name: 'CORR',
     category: 'stats',
-    syntax: 'CORR(métrica1, métrica2)',
-    description: 'Calcula el coeficiente de correlación de Pearson (-1 a 1) entre dos variables. Tableau requiere complejas fórmulas de ventana o plugins externos.',
+    syntax: 'CORR(measure1, measure2)',
+    description: 'Calculates the Pearson correlation coefficient (-1 to 1) between two variables.',
     example: 'ROUND(CORR("sales", "profit"), 4)',
     snippet: 'CORR(col1, col2)',
   },
@@ -354,7 +354,7 @@ const FUNCTION_LIBRARY: FunctionDoc[] = [
     name: 'REGR_SLOPE',
     category: 'stats',
     syntax: 'REGR_SLOPE(y, x)',
-    description: 'Calcula la pendiente de la recta de regresión lineal (mínimos cuadrados OLS). Permite modelar tendencias matemáticas directamente en SQL.',
+    description: 'Calculates the slope of the linear regression line (OLS).',
     example: 'REGR_SLOPE("profit", "sales")',
     snippet: 'REGR_SLOPE(y, x)',
   },
@@ -362,15 +362,15 @@ const FUNCTION_LIBRARY: FunctionDoc[] = [
     name: 'REGR_R2',
     category: 'stats',
     syntax: 'REGR_R2(y, x)',
-    description: 'Calcula el coeficiente de determinación R² (0 a 1) de la regresión lineal para evaluar la calidad del ajuste.',
+    description: 'Calculates the coefficient of determination (R²) for linear regression.',
     example: 'ROUND(REGR_R2("profit", "sales"), 4)',
     snippet: 'REGR_R2(y, x)',
   },
   {
     name: 'QUANTILE_CONT',
     category: 'stats',
-    syntax: 'QUANTILE_CONT(métrica, percentil)',
-    description: 'Calcula el percentil continuo exacto (ej. 0.50 para mediana, 0.95 para P95, 0.99 para P99). Clave para SLAs, tiempos de respuesta y análisis salarial.',
+    syntax: 'QUANTILE_CONT(measure, percentile)',
+    description: 'Calculates the exact continuous percentile (e.g. 0.50 for median, 0.95 for P95). Essential for SLAs and latency.',
     example: 'QUANTILE_CONT("salary", 0.95)',
     snippet: 'QUANTILE_CONT(col, 0.95)',
   },
@@ -378,49 +378,49 @@ const FUNCTION_LIBRARY: FunctionDoc[] = [
     name: 'APPROX_COUNT_DISTINCT',
     category: 'stats',
     syntax: 'APPROX_COUNT_DISTINCT(col)',
-    description: 'Conteo único ultrarrápido basado en HyperLogLog. Procesa millones de filas a velocidad absurda con error <1%.',
+    description: 'Ultra-fast approximate distinct count based on HyperLogLog (<1% error across millions of rows).',
     example: 'APPROX_COUNT_DISTINCT("user_id")',
     snippet: 'APPROX_COUNT_DISTINCT(col)',
   },
 
-  // EXPRESIONES REGULARES, JSON & ARRAYS NATIVOS
+  // REGULAR EXPRESSIONS, JSON & NATIVE ARRAYS
   {
     name: 'REGEXP_EXTRACT',
     category: 'advanced',
-    syntax: "REGEXP_EXTRACT(col, 'patrón_regex', grupo)",
-    description: 'Extrae texto con expresiones regulares PCRE completas. Tableau carece de soporte nativo completo para regex complejas en muchas fuentes.',
+    syntax: "REGEXP_EXTRACT(col, 'regex_pattern', group)",
+    description: 'Extracts substring using PCRE regular expressions.',
     example: "REGEXP_EXTRACT(\"email\", '@(.+)$', 1)",
     snippet: "REGEXP_EXTRACT(col, 'pattern', 1)",
   },
   {
     name: 'REGEXP_MATCHES',
     category: 'advanced',
-    syntax: "REGEXP_MATCHES(col, 'patrón_regex')",
-    description: 'Verifica si el texto coincide con una expresión regular (devuelve TRUE/FALSE).',
+    syntax: "REGEXP_MATCHES(col, 'regex_pattern')",
+    description: 'Tests whether text matches a regular expression (returns TRUE/FALSE).',
     example: "REGEXP_MATCHES(\"code\", '^[A-Z]{3}-\\d{4}$')",
     snippet: "REGEXP_MATCHES(col, 'pattern')",
   },
   {
     name: 'JSON_EXTRACT_TEXT (->>)',
     category: 'advanced',
-    syntax: "columna->>'$.propiedad'",
-    description: 'Extrae propiedades directamente de datos JSON sin necesidad de esquemas rígidos ni preprocesamiento ETL.',
+    syntax: "column->>'$.property'",
+    description: 'Extracts properties directly from JSON text without rigid schemas or ETL.',
     example: "\"raw_metadata\"->>'$.device.model'",
     snippet: "col->>'$.path'",
   },
   {
     name: 'STRING_SPLIT',
     category: 'advanced',
-    syntax: "STRING_SPLIT(texto, delimitador)",
-    description: 'Divide una cadena en un array nativo en memoria sin duplicar filas.',
+    syntax: "STRING_SPLIT(text, delimiter)",
+    description: 'Splits a delimited string into an in-memory native array.',
     example: "STRING_SPLIT(\"tags\", ',')",
     snippet: "STRING_SPLIT(col, ',')",
   },
   {
     name: 'MD5 / HASH',
     category: 'advanced',
-    syntax: 'MD5(texto)',
-    description: 'Genera un hash criptográfico para anonimizar datos sensibles o crear claves sintéticas únicas.',
+    syntax: 'MD5(text)',
+    description: 'Generates an MD5 cryptographic hash for anonymizing sensitive data or creating surrogate keys.',
     example: 'MD5("customer_email")',
     snippet: 'MD5(col)',
   },
@@ -428,78 +428,78 @@ const FUNCTION_LIBRARY: FunctionDoc[] = [
 
 const QUICK_RECIPES = [
   {
-    title: 'Benchmark Regional ({FIXED})',
-    desc: 'Total de ventas por región para comparar cualquier subsegmento',
+    title: 'Regional Benchmark ({FIXED})',
+    desc: 'Total sales by region to compare any subsegment',
     formula: '{FIXED [region] : SUM([sales])}',
     role: 'measure' as FieldRole,
     type: 'number' as DataType,
   },
   {
-    title: '% del Total Global Fijo ({FIXED})',
-    desc: 'Porcentaje respecto al total global de toda la tabla',
+    title: '% of Total Global ({FIXED})',
+    desc: 'Percentage relative to entire table grand total',
     formula: 'ROUND(100.0 * "sales" / NULLIF({FIXED : SUM([sales])}, 0), 2)',
     role: 'measure' as FieldRole,
     type: 'number' as DataType,
   },
   {
-    title: 'Margen Porcentual (%)',
-    desc: 'Ratio entre beneficio y ventas en base 100',
+    title: 'Profit Margin (%)',
+    desc: 'Ratio between profit and sales on 100 base',
     formula: 'ROUND(("profit" / NULLIF("sales", 0)) * 100, 2)',
     role: 'measure' as FieldRole,
     type: 'number' as DataType,
   },
   {
-    title: 'Correlación de Pearson (ML / Stats)',
-    desc: 'Relación lineal entre 2 variables (-1 a +1) imposible en VizQL simple',
+    title: 'Pearson Correlation (ML / Stats)',
+    desc: 'Linear correlation between 2 variables (-1 to +1)',
     formula: 'ROUND(CORR("sales", "profit"), 4)',
     role: 'measure' as FieldRole,
     type: 'number' as DataType,
   },
   {
-    title: 'Percentil P95 (SLA / Latencia)',
-    desc: 'Calcula el percentil 95 exacto sin agregaciones complejas',
+    title: 'P95 Percentile (SLA / Latency)',
+    desc: 'Computes exact 95th percentile without complex subqueries',
     formula: 'QUANTILE_CONT("salary", 0.95)',
     role: 'measure' as FieldRole,
     type: 'number' as DataType,
   },
   {
-    title: 'Extracción Regex de Dominio',
-    desc: 'Extrae partes de texto complejas con expresiones regulares',
+    title: 'Regex Domain Extraction',
+    desc: 'Extracts parts of text using regular expressions',
     formula: "REGEXP_EXTRACT(\"email\", '@(.+)$', 1)",
     role: 'dimension' as FieldRole,
     type: 'string' as DataType,
   },
   {
-    title: 'Extracción de JSON Anidado',
-    desc: 'Accede a propiedades dentro de columnas JSON directamente',
+    title: 'Nested JSON Extraction',
+    desc: 'Directly accesses properties within JSON columns',
     formula: "\"payload\"->>'$.user.role'",
     role: 'dimension' as FieldRole,
     type: 'string' as DataType,
   },
   {
-    title: 'Clasificación Condicional (IF / CASE)',
-    desc: 'Segmenta registros en rangos usando condiciones',
-    formula: "CASE WHEN \"sales\" >= 1000 THEN 'Alto' ELSE 'Estándar' END",
+    title: 'Conditional Classification (IF / CASE)',
+    desc: 'Segments records into ranges using conditions',
+    formula: "CASE WHEN \"sales\" >= 1000 THEN 'High' ELSE 'Standard' END",
     role: 'dimension' as FieldRole,
     type: 'string' as DataType,
   },
   {
-    title: 'Año de la Fecha',
-    desc: 'Extrae el año como dimensión numérica o de agrupación',
+    title: 'Year of Date',
+    desc: 'Extracts the year as a numeric grouping dimension',
     formula: 'EXTRACT(year FROM "order_date")',
     role: 'dimension' as FieldRole,
     type: 'number' as DataType,
   },
   {
-    title: 'Métrica con Multiplicador o IVA',
-    desc: 'Calcula montos ajustados o impuestos (+16%)',
+    title: 'Metric with Markup or Tax',
+    desc: 'Calculates adjusted amounts (+16% tax)',
     formula: 'ROUND("sales" * 1.16, 2)',
     role: 'measure' as FieldRole,
     type: 'number' as DataType,
   },
   {
-    title: 'Limpieza de Nulos (Reemplazo con 0)',
-    desc: 'Evita espacios en blanco reemplazando nulos',
+    title: 'Null Imputation (Coalesce to 0)',
+    desc: 'Replaces null values with zero to prevent gaps',
     formula: 'COALESCE("discount", 0)',
     role: 'measure' as FieldRole,
     type: 'number' as DataType,
@@ -694,10 +694,10 @@ export const CalculatedFieldModal: React.FC<CalculatedFieldModalProps> = ({
             </div>
             <div>
               <h3 className="font-editorial text-sm font-bold text-stone-900 dark:text-stone-100">
-                {initialField ? 'Editar Campo Calculado' : 'Crear Campo Calculado'}
+                {initialField ? 'Edit Calculated Field' : 'Create Calculated Field'}
               </h3>
               <p className="text-[11px] text-stone-500">
-                Motor columnar DuckDB-WASM • Expresiones vectorizadas a cero latencia
+                DuckDB-WASM columnar engine • Zero-latency vectorized expressions
               </p>
             </div>
           </div>
@@ -717,11 +717,11 @@ export const CalculatedFieldModal: React.FC<CalculatedFieldModalProps> = ({
             {/* Field Name */}
             <div>
               <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
-                Nombre del Campo
+                Field Name
               </label>
               <input
                 type="text"
-                placeholder="ej. Margen de Ganancia, Salario Neto, Grupo de Edad..."
+                placeholder="e.g. Profit Margin, Net Salary, Age Group..."
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs font-medium text-stone-900 focus:border-stone-400 focus:ring-1 focus:ring-stone-400 focus:outline-none dark:border-stone-700 dark:bg-stone-950 dark:text-stone-100"
@@ -734,10 +734,10 @@ export const CalculatedFieldModal: React.FC<CalculatedFieldModalProps> = ({
                 <div className="flex items-center gap-1.5">
                   <Sparkles className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
                   <span className="text-[11px] font-semibold text-stone-700 dark:text-stone-300">
-                    Inferencia de Tipo y Rol
+                    Type & Role Inference
                   </span>
                   <span className="text-[10px] text-stone-400 font-mono">
-                    (Estilo Tableau • DuckDB AST)
+                    (Tableau Style • DuckDB AST)
                   </span>
                 </div>
                 <button
@@ -753,7 +753,7 @@ export const CalculatedFieldModal: React.FC<CalculatedFieldModalProps> = ({
                   className="flex items-center gap-1 text-[11px] font-medium text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-200 transition-colors"
                 >
                   <Settings2 className="h-3 w-3" />
-                  <span>{isManualOverride ? 'Reactivar auto-inferencia' : 'Personalizar'}</span>
+                  <span>{isManualOverride ? 'Re-enable auto inference' : 'Customize'}</span>
                 </button>
               </div>
 
@@ -763,12 +763,12 @@ export const CalculatedFieldModal: React.FC<CalculatedFieldModalProps> = ({
                     {role === 'measure' ? (
                       <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
                         <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                        Métrica (Verde • Agregable)
+                        Measure (Green • Aggregable)
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1.5 rounded-full border border-sky-300 bg-sky-50 px-2.5 py-0.5 text-[11px] font-semibold text-sky-700 dark:border-sky-800 dark:bg-sky-950/60 dark:text-sky-300">
                         <span className="h-1.5 w-1.5 rounded-full bg-sky-500" />
-                        Dimensión (Azul • Discreta)
+                        Dimension (Blue • Discrete)
                       </span>
                     )}
 
@@ -786,38 +786,38 @@ export const CalculatedFieldModal: React.FC<CalculatedFieldModalProps> = ({
 
                   <span className="text-[10px] text-emerald-600 font-mono dark:text-emerald-400 flex items-center gap-1">
                     <CheckCircle2 className="h-3 w-3" />
-                    Auto-detectado por DuckDB
+                    Auto-detected by DuckDB
                   </span>
                 </div>
               ) : (
                 <div className="grid grid-cols-2 gap-3 pt-1">
                   <div>
                     <label className="block text-[11px] font-medium text-stone-600 dark:text-stone-400 mb-1">
-                      Rol Analítico
+                      Analytical Role
                     </label>
                     <select
                       value={role}
                       onChange={(e) => setRole(e.target.value as FieldRole)}
                       className="w-full rounded-lg border border-stone-200 bg-white px-2.5 py-1.5 text-xs text-stone-900 focus:border-stone-400 focus:outline-none dark:border-stone-700 dark:bg-stone-950 dark:text-stone-100"
                     >
-                      <option value="measure">Métrica (Verde • Agregación SUM/AVG)</option>
-                      <option value="dimension">Dimensión (Azul • Agrupación GROUP BY)</option>
+                      <option value="measure">Measure (Green • SUM/AVG aggregation)</option>
+                      <option value="dimension">Dimension (Blue • GROUP BY grouping)</option>
                     </select>
                   </div>
 
                   <div>
                     <label className="block text-[11px] font-medium text-stone-600 dark:text-stone-400 mb-1">
-                      Tipo de Dato
+                      Data Type
                     </label>
                     <select
                       value={dataType}
                       onChange={(e) => setDataType(e.target.value as DataType)}
                       className="w-full rounded-lg border border-stone-200 bg-white px-2.5 py-1.5 text-xs text-stone-900 focus:border-stone-400 focus:outline-none dark:border-stone-700 dark:bg-stone-950 dark:text-stone-100"
                     >
-                      <option value="number">Número (Float / Int)</option>
-                      <option value="string">Cadena de Texto (String)</option>
-                      <option value="boolean">Booleano (True / False)</option>
-                      <option value="date">Fecha (Date / Timestamp)</option>
+                      <option value="number">Number (Float / Int)</option>
+                      <option value="string">String</option>
+                      <option value="boolean">Boolean (True / False)</option>
+                      <option value="date">Date (Date / Timestamp)</option>
                     </select>
                   </div>
                 </div>
@@ -829,10 +829,10 @@ export const CalculatedFieldModal: React.FC<CalculatedFieldModalProps> = ({
               <div className="flex items-center justify-between mb-1.5">
                 <div className="flex items-center gap-2">
                   <label className="text-xs font-semibold text-stone-700 dark:text-stone-300">
-                    Editor de Fórmula
+                    Formula Editor
                   </label>
                   <span className="text-[10px] text-stone-400 font-mono">
-                    Sintaxis Tableau o SQL DuckDB
+                    Tableau or DuckDB SQL syntax
                   </span>
                 </div>
 
@@ -841,14 +841,14 @@ export const CalculatedFieldModal: React.FC<CalculatedFieldModalProps> = ({
                   onClick={handleValidate}
                   disabled={isValidating || !formula.trim()}
                   className="btn-tactile flex items-center gap-1.5 rounded-md bg-stone-100 px-2 py-1 text-[11px] font-mono font-medium text-sky-700 hover:bg-sky-50 hover:text-sky-800 disabled:opacity-40 transition-colors dark:bg-stone-800 dark:text-sky-300 dark:hover:bg-stone-700 shadow-2xs"
-                  title="Ejecutar prueba de validación en DuckDB-WASM"
+                  title="Run syntax validation in DuckDB-WASM"
                 >
                   {isValidating ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin text-sky-600" />
                   ) : (
                     <Sparkles className="h-3.5 w-3.5 text-sky-600" />
                   )}
-                  <span>Probar sintaxis</span>
+                  <span>Validate</span>
                 </button>
               </div>
 
@@ -861,7 +861,7 @@ export const CalculatedFieldModal: React.FC<CalculatedFieldModalProps> = ({
                       type="button"
                       onClick={() => insertSnippet(` ${op} `)}
                       className="btn-tactile h-6 min-w-[20px] px-1 rounded bg-white text-stone-700 hover:bg-stone-50 hover:text-stone-950 font-mono text-xs font-semibold dark:bg-stone-800 dark:text-stone-300 dark:hover:bg-stone-700 shadow-2xs border border-stone-200/60 dark:border-white/[0.06]"
-                      title={`Insertar ${op}`}
+                      title={`Insert ${op}`}
                     >
                       {op}
                     </button>
@@ -871,37 +871,37 @@ export const CalculatedFieldModal: React.FC<CalculatedFieldModalProps> = ({
                 <div className="flex items-center gap-1 border-r border-stone-200 dark:border-white/[0.08] pr-1.5 mr-1">
                   <button
                     type="button"
-                    onClick={() => insertSnippet('SUM([campo])')}
+                    onClick={() => insertSnippet('SUM([measure])')}
                     className="btn-tactile h-6 px-1.5 rounded bg-white text-stone-700 hover:bg-stone-50 hover:text-stone-950 font-mono text-[10px] font-medium dark:bg-stone-800 dark:text-stone-300 shadow-2xs border border-stone-200/60 dark:border-white/[0.06]"
                   >
                     SUM
                   </button>
                   <button
                     type="button"
-                    onClick={() => insertSnippet('AVG([campo])')}
+                    onClick={() => insertSnippet('AVG([measure])')}
                     className="btn-tactile h-6 px-1.5 rounded bg-white text-stone-700 hover:bg-stone-50 hover:text-stone-950 font-mono text-[10px] font-medium dark:bg-stone-800 dark:text-stone-300 shadow-2xs border border-stone-200/60 dark:border-white/[0.06]"
                   >
                     AVG
                   </button>
                   <button
                     type="button"
-                    onClick={() => insertSnippet('ROUND([campo], 2)')}
+                    onClick={() => insertSnippet('ROUND([measure], 2)')}
                     className="btn-tactile h-6 px-1.5 rounded bg-white text-stone-700 hover:bg-stone-50 hover:text-stone-950 font-mono text-[10px] font-medium dark:bg-stone-800 dark:text-stone-300 shadow-2xs border border-stone-200/60 dark:border-white/[0.06]"
                   >
                     ROUND
                   </button>
                   <button
                     type="button"
-                    onClick={() => insertSnippet("IF [condicion] THEN 'A' ELSE 'B' END")}
+                    onClick={() => insertSnippet("IF [condition] THEN 'A' ELSE 'B' END")}
                     className="btn-tactile h-6 px-1.5 rounded bg-white text-stone-700 hover:bg-stone-50 hover:text-stone-950 font-mono text-[10px] font-medium dark:bg-stone-800 dark:text-stone-300 shadow-2xs border border-stone-200/60 dark:border-white/[0.06]"
                   >
                     IF..THEN
                   </button>
                   <button
                     type="button"
-                    onClick={() => insertSnippet('ZN([campo])')}
+                    onClick={() => insertSnippet('ZN([measure])')}
                     className="btn-tactile h-6 px-1.5 rounded bg-white text-stone-700 hover:bg-stone-50 hover:text-stone-950 font-mono text-[10px] font-medium dark:bg-stone-800 dark:text-stone-300 shadow-2xs border border-stone-200/60 dark:border-white/[0.06]"
-                    title="Devuelve 0 si el campo es NULL"
+                    title="Returns 0 if the field is NULL"
                   >
                     ZN
                   </button>
@@ -919,7 +919,7 @@ export const CalculatedFieldModal: React.FC<CalculatedFieldModalProps> = ({
                     }}
                     className="h-6 text-[10.5px] font-mono rounded border border-stone-200/80 bg-white px-1.5 text-stone-700 dark:border-white/[0.08] dark:bg-stone-800 dark:text-stone-300 focus:outline-none cursor-pointer"
                   >
-                    <option value="" disabled>+ Insertar Campo...</option>
+                    <option value="" disabled>+ Insert Field...</option>
                     {columns.map((c) => (
                       <option key={c.name} value={c.name}>
                         [{c.name}] ({c.role === 'measure' ? '#' : 'Abc'})
@@ -938,7 +938,7 @@ export const CalculatedFieldModal: React.FC<CalculatedFieldModalProps> = ({
                       }}
                       className="h-6 text-[10.5px] font-mono rounded border border-amber-300 bg-amber-50 px-1.5 text-amber-900 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-200 focus:outline-none cursor-pointer"
                     >
-                      <option value="" disabled>+ Parámetro...</option>
+                      <option value="" disabled>+ Parameter...</option>
                       {parameters.map((p) => (
                         <option key={p.name} value={p.name}>
                           [{p.name}]
@@ -956,10 +956,10 @@ export const CalculatedFieldModal: React.FC<CalculatedFieldModalProps> = ({
                   setFormula(e.target.value);
                   setValidationResult(null);
                 }}
-                placeholder={`Escribe tu fórmula aquí usando sintaxis de Tableau o SQL. Ejemplos:
+                placeholder={`Write your formula here using Tableau or SQL syntax. Examples:
 [Sales] - [Cost]
 ROUND(([Profit] / NULLIF([Sales], 0)) * 100, 2)
-IF [Sales] > 1000 THEN 'Alto Volumen' ELSE 'Estándar' END
+IF [Sales] > 1000 THEN 'High Volume' ELSE 'Standard' END
 {FIXED [Region] : SUM([Sales])}`}
                 className="flex-1 w-full rounded-lg border border-stone-200 bg-stone-50/60 p-3 font-mono text-xs text-stone-900 focus:border-stone-400 focus:bg-white focus:outline-none dark:border-stone-700 dark:bg-stone-950 dark:text-stone-100 resize-none leading-relaxed shadow-inner"
               />
@@ -978,15 +978,15 @@ IF [Sales] > 1000 THEN 'Alto Volumen' ELSE 'Estándar' END
                       <div className="flex items-start gap-2">
                         <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400 mt-0.5" />
                         <div>
-                          <span className="font-bold">¡Fórmula válida!</span>
+                          <span className="font-bold">Valid formula!</span>
                           <p className="text-[11px] opacity-80">
-                            DuckDB-WASM compiló y validó la expresión correctamente.
+                            DuckDB-WASM compiled and validated the expression successfully.
                           </p>
                         </div>
                       </div>
                       {validationResult.sampleValue !== undefined && validationResult.sampleValue !== null && (
                         <div className="shrink-0 rounded bg-white/80 dark:bg-stone-900 px-2 py-1 text-[11px] font-mono border border-emerald-300/80 dark:border-emerald-700 shadow-2xs">
-                          <span className="text-[10px] text-stone-400 block uppercase">Fila 1 de muestra:</span>
+                          <span className="text-[10px] text-stone-400 block uppercase">Sample Row 1:</span>
                           <strong className="text-emerald-800 dark:text-emerald-300 text-xs">
                             {String(validationResult.sampleValue)}
                           </strong>
@@ -997,7 +997,7 @@ IF [Sales] > 1000 THEN 'Alto Volumen' ELSE 'Estándar' END
                     <div className="flex items-start gap-2">
                       <AlertCircle className="h-4 w-4 shrink-0 text-rose-600 dark:text-rose-400 mt-0.5" />
                       <div className="min-w-0">
-                        <span className="font-bold">Error de sintaxis:</span>
+                        <span className="font-bold">Syntax error:</span>
                         <p className="text-[11px] opacity-90 break-words mt-0.5">
                           {validationResult.error}
                         </p>
@@ -1023,7 +1023,7 @@ IF [Sales] > 1000 THEN 'Alto Volumen' ELSE 'Estándar' END
                 }`}
               >
                 <BookOpen className="h-3.5 w-3.5" />
-                <span>Biblioteca de Funciones</span>
+                <span>Function Library</span>
               </button>
 
               <button
@@ -1036,7 +1036,7 @@ IF [Sales] > 1000 THEN 'Alto Volumen' ELSE 'Estándar' END
                 }`}
               >
                 <Table className="h-3.5 w-3.5" />
-                <span>Campos & Parámetros</span>
+                <span>Fields & Parameters</span>
               </button>
 
               <button
@@ -1049,7 +1049,7 @@ IF [Sales] > 1000 THEN 'Alto Volumen' ELSE 'Estándar' END
                 }`}
               >
                 <Wand2 className="h-3.5 w-3.5" />
-                <span>Plantillas</span>
+                <span>Templates</span>
               </button>
             </div>
 
@@ -1063,23 +1063,23 @@ IF [Sales] > 1000 THEN 'Alto Volumen' ELSE 'Estándar' END
                     onChange={(e) => setSelectedCategory(e.target.value)}
                     className="w-40 rounded-md border border-stone-200 bg-white px-2 py-1 text-xs text-stone-800 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200"
                   >
-                    <option value="all">Todas las categorías</option>
-                    <option value="table_calc">Cálculos de Tabla (Tableau: RUNNING, WINDOW, RANK)</option>
+                    <option value="all">All Categories</option>
+                    <option value="table_calc">Table Calculations (RUNNING, WINDOW, RANK)</option>
                     <option value="lod">Tableau LOD ({'{FIXED}'}, {'{EXCLUDE}'})</option>
-                    <option value="stats">Estadística & ML (DuckDB)</option>
+                    <option value="stats">Statistical & ML (DuckDB)</option>
                     <option value="advanced">Regex, JSON & Arrays</option>
-                    <option value="logic">Lógicas / Condicionales</option>
-                    <option value="numeric">Numéricas</option>
-                    <option value="string">Texto / Cadenas</option>
-                    <option value="date">Fecha y Tiempo</option>
-                    <option value="conversion">Conversión de Tipo</option>
+                    <option value="logic">Logical / Conditional</option>
+                    <option value="numeric">Number</option>
+                    <option value="string">String / Text</option>
+                    <option value="date">Date & Time</option>
+                    <option value="conversion">Type Conversion</option>
                   </select>
 
                   <div className="relative flex-1">
                     <Search className="absolute left-2 top-1.5 h-3.5 w-3.5 text-stone-400" />
                     <input
                       type="text"
-                      placeholder="Buscar función..."
+                      placeholder="Search function..."
                       value={funcSearch}
                       onChange={(e) => setFuncSearch(e.target.value)}
                       className="w-full rounded-md border border-stone-200 bg-white py-1 pl-7 pr-2 text-xs text-stone-900 focus:border-stone-400 focus:outline-none dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100"
@@ -1102,7 +1102,7 @@ IF [Sales] > 1000 THEN 'Alto Volumen' ELSE 'Estándar' END
                             ? 'bg-sky-100 text-sky-900 font-bold dark:bg-sky-950 dark:text-sky-200'
                             : 'text-stone-700 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800'
                         }`}
-                        title="Clic para ver detalle • Doble clic para insertar"
+                        title="Click for details • Double-click to insert"
                       >
                         {func.name}
                       </button>
@@ -1124,7 +1124,7 @@ IF [Sales] > 1000 THEN 'Alto Volumen' ELSE 'Estándar' END
                       {/* Syntax */}
                       <div>
                         <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 font-mono">
-                          Sintaxis
+                          Syntax
                         </span>
                         <p className="font-mono text-xs text-stone-900 dark:text-stone-100 bg-stone-50 dark:bg-stone-950 p-1.5 rounded border border-stone-200/80 dark:border-stone-800 mt-0.5">
                           {selectedFunction.syntax}
@@ -1134,7 +1134,7 @@ IF [Sales] > 1000 THEN 'Alto Volumen' ELSE 'Estándar' END
                       {/* Description */}
                       <div>
                         <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 font-mono">
-                          Descripción
+                          Description
                         </span>
                         <p className="text-xs text-stone-600 dark:text-stone-300 leading-relaxed mt-0.5">
                           {selectedFunction.description}
@@ -1144,7 +1144,7 @@ IF [Sales] > 1000 THEN 'Alto Volumen' ELSE 'Estándar' END
                       {/* Example */}
                       <div>
                         <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 font-mono">
-                          Ejemplo
+                          Example
                         </span>
                         <p className="font-mono text-[11px] text-emerald-700 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/30 p-1.5 rounded border border-emerald-200/50 dark:border-emerald-900/50 mt-0.5 break-all">
                           {selectedFunction.example}
@@ -1157,7 +1157,7 @@ IF [Sales] > 1000 THEN 'Alto Volumen' ELSE 'Estándar' END
                       onClick={() => insertSnippet(selectedFunction.snippet)}
                       className="mt-3 flex items-center justify-center gap-1.5 rounded-md bg-sky-50 px-3 py-1.5 text-xs font-mono font-medium text-sky-700 hover:bg-sky-100 dark:bg-sky-950 dark:text-sky-300 dark:hover:bg-sky-900 transition-colors"
                     >
-                      <span>Insertar en fórmula</span>
+                      <span>Insert into formula</span>
                       <ArrowRight className="h-3 w-3" />
                     </button>
                   </div>
@@ -1172,7 +1172,7 @@ IF [Sales] > 1000 THEN 'Alto Volumen' ELSE 'Estándar' END
                 <div>
                   <span className="text-[11px] font-bold uppercase tracking-wider text-stone-600 dark:text-stone-400 font-mono flex items-center gap-1.5 mb-2">
                     <Table className="h-3.5 w-3.5 text-sky-600" />
-                    <span>Campos del Dataset (Doble clic para insertar)</span>
+                    <span>Dataset Fields (Click to insert)</span>
                   </span>
                   <div className="grid grid-cols-2 gap-1.5 max-h-48 overflow-y-auto pr-1">
                     {columns.map((col) => (
@@ -1181,7 +1181,7 @@ IF [Sales] > 1000 THEN 'Alto Volumen' ELSE 'Estándar' END
                         type="button"
                         onClick={() => insertSnippet(`[${col.name}]`)}
                         className="flex items-center justify-between rounded-md border border-stone-200 bg-white px-2 py-1.5 text-left text-xs font-mono text-stone-800 hover:border-sky-400 hover:bg-sky-50 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-200"
-                        title={`Insertar [${col.name}]`}
+                        title={`Insert [${col.name}]`}
                       >
                         <span className="truncate">[{col.name}]</span>
                         <span className="text-[9px] uppercase text-stone-400 ml-1">
@@ -1196,10 +1196,10 @@ IF [Sales] > 1000 THEN 'Alto Volumen' ELSE 'Estándar' END
                 <div>
                   <span className="text-[11px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 font-mono flex items-center gap-1.5 mb-2">
                     <Sliders className="h-3.5 w-3.5" />
-                    <span>Parámetros Globales (Doble clic para insertar)</span>
+                    <span>Global Parameters (Click to insert)</span>
                   </span>
                   {parameters.length === 0 ? (
-                    <p className="text-xs text-stone-400 italic">No hay parámetros definidos aún.</p>
+                    <p className="text-xs text-stone-400 italic">No parameters defined yet.</p>
                   ) : (
                     <div className="grid grid-cols-2 gap-1.5">
                       {parameters.map((p) => {
@@ -1212,7 +1212,7 @@ IF [Sales] > 1000 THEN 'Alto Volumen' ELSE 'Estándar' END
                             type="button"
                             onClick={() => insertSnippet(`[${p.name}]`)}
                             className="flex items-center justify-between rounded-md border border-amber-200 bg-amber-50/60 px-2.5 py-1.5 text-left text-xs font-mono text-amber-900 hover:bg-amber-100 hover:border-amber-300 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200 transition-colors"
-                            title={`Insertar token [${p.name}]`}
+                            title={`Insert token [${p.name}]`}
                           >
                             <div className="flex items-center gap-1.5 min-w-0">
                               <span className="font-bold text-[10px] text-amber-600 dark:text-amber-400">
@@ -1236,7 +1236,7 @@ IF [Sales] > 1000 THEN 'Alto Volumen' ELSE 'Estándar' END
             {activeTab === 'recipes' && (
               <div className="flex-1 overflow-y-auto p-4 space-y-2.5">
                 <p className="text-xs text-stone-500 mb-2">
-                  Selecciona una plantilla predefinida para cargar la fórmula y configuración recomendada:
+                  Select a preset template to load the formula and recommended configuration:
                 </p>
 
                 {QUICK_RECIPES.map((recipe) => (
@@ -1253,7 +1253,7 @@ IF [Sales] > 1000 THEN 'Alto Volumen' ELSE 'Estándar' END
                         onClick={() => applyRecipe(recipe)}
                         className="rounded bg-sky-50 px-2 py-0.5 text-xs font-mono text-sky-700 hover:bg-sky-100 dark:bg-sky-950 dark:text-sky-300"
                       >
-                        Usar Plantilla
+                        Use Template
                       </button>
                     </div>
                     <p className="text-[11px] text-stone-500 mb-1.5">{recipe.desc}</p>
@@ -1271,7 +1271,7 @@ IF [Sales] > 1000 THEN 'Alto Volumen' ELSE 'Estándar' END
         <div className="flex items-center justify-between border-t border-stone-200/90 px-6 py-3.5 dark:border-stone-800 bg-stone-50/70 dark:bg-stone-900/70">
           <div className="flex items-center gap-1.5 text-xs text-stone-500">
             <Info className="h-3.5 w-3.5 text-stone-400" />
-            <span>Haz clic en cualquier campo o función para insertarlo en la fórmula.</span>
+            <span>Click any field or function to insert it into the formula.</span>
           </div>
 
           <div className="flex items-center gap-2">
@@ -1280,7 +1280,7 @@ IF [Sales] > 1000 THEN 'Alto Volumen' ELSE 'Estándar' END
               onClick={onClose}
               className="rounded-lg border border-stone-200 bg-white px-3.5 py-1.5 text-xs font-medium text-stone-600 hover:bg-stone-100 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-300"
             >
-              Cancelar
+              Cancel
             </button>
             <button
               type="button"
@@ -1288,7 +1288,7 @@ IF [Sales] > 1000 THEN 'Alto Volumen' ELSE 'Estándar' END
               disabled={!name.trim() || !formula.trim()}
               className="rounded-lg bg-stone-900 px-4 py-1.5 text-xs font-medium text-white hover:bg-stone-800 disabled:opacity-50 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-white transition-colors"
             >
-              Guardar Campo
+              Save Field
             </button>
           </div>
         </div>

@@ -75,28 +75,28 @@ export const RelationalDbModal: React.FC<RelationalDbModalProps> = ({ isOpen, on
         setConnectionStatus({
           tested: true,
           success: true,
-          message: `Conexión exitosa. Se detectaron ${res.tables.length} tablas disponibles.`,
+          message: `Connection successful. Detected ${res.tables.length} available tables.`,
         });
       } else if (res.success) {
         setTables([]);
         setConnectionStatus({
           tested: true,
           success: true,
-          message: 'Conexión exitosa, pero no se encontraron tablas públicas en la base de datos.',
+          message: 'Connection successful, but no public tables were found in the database.',
         });
       } else {
         setTables([]);
         setConnectionStatus({
           tested: true,
           success: false,
-          message: res.error || 'Error de autenticación o conexión.',
+          message: res.error || 'Authentication or connection error.',
         });
       }
     } catch (err: unknown) {
       setConnectionStatus({
         tested: true,
         success: false,
-        message: err instanceof Error ? err.message : 'Error desconocido al conectar',
+        message: err instanceof Error ? err.message : 'Unknown connection error',
       });
     } finally {
       setIsTesting(false);
@@ -123,7 +123,7 @@ export const RelationalDbModal: React.FC<RelationalDbModalProps> = ({ isOpen, on
 
       onClose();
     } catch (err) {
-      console.error('[RelationalDbModal] Error al importar:', err);
+      console.error('[RelationalDbModal] Import error:', err);
     } finally {
       setIsImporting(false);
     }
@@ -140,10 +140,10 @@ export const RelationalDbModal: React.FC<RelationalDbModalProps> = ({ isOpen, on
             </div>
             <div>
               <h2 className="font-editorial text-base font-bold text-stone-900 dark:text-stone-100">
-                Conectar a Servidor Relacional
+                Connect to Relational Server
               </h2>
               <p className="text-xs text-stone-500 dark:text-stone-400">
-                Importa tablas o consultas SQL directamente a DuckDB-WASM
+                Import tables or SQL queries directly into DuckDB-WASM
               </p>
             </div>
           </div>
@@ -190,20 +190,20 @@ export const RelationalDbModal: React.FC<RelationalDbModalProps> = ({ isOpen, on
           <div className="grid grid-cols-3 gap-3">
             <div className="col-span-2">
               <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
-                Servidor (Host)
+                Server (Host)
               </label>
               <input
                 type="text"
                 value={host}
                 onChange={(e) => setHost(e.target.value)}
-                placeholder="localhost o db.empresa.com"
+                placeholder="localhost or db.company.com"
                 required
                 className="w-full rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-xs text-stone-900 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-100 focus:border-indigo-500 focus:outline-none font-mono"
               />
             </div>
             <div>
               <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
-                Puerto
+                Port
               </label>
               <input
                 type="text"
@@ -218,13 +218,13 @@ export const RelationalDbModal: React.FC<RelationalDbModalProps> = ({ isOpen, on
 
           <div>
             <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
-              Nombre de la Base de Datos
+              Database Name
             </label>
             <input
               type="text"
               value={database}
               onChange={(e) => setDatabase(e.target.value)}
-              placeholder={dbType === 'postgres' ? 'postgres o mi_base' : 'mi_base'}
+              placeholder={dbType === 'postgres' ? 'postgres or my_database' : 'my_database'}
               required
               className="w-full rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-xs text-stone-900 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-100 focus:border-indigo-500 focus:outline-none font-mono"
             />
@@ -233,7 +233,7 @@ export const RelationalDbModal: React.FC<RelationalDbModalProps> = ({ isOpen, on
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
-                Usuario
+                User
               </label>
               <input
                 type="text"
@@ -246,7 +246,7 @@ export const RelationalDbModal: React.FC<RelationalDbModalProps> = ({ isOpen, on
             </div>
             <div>
               <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
-                Contraseña
+                Password
               </label>
               <input
                 type="password"
@@ -268,7 +268,7 @@ export const RelationalDbModal: React.FC<RelationalDbModalProps> = ({ isOpen, on
                 className="rounded border-stone-300 text-indigo-600 focus:ring-indigo-500"
               />
               <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
-              <span>Requiere conexión segura SSL / TLS</span>
+              <span>Requires secure SSL / TLS connection</span>
             </label>
 
             <button
@@ -280,12 +280,12 @@ export const RelationalDbModal: React.FC<RelationalDbModalProps> = ({ isOpen, on
               {isTesting ? (
                 <>
                   <RefreshCw className="h-3.5 w-3.5 animate-spin text-indigo-600" />
-                  <span>Conectando...</span>
+                  <span>Connecting...</span>
                 </>
               ) : (
                 <>
                   <Play className="h-3.5 w-3.5 text-indigo-600 fill-indigo-600" />
-                  <span>Probar y Listar Tablas</span>
+                  <span>Test & List Tables</span>
                 </>
               )}
             </button>
@@ -313,7 +313,7 @@ export const RelationalDbModal: React.FC<RelationalDbModalProps> = ({ isOpen, on
           {connectionStatus.success && (
             <div className="pt-2 border-t border-stone-200 dark:border-stone-800 space-y-3">
               <label className="block text-xs font-bold uppercase tracking-wider text-stone-500 font-mono">
-                Datos a Importar en DuckDB
+                Data to Import into DuckDB
               </label>
 
               <div className="space-y-2">
@@ -326,7 +326,7 @@ export const RelationalDbModal: React.FC<RelationalDbModalProps> = ({ isOpen, on
                     className="text-indigo-600"
                   />
                   <TableIcon className="h-3.5 w-3.5 text-indigo-600" />
-                  <span>Importar tabla completa:</span>
+                  <span>Import complete table:</span>
                 </label>
 
                 {selectionMode === 'table' && (
@@ -356,7 +356,7 @@ export const RelationalDbModal: React.FC<RelationalDbModalProps> = ({ isOpen, on
                     onChange={() => setSelectionMode('custom_sql')}
                     className="text-indigo-600"
                   />
-                  <span>Consulta SQL personalizada (Custom SQL):</span>
+                  <span>Custom SQL query:</span>
                 </label>
 
                 {selectionMode === 'custom_sql' && (
@@ -365,7 +365,7 @@ export const RelationalDbModal: React.FC<RelationalDbModalProps> = ({ isOpen, on
                       rows={3}
                       value={customSql}
                       onChange={(e) => setCustomSql(e.target.value)}
-                      placeholder="SELECT col1, SUM(col2) FROM tabla GROUP BY col1 LIMIT 10000;"
+                      placeholder="SELECT col1, SUM(col2) FROM my_table GROUP BY col1 LIMIT 10000;"
                       className="w-full rounded-lg border border-stone-300 bg-white p-2.5 text-xs text-stone-900 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-100 font-mono focus:border-indigo-500 focus:outline-none"
                     />
                   </div>
@@ -381,7 +381,7 @@ export const RelationalDbModal: React.FC<RelationalDbModalProps> = ({ isOpen, on
               onClick={onClose}
               className="rounded-lg border border-stone-300 px-4 py-2 text-xs font-semibold text-stone-700 hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700 cursor-pointer"
             >
-              Cancelar
+              Cancel
             </button>
             <button
               type="submit"
@@ -389,7 +389,7 @@ export const RelationalDbModal: React.FC<RelationalDbModalProps> = ({ isOpen, on
               className="flex items-center gap-2 rounded-lg bg-indigo-600 px-5 py-2 text-xs font-semibold text-white shadow-xs hover:bg-indigo-500 cursor-pointer disabled:opacity-50 transition-all"
             >
               {isImporting && <RefreshCw className="h-3.5 w-3.5 animate-spin" />}
-              <span>{isImporting ? 'Importando a DuckDB...' : 'Conectar e Importar'}</span>
+              <span>{isImporting ? 'Importing into DuckDB...' : 'Connect & Import'}</span>
             </button>
           </div>
         </form>

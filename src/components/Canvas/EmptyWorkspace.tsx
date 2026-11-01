@@ -19,12 +19,12 @@ export const EmptyWorkspace: React.FC<EmptyWorkspaceProps> = ({
     setIsLoadingSample(true);
     try {
       const response = await fetch('./superstore-sample.csv');
-      if (!response.ok) throw new Error('No se pudo cargar el dataset demo');
+      if (!response.ok) throw new Error('Failed to load sample dataset');
       const blob = await response.blob();
       const file = new File([blob], 'superstore-sample.csv', { type: 'text/csv' });
       onFileUpload(file);
     } catch (err) {
-      console.error('Error al cargar dataset demo:', err);
+      console.error('Failed to load sample dataset:', err);
     } finally {
       setIsLoadingSample(false);
     }
@@ -75,10 +75,10 @@ export const EmptyWorkspace: React.FC<EmptyWorkspaceProps> = ({
 
         <div className="space-y-1">
           <h2 className="text-base font-semibold tracking-tight text-stone-900 dark:text-stone-100">
-            Conectar Fuente de Datos
+            Connect Data Source
           </h2>
           <p className="text-xs leading-relaxed text-stone-500 dark:text-stone-400 max-w-md mx-auto">
-            Arrastra cualquier archivo local o selecciona una conexión para ejecutar consultas analíticas en memoria.
+            Drop any local file or select a connection to run analytical queries in-memory.
           </p>
         </div>
 
@@ -100,12 +100,12 @@ export const EmptyWorkspace: React.FC<EmptyWorkspaceProps> = ({
             className="btn-tactile inline-flex items-center gap-2 rounded-md border border-amber-300/80 bg-amber-50/80 px-3.5 py-2 text-xs font-medium text-amber-900 shadow-2xs hover:bg-amber-100 hover:border-amber-400 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200 dark:hover:bg-amber-900/60 cursor-pointer"
           >
             <Sparkles className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
-            <span>{isLoadingSample ? 'Cargando Demo...' : 'Probar Dataset Demo (Superstore)'}</span>
+            <span>{isLoadingSample ? 'Loading Demo...' : 'Load Sample Dataset (Superstore)'}</span>
           </button>
 
           <label className="btn-tactile inline-flex cursor-pointer items-center gap-2 rounded-md bg-stone-900 px-3.5 py-2 text-xs font-medium text-white shadow-xs hover:bg-stone-800 focus:outline-none dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-white rim-light">
             <FileSpreadsheet className="h-3.5 w-3.5" />
-            <span>{isUploading ? 'Cargando en memoria...' : 'Seleccionar Archivo'}</span>
+            <span>{isUploading ? 'Loading into memory...' : 'Select File'}</span>
             <span className="kbd-shortcut ml-1 text-stone-300 dark:text-stone-700">⌘O</span>
             <input
               type="file"
@@ -123,7 +123,7 @@ export const EmptyWorkspace: React.FC<EmptyWorkspaceProps> = ({
               className="btn-tactile inline-flex items-center gap-2 rounded-md border border-stone-200/90 bg-white px-3 py-2 text-xs font-medium text-stone-700 shadow-2xs hover:bg-stone-50 hover:border-stone-300 dark:border-stone-800 dark:bg-stone-850 dark:text-stone-200 dark:hover:bg-stone-800 cursor-pointer"
             >
               <Server className="h-3.5 w-3.5 text-stone-500" />
-              <span>Servidor SQL (Postgres / MySQL)</span>
+              <span>SQL Server (Postgres / MySQL)</span>
             </button>
           )}
         </div>
@@ -132,11 +132,11 @@ export const EmptyWorkspace: React.FC<EmptyWorkspaceProps> = ({
         <div className="mt-7 flex items-center justify-between gap-4 w-full border-t border-stone-100 pt-4 dark:border-stone-800/80 font-mono text-[10.5px] text-stone-400 dark:text-stone-500">
           <div className="flex items-center gap-1.5">
             <Cpu className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
-            <span>Motor Columnar DuckDB-WASM</span>
+            <span>DuckDB-WASM Columnar Engine</span>
           </div>
           <div className="flex items-center gap-1.5">
             <Lock className="h-3 w-3 text-sky-600 dark:text-sky-400" />
-            <span>Ejecución In-Browser Zero-Cloud</span>
+            <span>In-Browser Zero-Cloud Execution</span>
           </div>
         </div>
       </div>

@@ -121,7 +121,7 @@ export const PillBadge: React.FC<PillBadgeProps> = ({
           </span>
         )}
         {pill.formatConfig && pill.formatConfig.type !== 'auto' && (
-          <span className="ml-1 rounded bg-black/25 px-1 py-0.2 text-[9px] font-mono font-bold text-emerald-200 shrink-0" title={`Formato: ${pill.formatConfig.type}`}>
+          <span className="ml-1 rounded bg-black/25 px-1 py-0.2 text-[9px] font-mono font-bold text-emerald-200 shrink-0" title={`Format: ${pill.formatConfig.type}`}>
             {pill.formatConfig.type === 'currency'
               ? pill.formatConfig.currencySymbol || '$'
               : pill.formatConfig.type === 'percent'
@@ -269,7 +269,7 @@ export const PillBadge: React.FC<PillBadgeProps> = ({
                 }}
                 className="flex w-full items-center justify-between px-3 py-1 text-xs hover:bg-stone-100 dark:hover:bg-stone-800"
               >
-                <span>{isMeasure ? 'Convertir a Dimensión (azul)' : 'Convertir a Medida (verde)'}</span>
+                <span>{isMeasure ? 'Convert to Dimension' : 'Convert to Measure'}</span>
               </button>
               <div className="my-1 border-t border-stone-100 dark:border-stone-800" />
             </>
@@ -277,7 +277,7 @@ export const PillBadge: React.FC<PillBadgeProps> = ({
           {isMeasure && onSetAggregation && (
             <>
               <div className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-stone-400">
-                Agregación
+                Aggregation
               </div>
               {(['SUM', 'AVG', 'MIN', 'MAX', 'COUNT', 'COUNT_DISTINCT', 'MEDIAN'] as AggregationFunction[]).map((agg) => (
                 <button
@@ -300,7 +300,7 @@ export const PillBadge: React.FC<PillBadgeProps> = ({
               {onSetQuickTableCalc && (
                 <>
                   <div className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-amber-500 flex items-center justify-between">
-                    <span>Cálculo de Tabla</span>
+                    <span>Quick Table Calculation</span>
                     <span className="font-mono text-xs">Δ</span>
                   </div>
                   <button
@@ -313,16 +313,16 @@ export const PillBadge: React.FC<PillBadgeProps> = ({
                       !pill.quickTableCalc ? 'font-bold text-stone-900 dark:text-stone-100' : 'text-stone-500'
                     }`}
                   >
-                    Ninguno
+                    None
                   </button>
                   {(
                     [
-                      { type: 'percent_of_total', label: '% del Total' },
-                      { type: 'running_total', label: 'Total Acumulado' },
-                      { type: 'difference_from_previous', label: 'Diferencia Anterior' },
-                      { type: 'percent_difference_from_previous', label: '% Diferencia Anterior' },
-                      { type: 'rank', label: 'Rango (Rank)' },
-                      { type: 'moving_average', label: 'Media Móvil (3)' },
+                      { type: 'percent_of_total', label: 'Percent of Total' },
+                      { type: 'running_total', label: 'Running Total' },
+                      { type: 'difference_from_previous', label: 'Difference from Previous' },
+                      { type: 'percent_difference_from_previous', label: '% Difference from Previous' },
+                      { type: 'rank', label: 'Rank' },
+                      { type: 'moving_average', label: 'Moving Average (3)' },
                     ] as const
                   ).map((q) => (
                     <button
@@ -350,16 +350,16 @@ export const PillBadge: React.FC<PillBadgeProps> = ({
               {onSetFormat && (
                 <>
                   <div className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-stone-400">
-                    Formato de Número
+                    Number Format
                   </div>
                   {(
                     [
-                      { type: 'auto', label: 'Automático' },
-                      { type: 'currency', label: 'Moneda ($)', symbol: '$', decimals: 2 },
-                      { type: 'currency', label: 'Moneda (€)', symbol: '€', decimals: 2 },
-                      { type: 'percent', label: 'Porcentaje (%)', decimals: 1 },
-                      { type: 'compact', label: 'Compacto (K, M, B)', decimals: 1 },
-                      { type: 'number', label: 'Estándar (2 dec)', decimals: 2 },
+                      { type: 'auto', label: 'Automatic' },
+                      { type: 'currency', label: 'Currency ($)', symbol: '$', decimals: 2 },
+                      { type: 'currency', label: 'Currency (€)', symbol: '€', decimals: 2 },
+                      { type: 'percent', label: 'Percentage (%)', decimals: 1 },
+                      { type: 'compact', label: 'Compact (K, M, B)', decimals: 1 },
+                      { type: 'number', label: 'Standard (2 dec)', decimals: 2 },
                     ] as const
                   ).map((fmt) => (
                     <button
@@ -392,7 +392,7 @@ export const PillBadge: React.FC<PillBadgeProps> = ({
           {isDimension && onSetSort && (
             <>
               <div className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-stone-400">
-                Orden
+                Sort
               </div>
               <button
                 type="button"
@@ -404,7 +404,7 @@ export const PillBadge: React.FC<PillBadgeProps> = ({
                   pill.sort === 'asc' ? 'font-bold text-sky-600 dark:text-sky-400' : ''
                 }`}
               >
-                Ascendente
+                Ascending
               </button>
               <button
                 type="button"
@@ -416,7 +416,7 @@ export const PillBadge: React.FC<PillBadgeProps> = ({
                   pill.sort === 'desc' ? 'font-bold text-sky-600 dark:text-sky-400' : ''
                 }`}
               >
-                Descendente
+                Descending
               </button>
               <div className="my-1 border-t border-stone-100 dark:border-stone-800" />
             </>
@@ -425,7 +425,7 @@ export const PillBadge: React.FC<PillBadgeProps> = ({
           {pill.dataType === 'date' && onSetDateTrunc && (
             <>
               <div className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-stone-400">
-                Truncamiento Fecha
+                Date Truncation
               </div>
               {(['year', 'quarter', 'month', 'day'] as const).map((trunc) => (
                 <button
@@ -454,7 +454,7 @@ export const PillBadge: React.FC<PillBadgeProps> = ({
             }}
             className="flex w-full items-center px-3 py-1 text-xs text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/30"
           >
-            Quitar pastilla
+            Remove Pill
           </button>
         </div>
       )}

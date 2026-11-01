@@ -183,7 +183,7 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
                 ? 'bg-emerald-50 text-emerald-700 border-emerald-200/90 hover:bg-emerald-100 hover:border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800'
                 : 'bg-sky-50 text-sky-700 border-sky-200/90 hover:bg-sky-100 hover:border-sky-300 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800'
             }`}
-            title={`Tipo: ${col.dataType === 'string' ? 'Texto' : col.dataType === 'number' ? 'Número' : col.dataType === 'date' ? 'Fecha' : 'Booleano'}. Haz clic para cambiar el tipo de dato.`}
+            title={`Type: ${col.dataType === 'string' ? 'Text' : col.dataType === 'number' ? 'Number' : col.dataType === 'date' ? 'Date' : 'Boolean'}. Click to change data type.`}
           >
             {col.isCalculated ? (
               <span className="font-mono font-bold text-[9.5px] shrink-0">
@@ -212,7 +212,7 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
                 type="button"
                 onClick={() => onOpenCalculatedFieldModal(calcObj)}
                 className="rounded p-0.5 text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 cursor-pointer"
-                title="Editar fórmula"
+                title="Edit formula"
               >
                 <Edit2 className="h-2.5 w-2.5" />
               </button>
@@ -220,7 +220,7 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
                 type="button"
                 onClick={() => onDeleteCalculatedField(calcObj.id)}
                 className="rounded p-0.5 text-stone-400 hover:text-rose-600 cursor-pointer"
-                title="Eliminar campo calculado"
+                title="Delete calculated field"
               >
                 <Trash2 className="h-2.5 w-2.5" />
               </button>
@@ -234,7 +234,7 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
               setActiveColumnMenu(isMenuOpen ? null : col.name);
             }}
             className="rounded p-0.5 text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 cursor-pointer"
-            title="Opciones de campo y tipo de dato"
+            title="Field options and data type"
           >
             <MoreVertical className="h-3 w-3" />
           </button>
@@ -247,7 +247,7 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
                 ? 'text-emerald-600 hover:bg-emerald-200/50 dark:hover:bg-emerald-900/60'
                 : 'text-sky-600 hover:bg-sky-200/50 dark:hover:bg-sky-900/60'
             }`}
-            title={`Añadir a ${defaultShelf === 'columns' ? 'Columns (X)' : 'Rows (Y)'}`}
+            title={`Add to ${defaultShelf === 'columns' ? 'Columns (X)' : 'Rows (Y)'}`}
           >
             <Plus className="h-3 w-3" />
           </button>
@@ -261,7 +261,7 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
           >
             <div className="flex items-center justify-between px-3 py-1 border-b border-stone-100 dark:border-stone-800">
               <span className="font-mono text-[10px] font-bold text-stone-400 uppercase tracking-wider">
-                Tipo de Dato
+                Data Type
               </span>
               <span className={`text-[9.5px] font-mono font-semibold px-1 py-0.2 rounded ${
                 isMeasure ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300'
@@ -284,7 +284,7 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
               >
                 <div className="flex items-center gap-2">
                   <Type className="h-3.5 w-3.5 text-sky-600 shrink-0" />
-                  <span>Cadena (Texto)</span>
+                  <span>String (Text)</span>
                 </div>
                 {col.dataType === 'string' && <Check className="h-3.5 w-3.5 text-sky-600 shrink-0" />}
               </button>
@@ -301,7 +301,7 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
               >
                 <div className="flex items-center gap-2">
                   <Hash className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
-                  <span>Número (Decimal / Entero)</span>
+                  <span>Number (Decimal / Integer)</span>
                 </div>
                 {col.dataType === 'number' && <Check className="h-3.5 w-3.5 text-emerald-600 shrink-0" />}
               </button>
@@ -318,7 +318,7 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
               >
                 <div className="flex items-center gap-2">
                   <Calendar className="h-3.5 w-3.5 text-sky-600 shrink-0" />
-                  <span>Fecha</span>
+                  <span>Date</span>
                 </div>
                 {col.dataType === 'date' && <Check className="h-3.5 w-3.5 text-sky-600 shrink-0" />}
               </button>
@@ -335,7 +335,7 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
               >
                 <div className="flex items-center gap-2">
                   <span className="font-mono text-[10px] font-bold text-sky-600 shrink-0">T/F</span>
-                  <span>Booleano (Verdadero/Falso)</span>
+                  <span>Boolean (True/False)</span>
                 </div>
                 {col.dataType === 'boolean' && <Check className="h-3.5 w-3.5 text-sky-600 shrink-0" />}
               </button>
@@ -346,7 +346,7 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
               <>
                 <div className="border-t border-stone-100 dark:border-stone-800 my-1"></div>
                 <div className="px-3 py-1 text-[10px] font-mono font-bold text-stone-400 uppercase tracking-wider">
-                  Rol Analítico
+                  Analytical Role
                 </div>
                 <button
                   type="button"
@@ -357,7 +357,7 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
                   className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-stone-700 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800 cursor-pointer transition-colors"
                 >
                   <ArrowRightLeft className="h-3.5 w-3.5 text-stone-400 shrink-0" />
-                  <span>{isMeasure ? 'Convertir a Dimensión (azul)' : 'Convertir a Métrica (verde)'}</span>
+                  <span>{isMeasure ? 'Convert to Dimension (blue)' : 'Convert to Measure (green)'}</span>
                 </button>
               </>
             )}
@@ -367,7 +367,7 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
               <>
                 <div className="border-t border-stone-100 dark:border-stone-800 my-1"></div>
                 <div className="px-3 py-1 text-[10px] font-mono font-bold text-stone-400 uppercase tracking-wider">
-                  Transformaciones
+                  Transformations
                 </div>
                 {onSplitColumn && (
                   <button
@@ -379,7 +379,7 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
                     className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-stone-700 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800 cursor-pointer"
                   >
                     <Split className="h-3.5 w-3.5 text-stone-400 shrink-0" />
-                    <span>Dividir por espacio</span>
+                    <span>Split on space</span>
                   </button>
                 )}
                 {onCleanColumn && (
@@ -392,7 +392,7 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
                     className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-stone-700 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800 cursor-pointer"
                   >
                     <Type className="h-3.5 w-3.5 text-stone-400 shrink-0" />
-                    <span>Recortar espacios (TRIM)</span>
+                    <span>Trim whitespace (TRIM)</span>
                   </button>
                 )}
                 {onToggleHideColumn && (
@@ -405,7 +405,7 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
                     className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-stone-700 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800 cursor-pointer"
                   >
                     <EyeOff className="h-3.5 w-3.5 text-stone-400 shrink-0" />
-                    <span>Ocultar campo</span>
+                    <span>Hide field</span>
                   </button>
                 )}
               </>
@@ -418,7 +418,7 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
 
   return (
     <aside className="flex h-full w-64 flex-col border-r border-stone-200/90 bg-stone-50/80 dark:border-white/[0.06] dark:bg-stone-950/80 select-none">
-      {/* Top Tab Switcher: Datos vs Análisis (Segmented Control) */}
+      {/* Top Tab Switcher: Data vs Analytics (Segmented Control) */}
       <div className="p-2 border-b border-stone-200/90 dark:border-white/[0.06] bg-stone-100/60 dark:bg-stone-900/60">
         <div className="flex rounded-md bg-stone-200/60 p-0.5 dark:bg-white/[0.05]">
           <button
@@ -431,7 +431,7 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
             }`}
           >
             <Layers className="h-3 w-3 text-stone-500 dark:text-stone-400" />
-            <span>Datos</span>
+            <span>Data</span>
           </button>
           <button
             type="button"
@@ -443,7 +443,7 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
             }`}
           >
             <TrendingUp className="h-3 w-3 text-stone-500 dark:text-stone-400" />
-            <span>Análisis</span>
+            <span>Analytics</span>
           </button>
         </div>
       </div>
@@ -453,12 +453,12 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
         <div className="flex-1 overflow-y-auto p-3 space-y-4">
           <div>
             <span className="font-mono uppercase tracking-wider text-[11px] text-stone-400">
-              Líneas de Resumen
+              Summary Lines
             </span>
             <div className="mt-2 space-y-2">
               <button
                 type="button"
-                onClick={() => toggleLine('average', 'Promedio')}
+                onClick={() => toggleLine('average', 'Average')}
                 className={`flex w-full items-center justify-between rounded-md border p-2.5 text-left text-xs transition-all ${
                   isLineActive('average')
                     ? 'border-rose-400 bg-rose-50/70 text-rose-900 dark:border-rose-800 dark:bg-rose-950/30 dark:text-rose-200'
@@ -468,18 +468,18 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
                 <div className="flex items-center gap-2">
                   <Activity className="h-4 w-4 text-rose-500" />
                   <div>
-                    <div className="font-semibold">Línea de Promedio</div>
-                    <div className="text-[10px] text-stone-500">Muestra media aritmética en Y</div>
+                    <div className="font-semibold">Average Line</div>
+                    <div className="text-[10px] text-stone-500">Displays arithmetic mean on Y</div>
                   </div>
                 </div>
                 <span className={`text-[10px] font-mono font-bold ${isLineActive('average') ? 'text-rose-600' : 'text-stone-400'}`}>
-                  {isLineActive('average') ? 'ACTIVA' : '+'}
+                  {isLineActive('average') ? 'ACTIVE' : '+'}
                 </span>
               </button>
 
               <button
                 type="button"
-                onClick={() => toggleLine('median', 'Mediana')}
+                onClick={() => toggleLine('median', 'Median')}
                 className={`flex w-full items-center justify-between rounded-md border p-2.5 text-left text-xs transition-all ${
                   isLineActive('median')
                     ? 'border-amber-400 bg-amber-50/70 text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200'
@@ -489,18 +489,18 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
                 <div className="flex items-center gap-2">
                   <Activity className="h-4 w-4 text-amber-500" />
                   <div>
-                    <div className="font-semibold">Línea de Mediana</div>
-                    <div className="text-[10px] text-stone-500">Muestra percentil 50 en Y</div>
+                    <div className="font-semibold">Median Line</div>
+                    <div className="text-[10px] text-stone-500">Displays 50th percentile on Y</div>
                   </div>
                 </div>
                 <span className={`text-[10px] font-mono font-bold ${isLineActive('median') ? 'text-amber-600' : 'text-stone-400'}`}>
-                  {isLineActive('median') ? 'ACTIVA' : '+'}
+                  {isLineActive('median') ? 'ACTIVE' : '+'}
                 </span>
               </button>
 
               <button
                 type="button"
-                onClick={() => toggleLine('min', 'Mínimo')}
+                onClick={() => toggleLine('min', 'Minimum')}
                 className={`flex w-full items-center justify-between rounded-md border p-2.5 text-left text-xs transition-all ${
                   isLineActive('min')
                     ? 'border-cyan-400 bg-cyan-50/70 text-cyan-900 dark:border-cyan-800 dark:bg-cyan-950/30 dark:text-cyan-200'
@@ -510,18 +510,18 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
                 <div className="flex items-center gap-2">
                   <ArrowDownToLine className="h-4 w-4 text-cyan-500" />
                   <div>
-                    <div className="font-semibold">Línea de Mínimo</div>
-                    <div className="text-[10px] text-stone-500">Límite inferior absoluto en Y</div>
+                    <div className="font-semibold">Minimum Line</div>
+                    <div className="text-[10px] text-stone-500">Absolute lower bound on Y</div>
                   </div>
                 </div>
                 <span className={`text-[10px] font-mono font-bold ${isLineActive('min') ? 'text-cyan-600' : 'text-stone-400'}`}>
-                  {isLineActive('min') ? 'ACTIVA' : '+'}
+                  {isLineActive('min') ? 'ACTIVE' : '+'}
                 </span>
               </button>
 
               <button
                 type="button"
-                onClick={() => toggleLine('max', 'Máximo')}
+                onClick={() => toggleLine('max', 'Maximum')}
                 className={`flex w-full items-center justify-between rounded-md border p-2.5 text-left text-xs transition-all ${
                   isLineActive('max')
                     ? 'border-pink-400 bg-pink-50/70 text-pink-900 dark:border-pink-800 dark:bg-pink-950/30 dark:text-pink-200'
@@ -531,12 +531,12 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
                 <div className="flex items-center gap-2">
                   <ArrowUpToLine className="h-4 w-4 text-pink-500" />
                   <div>
-                    <div className="font-semibold">Línea de Máximo</div>
-                    <div className="text-[10px] text-stone-500">Límite superior absoluto en Y</div>
+                    <div className="font-semibold">Maximum Line</div>
+                    <div className="text-[10px] text-stone-500">Absolute upper bound on Y</div>
                   </div>
                 </div>
                 <span className={`text-[10px] font-mono font-bold ${isLineActive('max') ? 'text-pink-600' : 'text-stone-400'}`}>
-                  {isLineActive('max') ? 'ACTIVA' : '+'}
+                  {isLineActive('max') ? 'ACTIVE' : '+'}
                 </span>
               </button>
             </div>
@@ -544,12 +544,12 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
 
           <div className="pt-2 border-t border-stone-200 dark:border-stone-800">
             <span className="font-mono uppercase tracking-wider text-[11px] text-stone-400">
-              Modelos
+              Models
             </span>
             <div className="mt-2 space-y-2">
               <button
                 type="button"
-                onClick={() => toggleLine('trend_line', 'Regresión Lineal')}
+                onClick={() => toggleLine('trend_line', 'Trend Line')}
                 className={`flex w-full items-center justify-between rounded-md border p-2.5 text-left text-xs transition-all ${
                   isLineActive('trend_line')
                     ? 'border-indigo-400 bg-indigo-50/70 text-indigo-900 dark:border-indigo-800 dark:bg-indigo-950/30 dark:text-indigo-200'
@@ -559,18 +559,18 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
                 <div className="flex items-center gap-2">
                   <TrendingUp className="h-4 w-4 text-indigo-500" />
                   <div>
-                    <div className="font-semibold">Línea de Tendencia</div>
-                    <div className="text-[10px] text-stone-500">Regresión lineal de mínimos cuadrados</div>
+                    <div className="font-semibold">Trend Line</div>
+                    <div className="text-[10px] text-stone-500">Ordinary least squares linear regression</div>
                   </div>
                 </div>
                 <span className={`text-[10px] font-mono font-bold ${isLineActive('trend_line') ? 'text-indigo-600' : 'text-stone-400'}`}>
-                  {isLineActive('trend_line') ? 'ACTIVA' : '+'}
+                  {isLineActive('trend_line') ? 'ACTIVE' : '+'}
                 </span>
               </button>
 
               <button
                 type="button"
-                onClick={() => toggleLine('moving_average', 'Media Móvil')}
+                onClick={() => toggleLine('moving_average', 'Moving Average')}
                 className={`flex w-full items-center justify-between rounded-md border p-2.5 text-left text-xs transition-all ${
                   isLineActive('moving_average')
                     ? 'border-emerald-400 bg-emerald-50/70 text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200'
@@ -580,12 +580,12 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
                 <div className="flex items-center gap-2">
                   <LineChart className="h-4 w-4 text-emerald-500" />
                   <div>
-                    <div className="font-semibold">Media Móvil (k=5)</div>
-                    <div className="text-[10px] text-stone-500">Alisado dinámico temporal sobre X</div>
+                    <div className="font-semibold">Moving Average (k=5)</div>
+                    <div className="text-[10px] text-stone-500">Dynamic rolling smoothing over X</div>
                   </div>
                 </div>
                 <span className={`text-[10px] font-mono font-bold ${isLineActive('moving_average') ? 'text-emerald-600' : 'text-stone-400'}`}>
-                  {isLineActive('moving_average') ? 'ACTIVA' : '+'}
+                  {isLineActive('moving_average') ? 'ACTIVE' : '+'}
                 </span>
               </button>
             </div>
@@ -598,7 +598,7 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
         <div className="flex items-center justify-between text-xs font-semibold text-stone-600 dark:text-stone-400">
           <span className="font-mono uppercase tracking-wider text-[11px] flex items-center gap-1.5">
             <Database className="h-3.5 w-3.5 text-sky-600 dark:text-sky-400" />
-            <span>Fuentes de Datos</span>
+            <span>Data Sources</span>
             {availableDatasets.length > 1 && (
               <span className="rounded-full bg-sky-100 px-1.5 py-0.2 text-[9.5px] font-bold text-sky-700 dark:bg-sky-950 dark:text-sky-300">
                 {availableDatasets.length}
@@ -625,10 +625,10 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
               type="button"
               onClick={() => fileInputRef.current?.click()}
               className="flex items-center gap-1 rounded bg-stone-100 px-1.5 py-0.5 text-[10px] font-mono text-stone-700 hover:bg-stone-200 dark:bg-stone-800 dark:text-stone-300 dark:hover:bg-stone-700 cursor-pointer"
-              title="Cargar archivo adicional (Excel, SQLite, Tableau .twbx, CSV, Parquet) en DuckDB-WASM"
+              title="Load additional file (Excel, SQLite, Tableau .twbx, CSV, Parquet) into DuckDB-WASM"
             >
               <Plus className="h-2.5 w-2.5" />
-              <span>Fuente</span>
+              <span>Source</span>
             </button>
 
             {onOpenRelationalModal && (
@@ -636,10 +636,10 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
                 type="button"
                 onClick={onOpenRelationalModal}
                 className="flex items-center gap-1 rounded bg-stone-100 px-1.5 py-0.5 text-[10px] font-mono text-stone-700 hover:bg-stone-200 dark:bg-stone-800 dark:text-stone-300 dark:hover:bg-stone-700 cursor-pointer"
-                title="Conectar a Servidor Relacional (PostgreSQL, MySQL)..."
+                title="Connect to Relational Server (PostgreSQL, MySQL)..."
               >
                 <Server className="h-2.5 w-2.5 text-sky-600 dark:text-sky-400" />
-                <span>Servidor</span>
+                <span>Server</span>
               </button>
             )}
 
@@ -648,9 +648,9 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
                 type="button"
                 onClick={onOpenDataSource}
                 className="flex items-center gap-1 rounded bg-stone-100 px-1.5 py-0.5 text-[10px] font-mono font-medium text-stone-700 hover:bg-stone-200 dark:bg-stone-800 dark:text-stone-300 dark:hover:bg-stone-700 cursor-pointer"
-                title="Abrir página de fuente de datos: Intérprete de datos, filtros de fuente y preparación"
+                title="Open Data Source workbench: Data Interpreter, source filters, and prep"
               >
-                <span>Preparar</span>
+                <span>Data Prep</span>
               </button>
             )}
 
@@ -659,10 +659,10 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
                 type="button"
                 onClick={onOpenDataModelModal}
                 className="flex items-center gap-1 rounded bg-sky-50 px-1.5 py-0.5 text-[10px] font-mono font-bold text-sky-700 hover:bg-sky-100 dark:bg-sky-950/60 dark:text-sky-300 dark:hover:bg-sky-900 cursor-pointer"
-                title="Abrir asistente de modelado de datos (JOIN relacional o UNION apilado)"
+                title="Open data modeling wizard (Relational JOIN or stacked UNION)"
               >
                 <GitMerge className="h-2.5 w-2.5" />
-                <span>Modelar</span>
+                <span>Model</span>
               </button>
             )}
           </div>
@@ -676,11 +676,11 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
                   value={currentDataset.id}
                   onChange={(e) => onSelectDataset(e.target.value)}
                   className="w-full rounded border border-stone-200 bg-stone-50 px-2 py-1 text-xs font-semibold text-stone-800 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200 cursor-pointer"
-                  title="Cambiar la fuente de datos activa para esta hoja de trabajo"
+                  title="Switch active data source for this worksheet"
                 >
                   {availableDatasets.map((ds) => (
                     <option key={ds.id} value={ds.id}>
-                      {ds.name} ({ds.rowCount.toLocaleString()} f.)
+                      {ds.name} ({ds.rowCount.toLocaleString()} r.)
                     </option>
                   ))}
                 </select>
@@ -692,18 +692,18 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
               </div>
             )}
             <div className="flex items-center justify-between text-[10px] text-stone-500 font-mono mt-1">
-              <span className="tabular-nums font-semibold">{currentDataset.rowCount.toLocaleString()} filas</span>
+              <span className="tabular-nums font-semibold">{currentDataset.rowCount.toLocaleString()} rows</span>
               <span>•</span>
-              <span>{columns.length} campos</span>
+              <span>{columns.length} fields</span>
               {onOpenCalculatedFieldModal && (
                 <button
                   type="button"
                   onClick={() => onOpenCalculatedFieldModal()}
                   className="text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-0.5 cursor-pointer"
-                  title="Crear un nuevo campo calculado con DuckDB"
+                  title="Create a new calculated field with DuckDB"
                 >
                   <Calculator className="h-2.5 w-2.5" />
-                  <span>+ Cálculo</span>
+                  <span>+ Calculation</span>
                 </button>
               )}
             </div>
@@ -711,7 +711,7 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
         ) : (
           <div className="rounded-md border border-dashed border-stone-300 p-2.5 text-center dark:border-stone-700">
             <FileCode className="mx-auto h-4 w-4 text-stone-400" />
-            <p className="mt-1 text-[11px] text-stone-500">Esperando archivo...</p>
+            <p className="mt-1 text-[11px] text-stone-500">Waiting for data file...</p>
           </div>
         )}
       </div>
@@ -724,7 +724,7 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
               <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-stone-400" />
               <input
                 type="text"
-                placeholder="Buscar campos..."
+                placeholder="Search fields..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full rounded-md border border-stone-200 bg-white py-1.5 pl-8 pr-2.5 text-xs text-stone-900 placeholder-stone-400 focus:border-stone-400 focus:outline-none dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100"
@@ -739,7 +739,7 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
                     ? 'border-amber-400 bg-amber-50 text-amber-700 dark:border-amber-600 dark:bg-amber-950/40 dark:text-amber-300'
                     : 'border-stone-200 bg-white text-stone-400 hover:text-stone-700 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-400'
                 }`}
-                title={showHidden ? 'Ocultar campos marcados como ocultos' : 'Mostrar campos ocultos'}
+                title={showHidden ? 'Hide hidden fields' : 'Show hidden fields'}
               >
                 {showHidden ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
               </button>
@@ -752,9 +752,9 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
             <div>
               <div className="flex items-center justify-between pb-1.5">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400 font-mono">
-                  Dimensiones ({dimensions.length})
+                  Dimensions ({dimensions.length})
                 </span>
-                <span className="text-[9px] font-mono text-stone-400">DISCRETAS</span>
+                <span className="text-[9px] font-mono text-stone-400">DISCRETE</span>
               </div>
 
               <div className="space-y-0.5">
@@ -766,9 +766,9 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
             <div>
               <div className="flex items-center justify-between pb-1.5 pt-2.5 border-t border-stone-200/60 dark:border-white/[0.06]">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400 font-mono">
-                  Métricas ({measures.length})
+                  Measures ({measures.length})
                 </span>
-                <span className="text-[9px] font-mono text-stone-400">CONTINUAS</span>
+                <span className="text-[9px] font-mono text-stone-400">CONTINUOUS</span>
               </div>
 
               <div className="space-y-0.5">
@@ -781,21 +781,21 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
               <div className="flex items-center justify-between pb-1.5">
                 <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400 font-mono">
                   <Sliders className="h-3 w-3 text-stone-400" />
-                  <span>Parámetros ({parameters.length})</span>
+                  <span>Parameters ({parameters.length})</span>
                 </span>
                 <button
                   type="button"
                   onClick={() => onOpenParameterModal()}
                   className="btn-tactile flex items-center gap-1 rounded bg-stone-200/70 px-1.5 py-0.5 text-[10px] font-mono text-stone-700 hover:bg-stone-300 dark:bg-stone-800 dark:text-stone-300 dark:hover:bg-stone-700"
-                  title="Crear un nuevo parámetro dinámico"
+                  title="Create a new dynamic parameter"
                 >
                   <Plus className="h-2.5 w-2.5" />
-                  <span>Nuevo</span>
+                  <span>New</span>
                 </button>
               </div>
 
               {parameters.length === 0 ? (
-                <p className="text-[10px] font-mono text-stone-400 py-1">Sin parámetros activos</p>
+                <p className="text-[10px] font-mono text-stone-400 py-1">No active parameters</p>
               ) : (
                 <div className="space-y-2 mt-1">
                   {parameters.map((param) => {
@@ -829,7 +829,7 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
                             <span
                               className="font-mono text-[11px] font-bold text-amber-800 dark:text-amber-300 truncate cursor-pointer hover:underline"
                               onClick={() => onOpenParameterModal(param)}
-                              title={`Editar [${param.name}]`}
+                              title={`Edit [${param.name}]`}
                             >
                               [{param.name}]
                             </span>
@@ -847,8 +847,8 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
                                 }`}
                                 title={
                                   isControlVisible
-                                    ? 'Ocultar control en la hoja'
-                                    : 'Mostrar control de parámetro'
+                                    ? 'Hide card from sheet'
+                                    : 'Show parameter card'
                                 }
                               >
                                 {isControlVisible ? (
@@ -863,7 +863,7 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
                                 type="button"
                                 onClick={() => onDuplicateParameter(param.id)}
                                 className="rounded p-0.5 text-stone-400 hover:text-stone-700 dark:hover:text-stone-200"
-                                title="Duplicar parámetro"
+                                title="Duplicate parameter"
                               >
                                 <Copy className="h-2.5 w-2.5" />
                               </button>
@@ -872,7 +872,7 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
                               type="button"
                               onClick={() => onOpenParameterModal(param)}
                               className="rounded p-0.5 text-stone-400 hover:text-stone-700 dark:hover:text-stone-200"
-                              title="Editar parámetro"
+                              title="Edit parameter"
                             >
                               <Edit2 className="h-2.5 w-2.5" />
                             </button>
@@ -880,7 +880,7 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
                               type="button"
                               onClick={() => onDeleteParameter(param.id)}
                               className="rounded p-0.5 text-stone-400 hover:text-rose-600"
-                              title="Eliminar parámetro"
+                              title="Delete parameter"
                             >
                               <Trash2 className="h-2.5 w-2.5" />
                             </button>
@@ -958,7 +958,7 @@ export const DataSidebar: React.FC<DataSidebarProps> = ({
       ) : (
         <div className="flex-1 p-4 flex flex-col items-center justify-center text-center text-stone-400">
           <p className="text-xs leading-relaxed">
-            Los campos aparecerán aquí una vez cargues un archivo.
+            Fields will appear here once you connect a data file.
           </p>
         </div>
       )}

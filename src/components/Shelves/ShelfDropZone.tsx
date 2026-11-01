@@ -37,7 +37,7 @@ export const ShelfDropZone: React.FC<ShelfDropZoneProps> = ({
   onSetFormat,
   onChangeColumnType,
   onChangeColumnRole,
-  placeholder = 'Arrastra un campo aquí...',
+  placeholder = 'Drop field here...',
 }) => {
   const [isOver, setIsOver] = useState(false);
 
@@ -62,7 +62,7 @@ export const ShelfDropZone: React.FC<ShelfDropZoneProps> = ({
         onAddPill(shelfId, droppedPill);
       }
     } catch (err) {
-      console.error('Error procesando pastilla arrastrada:', err);
+      console.error('Error processing dropped pill:', err);
     }
   };
 

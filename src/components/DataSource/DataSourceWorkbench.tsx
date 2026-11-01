@@ -114,10 +114,10 @@ export const DataSourceWorkbench: React.FC<DataSourceWorkbenchProps> = ({
       <div className="flex flex-1 flex-col items-center justify-center p-8 text-center bg-stone-50 dark:bg-stone-950">
         <Database className="h-12 w-12 text-stone-400 mb-3" />
         <h2 className="text-lg font-bold font-editorial text-stone-800 dark:text-stone-200">
-          No hay fuente de datos conectada
+          No data source connected
         </h2>
         <p className="text-xs text-stone-500 max-w-sm mt-1">
-          Carga un archivo Excel, CSV, Parquet o JSON para inspeccionar y preparar tus datos.
+          Load an Excel, CSV, Parquet, or JSON file to inspect and prepare your data.
         </p>
       </div>
     );
@@ -182,11 +182,11 @@ export const DataSourceWorkbench: React.FC<DataSourceWorkbenchProps> = ({
                 {currentDataset.name}
               </h1>
               <span className="rounded bg-stone-100 px-1.5 py-0.5 text-[10px] font-mono text-stone-600 dark:bg-stone-800 dark:text-stone-400">
-                Tabla: {currentDataset.tableName}
+                Table: {currentDataset.tableName}
               </span>
             </div>
             <p className="text-xs text-stone-500 dark:text-stone-400">
-              {currentDataset.rowCount.toLocaleString()} filas • {currentDataset.columns.length} campos • In-Memory DuckDB
+              {currentDataset.rowCount.toLocaleString()} rows • {currentDataset.columns.length} fields • In-Memory DuckDB
             </p>
           </div>
         </div>
@@ -199,7 +199,7 @@ export const DataSourceWorkbench: React.FC<DataSourceWorkbenchProps> = ({
               className="flex items-center gap-1.5 rounded-lg border border-stone-200 bg-white px-3 py-1.5 text-xs font-semibold text-stone-700 shadow-2xs hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700 transition-all cursor-pointer"
             >
               <GitMerge className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
-              <span>Modelar Datos (JOIN / UNION)</span>
+              <span>Model Data (JOIN / UNION)</span>
             </button>
           )}
 
@@ -208,7 +208,7 @@ export const DataSourceWorkbench: React.FC<DataSourceWorkbenchProps> = ({
             onClick={onGoToWorksheet}
             className="flex items-center gap-1.5 rounded-lg bg-sky-600 px-4 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-sky-500 focus:outline-none transition-all cursor-pointer"
           >
-            <span>Ir a la Hoja de Trabajo</span>
+            <span>Go to Worksheet</span>
             <ArrowRight className="h-3.5 w-3.5" />
           </button>
         </div>
@@ -223,7 +223,7 @@ export const DataSourceWorkbench: React.FC<DataSourceWorkbenchProps> = ({
               <div className="flex items-center gap-2">
                 <Sparkles className="h-4 w-4 text-amber-500" />
                 <h3 className="text-xs font-bold uppercase tracking-wider text-stone-700 dark:text-stone-300 font-mono">
-                  Intérprete de datos (Tableau Data Interpreter)
+                  Data Interpreter
                 </h3>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
@@ -238,8 +238,7 @@ export const DataSourceWorkbench: React.FC<DataSourceWorkbenchProps> = ({
             </div>
 
             <p className="text-xs text-stone-500 dark:text-stone-400 leading-relaxed">
-              Detecta y estructura automáticamente hojas de cálculo con títulos, celdas combinadas, notas superiores y
-              filas de subtotales o totales generales al pie para evitar duplicación en los cálculos.
+              Automatically detects and structures spreadsheets with titles, merged cells, header notes, and footer subtotal or grand total rows to prevent calculation duplication.
             </p>
           </div>
 
@@ -247,10 +246,10 @@ export const DataSourceWorkbench: React.FC<DataSourceWorkbenchProps> = ({
             <span className="text-[11px] font-mono text-stone-600 dark:text-stone-400">
               {currentDataset.isDataInterpreterEnabled ? (
                 <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
-                  ✓ {currentDataset.dataInterpreterReport || 'Estructura tabular limpia activada.'}
+                  ✓ {currentDataset.dataInterpreterReport || 'Clean tabular structure enabled.'}
                 </span>
               ) : (
-                <span className="text-stone-400">Modo datos sin procesar (Raw).</span>
+                <span className="text-stone-400">Raw data mode.</span>
               )}
             </span>
           </div>
@@ -263,7 +262,7 @@ export const DataSourceWorkbench: React.FC<DataSourceWorkbenchProps> = ({
               <div className="flex items-center gap-2">
                 <Filter className="h-4 w-4 text-sky-600 dark:text-sky-400" />
                 <h3 className="text-xs font-bold uppercase tracking-wider text-stone-700 dark:text-stone-300 font-mono">
-                  Filtros de la fuente de datos ({dataSourceFilters.length})
+                  Data Source Filters ({dataSourceFilters.length})
                 </h3>
               </div>
 
@@ -274,13 +273,13 @@ export const DataSourceWorkbench: React.FC<DataSourceWorkbenchProps> = ({
                   className="flex items-center gap-1 rounded bg-stone-100 px-2 py-1 text-xs font-semibold text-stone-700 hover:bg-stone-200 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700 cursor-pointer"
                 >
                   <Plus className="h-3 w-3" />
-                  <span>Añadir Filtro</span>
+                  <span>Add Filter</span>
                 </button>
 
                 {isAddingFilter && (
                   <div className="absolute right-0 top-full mt-1 w-56 max-h-60 overflow-y-auto rounded-lg border border-stone-200 bg-white py-1 shadow-lg dark:border-stone-700 dark:bg-stone-800 z-50">
                     <div className="px-2 py-1 text-[10px] font-mono font-bold text-stone-400 uppercase">
-                      Seleccionar campo para filtrar
+                      Select field to filter
                     </div>
                     {currentDataset.columns.map((c) => (
                       <button
@@ -299,15 +298,14 @@ export const DataSourceWorkbench: React.FC<DataSourceWorkbenchProps> = ({
             </div>
 
             <p className="text-xs text-stone-500 dark:text-stone-400 leading-relaxed">
-              Los filtros de fuente se aplican en la raíz de DuckDB antes de que los datos lleguen a ninguna hoja o
-              dashboard, reduciendo el volumen en memoria y garantizando consistencia global.
+              Data source filters are applied at the DuckDB root before data reaches any worksheet or dashboard, reducing in-memory volume and ensuring global consistency.
             </p>
           </div>
 
           {/* Active Data Source Filter Chips */}
           <div className="mt-3 pt-2.5 border-t border-stone-100 dark:border-stone-800 flex flex-wrap gap-1.5 items-center">
             {dataSourceFilters.length === 0 ? (
-              <span className="text-[11px] text-stone-400 italic">Sin filtros de fuente activos (100% de filas disponibles).</span>
+              <span className="text-[11px] text-stone-400 italic">No active data source filters (100% of rows available).</span>
             ) : (
               dataSourceFilters.map((f) => (
                 <div
@@ -318,7 +316,7 @@ export const DataSourceWorkbench: React.FC<DataSourceWorkbenchProps> = ({
                     type="button"
                     onClick={() => onOpenFilterModal(f)}
                     className="hover:underline cursor-pointer"
-                    title="Editar filtro"
+                    title="Edit filter"
                   >
                     {f.columnName}: {f.operator === 'range' ? `${f.rangeMin ?? 0} - ${f.rangeMax ?? 100}` : `${f.values?.length || 0} sel.`}
                   </button>
@@ -326,7 +324,7 @@ export const DataSourceWorkbench: React.FC<DataSourceWorkbenchProps> = ({
                     type="button"
                     onClick={() => void onRemoveDataSourceFilter(f.id)}
                     className="text-sky-500 hover:text-sky-700 dark:text-sky-400 dark:hover:text-sky-200 ml-1"
-                    title="Eliminar filtro de fuente"
+                    title="Remove data source filter"
                   >
                     <X className="h-3 w-3" />
                   </button>
@@ -343,10 +341,10 @@ export const DataSourceWorkbench: React.FC<DataSourceWorkbenchProps> = ({
         <div className="flex flex-wrap items-center justify-between border-b border-stone-200/90 bg-stone-50/80 px-4 py-2 dark:border-stone-800 dark:bg-stone-900/80 gap-3">
           <div className="flex items-center gap-3">
             <h2 className="text-xs font-bold text-stone-700 dark:text-stone-300 font-mono uppercase tracking-wider">
-              Cuadrícula de Prelimpieza y Perfilado de Datos
+              Data Prep & Profiling Grid
             </h2>
             <span className="text-[11px] text-stone-400">
-              (Muestra interactiva de las primeras {previewRows.length} filas)
+              (Interactive sample of first {previewRows.length} rows)
             </span>
           </div>
 
@@ -356,7 +354,7 @@ export const DataSourceWorkbench: React.FC<DataSourceWorkbenchProps> = ({
               <Search className="absolute left-2.5 top-1.5 h-3.5 w-3.5 text-stone-400" />
               <input
                 type="text"
-                placeholder="Buscar en vista previa..."
+                placeholder="Search in preview..."
                 value={searchFilter}
                 onChange={(e) => setSearchFilter(e.target.value)}
                 className="rounded-md border border-stone-200 bg-white pl-8 pr-2.5 py-1 text-xs text-stone-800 dark:border-stone-700 dark:bg-stone-850 dark:text-stone-200 focus:outline-none focus:ring-1 focus:ring-sky-500"
@@ -371,7 +369,7 @@ export const DataSourceWorkbench: React.FC<DataSourceWorkbenchProps> = ({
                 onChange={(e) => setShowHiddenColumns(e.target.checked)}
                 className="rounded border-stone-300 text-sky-600 focus:ring-sky-500"
               />
-              <span>Mostrar campos ocultos</span>
+              <span>Show hidden fields</span>
             </label>
           </div>
         </div>
@@ -381,7 +379,7 @@ export const DataSourceWorkbench: React.FC<DataSourceWorkbenchProps> = ({
           {isLoadingPreview ? (
             <div className="flex h-64 items-center justify-center gap-2 text-xs text-stone-500">
               <RefreshCw className="h-4 w-4 animate-spin text-sky-600" />
-              <span>Cargando datos vectorizados desde DuckDB...</span>
+              <span>Loading vectorized data from DuckDB...</span>
             </div>
           ) : (
             <table className="min-w-full divide-y divide-stone-200 dark:divide-stone-800 text-left border-collapse">
@@ -409,12 +407,12 @@ export const DataSourceWorkbench: React.FC<DataSourceWorkbenchProps> = ({
                               value={col.dataType}
                               onChange={(e) => void onChangeColumnType(col.name, e.target.value as DataType)}
                               className="appearance-none rounded bg-white px-1.5 py-0.5 text-[10px] font-mono font-bold text-stone-700 shadow-2xs border border-stone-200 dark:bg-stone-800 dark:border-stone-700 dark:text-stone-300 cursor-pointer pr-4 hover:border-sky-400 focus:outline-none"
-                              title="Cambiar tipo de dato en DuckDB"
+                              title="Change data type in DuckDB"
                             >
-                              <option value="string">Abc Cadena</option>
-                              <option value="number"># Número</option>
-                              <option value="date">📅 Fecha</option>
-                              <option value="boolean">T/F Booleano</option>
+                              <option value="string">Abc String</option>
+                              <option value="number"># Number</option>
+                              <option value="date">📅 Date</option>
+                              <option value="boolean">T/F Boolean</option>
                             </select>
                             <ChevronDown className="absolute right-1 top-1.5 h-2.5 w-2.5 pointer-events-none text-stone-400" />
                           </div>
@@ -425,7 +423,7 @@ export const DataSourceWorkbench: React.FC<DataSourceWorkbenchProps> = ({
                               type="button"
                               onClick={() => setActiveMenuCol(isMenuOpen ? null : col.name)}
                               className="p-1 rounded text-stone-400 hover:text-stone-700 hover:bg-stone-200/60 dark:hover:text-stone-200 dark:hover:bg-stone-700 cursor-pointer"
-                              title="Herramientas de preparación del campo"
+                              title="Field prep tools"
                             >
                               <ChevronDown className="h-3 w-3" />
                             </button>
@@ -438,7 +436,7 @@ export const DataSourceWorkbench: React.FC<DataSourceWorkbenchProps> = ({
                                   className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-stone-700 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-700"
                                 >
                                   <Edit2 className="h-3 w-3 text-stone-400" />
-                                  <span>Renombrar campo</span>
+                                  <span>Rename field</span>
                                 </button>
 
                                 <button
@@ -450,7 +448,7 @@ export const DataSourceWorkbench: React.FC<DataSourceWorkbenchProps> = ({
                                   className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-stone-700 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-700 cursor-pointer"
                                 >
                                   <Split className="h-3 w-3 text-stone-400" />
-                                  <span>Dividir por espacio</span>
+                                  <span>Split by space</span>
                                 </button>
 
                                 <button
@@ -459,13 +457,13 @@ export const DataSourceWorkbench: React.FC<DataSourceWorkbenchProps> = ({
                                   className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-stone-700 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-700 cursor-pointer"
                                 >
                                   <Split className="h-3 w-3 text-stone-400" />
-                                  <span>División personalizada...</span>
+                                  <span>Custom Split...</span>
                                 </button>
 
                                 <div className="border-t border-stone-100 dark:border-stone-700 my-1"></div>
 
                                 <div className="px-3 py-0.5 text-[9px] font-mono text-stone-400 uppercase font-bold">
-                                  Limpieza de texto
+                                  Text Cleaning
                                 </div>
 
                                 <button
@@ -476,7 +474,7 @@ export const DataSourceWorkbench: React.FC<DataSourceWorkbenchProps> = ({
                                   }}
                                   className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-stone-700 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-700"
                                 >
-                                  <span>Recortar espacios (TRIM)</span>
+                                  <span>Trim whitespace (TRIM)</span>
                                 </button>
 
                                 <button
@@ -487,7 +485,7 @@ export const DataSourceWorkbench: React.FC<DataSourceWorkbenchProps> = ({
                                   }}
                                   className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-stone-700 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-700"
                                 >
-                                  <span>Convertir a MAYÚSCULAS</span>
+                                  <span>Convert to UPPERCASE</span>
                                 </button>
 
                                 <button
@@ -498,7 +496,7 @@ export const DataSourceWorkbench: React.FC<DataSourceWorkbenchProps> = ({
                                   }}
                                   className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-stone-700 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-700"
                                 >
-                                  <span>Convertir a minúsculas</span>
+                                  <span>Convert to lowercase</span>
                                 </button>
 
                                 <div className="border-t border-stone-100 dark:border-stone-700 my-1"></div>
@@ -513,7 +511,7 @@ export const DataSourceWorkbench: React.FC<DataSourceWorkbenchProps> = ({
                                     className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-stone-700 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-700"
                                   >
                                     <ArrowRightLeft className="h-3 w-3 text-stone-400" />
-                                    <span>{col.role === 'dimension' ? 'Convertir a medida' : 'Convertir a dimensión'}</span>
+                                    <span>{col.role === 'dimension' ? 'Convert to Measure' : 'Convert to Dimension'}</span>
                                   </button>
                                 )}
 
@@ -528,12 +526,12 @@ export const DataSourceWorkbench: React.FC<DataSourceWorkbenchProps> = ({
                                   {col.hidden ? (
                                     <>
                                       <Eye className="h-3 w-3 text-stone-400" />
-                                      <span>Mostrar campo</span>
+                                      <span>Show field</span>
                                     </>
                                   ) : (
                                     <>
                                       <EyeOff className="h-3 w-3 text-stone-400" />
-                                      <span>Ocultar campo</span>
+                                      <span>Hide field</span>
                                     </>
                                   )}
                                 </button>
@@ -568,12 +566,12 @@ export const DataSourceWorkbench: React.FC<DataSourceWorkbenchProps> = ({
                           <div
                             onDoubleClick={() => handleStartRename(col.name)}
                             className="font-bold text-xs text-stone-900 dark:text-stone-100 truncate cursor-text"
-                            title="Doble clic para renombrar campo"
+                            title="Double click to rename field"
                           >
                             {col.name}
                             {col.hidden && (
                               <span className="ml-1 text-[10px] font-normal text-stone-400 italic">
-                                (oculto)
+                                (hidden)
                               </span>
                             )}
                           </div>
@@ -636,10 +634,10 @@ export const DataSourceWorkbench: React.FC<DataSourceWorkbenchProps> = ({
                 </div>
                 <div>
                   <h3 className="font-editorial text-sm font-bold text-stone-900 dark:text-stone-100">
-                    División personalizada
+                    Custom Split
                   </h3>
                   <p className="text-[11px] text-stone-500 dark:text-stone-400">
-                    Dividir valores del campo <strong className="font-semibold text-stone-700 dark:text-stone-300">"{customSplit.columnName}"</strong>
+                    Split values from field <strong className="font-semibold text-stone-700 dark:text-stone-300">"{customSplit.columnName}"</strong>
                   </p>
                 </div>
               </div>
@@ -656,25 +654,25 @@ export const DataSourceWorkbench: React.FC<DataSourceWorkbenchProps> = ({
               {/* Separator Input */}
               <div>
                 <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
-                  Usar el separador:
+                  Use separator:
                 </label>
                 <input
                   type="text"
                   value={customSplit.delimiter}
                   onChange={(e) => setCustomSplit({ ...customSplit, delimiter: e.target.value })}
-                  placeholder="Espacio, coma, guión, etc."
+                  placeholder="Space, comma, hyphen, etc."
                   className="w-full rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-xs text-stone-900 shadow-2xs focus:border-sky-500 focus:outline-none dark:border-stone-700 dark:bg-stone-800 dark:text-stone-100 font-mono"
                   autoFocus
                 />
                 <span className="text-[10px] text-stone-400 mt-0.5 block">
-                  Escribe un espacio, coma (,), guión (-), barra (/), o cualquier texto delimitador.
+                  Enter a space, comma (,), hyphen (-), slash (/), or any custom delimiter text.
                 </span>
               </div>
 
               {/* Split Off Radio Options */}
               <div>
                 <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-2">
-                  Dividir:
+                  Split off:
                 </label>
                 <div className="space-y-2.5">
                   <label className="flex items-center gap-2.5 text-xs text-stone-800 dark:text-stone-200 cursor-pointer">
@@ -685,7 +683,7 @@ export const DataSourceWorkbench: React.FC<DataSourceWorkbenchProps> = ({
                       onChange={() => setCustomSplit({ ...customSplit, mode: 'first' })}
                       className="text-sky-600 focus:ring-sky-500"
                     />
-                    <span className="w-16">Primeras</span>
+                    <span className="w-16">First</span>
                     <input
                       type="number"
                       min={1}
@@ -695,7 +693,7 @@ export const DataSourceWorkbench: React.FC<DataSourceWorkbenchProps> = ({
                       onChange={(e) => setCustomSplit({ ...customSplit, count: Math.max(1, parseInt(e.target.value, 10) || 1) })}
                       className="w-16 rounded border border-stone-300 bg-white px-2 py-0.5 text-xs text-center font-mono disabled:opacity-40 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200"
                     />
-                    <span className="text-stone-500 dark:text-stone-400 text-xs">columnas</span>
+                    <span className="text-stone-500 dark:text-stone-400 text-xs">columns</span>
                   </label>
 
                   <label className="flex items-center gap-2.5 text-xs text-stone-800 dark:text-stone-200 cursor-pointer">
@@ -706,7 +704,7 @@ export const DataSourceWorkbench: React.FC<DataSourceWorkbenchProps> = ({
                       onChange={() => setCustomSplit({ ...customSplit, mode: 'last' })}
                       className="text-sky-600 focus:ring-sky-500"
                     />
-                    <span className="w-16">Últimas</span>
+                    <span className="w-16">Last</span>
                     <input
                       type="number"
                       min={1}
@@ -716,7 +714,7 @@ export const DataSourceWorkbench: React.FC<DataSourceWorkbenchProps> = ({
                       onChange={(e) => setCustomSplit({ ...customSplit, count: Math.max(1, parseInt(e.target.value, 10) || 1) })}
                       className="w-16 rounded border border-stone-300 bg-white px-2 py-0.5 text-xs text-center font-mono disabled:opacity-40 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200"
                     />
-                    <span className="text-stone-500 dark:text-stone-400 text-xs">columnas</span>
+                    <span className="text-stone-500 dark:text-stone-400 text-xs">columns</span>
                   </label>
 
                   <label className="flex items-center gap-2.5 text-xs text-stone-800 dark:text-stone-200 cursor-pointer">
@@ -727,7 +725,7 @@ export const DataSourceWorkbench: React.FC<DataSourceWorkbenchProps> = ({
                       onChange={() => setCustomSplit({ ...customSplit, mode: 'all' })}
                       className="text-sky-600 focus:ring-sky-500"
                     />
-                    <span className="flex-1">Todas las columnas</span>
+                    <span className="flex-1">All columns</span>
                   </label>
                 </div>
               </div>
@@ -739,7 +737,7 @@ export const DataSourceWorkbench: React.FC<DataSourceWorkbenchProps> = ({
                 onClick={() => setCustomSplit({ ...customSplit, isOpen: false })}
                 className="rounded-lg border border-stone-300 px-3 py-1.5 text-xs font-semibold text-stone-700 hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-300 dark:hover:bg-stone-700 cursor-pointer transition-colors"
               >
-                Cancelar
+                Cancel
               </button>
               <button
                 type="button"
@@ -757,7 +755,7 @@ export const DataSourceWorkbench: React.FC<DataSourceWorkbenchProps> = ({
                 className="flex items-center gap-1.5 rounded-lg bg-sky-600 px-4 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-sky-500 cursor-pointer transition-colors disabled:opacity-50"
               >
                 {customSplit.isSubmitting && <RefreshCw className="h-3 w-3 animate-spin" />}
-                <span>{customSplit.isSubmitting ? 'Dividiendo...' : 'Aceptar'}</span>
+                <span>{customSplit.isSubmitting ? 'Splitting...' : 'Apply'}</span>
               </button>
             </div>
           </div>

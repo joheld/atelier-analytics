@@ -81,10 +81,10 @@ export const StorageInspectorModal: React.FC<StorageInspectorModalProps> = ({
             </div>
             <div>
               <h2 className="text-base font-bold text-stone-900 dark:text-stone-100">
-                Transparencia de Almacenamiento Local
+                Local Storage Transparency
               </h2>
               <p className="text-xs text-stone-500 dark:text-stone-400">
-                Dónde y cómo Atelier Analytics resguarda tus datos en este Mac
+                Where and how Atelier Analytics protects your data on this machine
               </p>
             </div>
           </div>
@@ -103,42 +103,42 @@ export const StorageInspectorModal: React.FC<StorageInspectorModalProps> = ({
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="rounded-xl border border-stone-200/80 bg-stone-50/70 p-3.5 dark:border-stone-800 dark:bg-stone-950/40">
               <span className="block text-[11px] font-mono text-stone-500 dark:text-stone-400">
-                Datasets Locales
+                Local Datasets
               </span>
               <span className="text-lg font-bold text-stone-900 dark:text-stone-100 font-mono">
                 {metrics.datasetCount || availableDatasets.length}
               </span>
-              <span className="text-[10px] text-stone-400">en IndexedDB</span>
+              <span className="text-[10px] text-stone-400">in IndexedDB</span>
             </div>
 
             <div className="rounded-xl border border-stone-200/80 bg-stone-50/70 p-3.5 dark:border-stone-800 dark:bg-stone-950/40">
               <span className="block text-[11px] font-mono text-stone-500 dark:text-stone-400">
-                Espacio en Disco
+                Disk Space
               </span>
               <span className="text-lg font-bold text-stone-900 dark:text-stone-100 font-mono">
                 {formatBytes(metrics.datasetBytes)}
               </span>
-              <span className="text-[10px] text-stone-400">binarios comprimidos</span>
+              <span className="text-[10px] text-stone-400">compressed binaries</span>
             </div>
 
             <div className="rounded-xl border border-stone-200/80 bg-stone-50/70 p-3.5 dark:border-stone-800 dark:bg-stone-950/40">
               <span className="block text-[11px] font-mono text-stone-500 dark:text-stone-400">
-                Reportes Activos
+                Active Workbooks
               </span>
               <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400 font-mono">
                 {Math.max(1, savedWorkbooksCount || metrics.workbookCount)}
               </span>
-              <span className="text-[10px] text-stone-400">en catálogo local</span>
+              <span className="text-[10px] text-stone-400">in local catalog</span>
             </div>
 
             <div className="rounded-xl border border-stone-200/80 bg-stone-50/70 p-3.5 dark:border-stone-800 dark:bg-stone-950/40">
               <span className="block text-[11px] font-mono text-stone-500 dark:text-stone-400">
-                Hojas / Vistas
+                Sheets / Views
               </span>
               <span className="text-lg font-bold text-stone-900 dark:text-stone-100 font-mono">
                 {sheetsCount}
               </span>
-              <span className="text-[10px] text-stone-400">en reporte actual</span>
+              <span className="text-[10px] text-stone-400">in current workbook</span>
             </div>
           </div>
 
@@ -146,51 +146,51 @@ export const StorageInspectorModal: React.FC<StorageInspectorModalProps> = ({
           <div className="rounded-xl border border-stone-200/80 bg-stone-50/50 p-4 dark:border-stone-800 dark:bg-stone-950/30 space-y-3">
             <div className="flex items-center gap-2 text-stone-900 dark:text-stone-100 font-semibold text-xs">
               <HardDrive className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-              <span>¿Dónde están guardados mis datos exactamente en este Mac?</span>
+              <span>Where exactly is my data stored on this machine?</span>
             </div>
 
             <p className="leading-relaxed text-stone-600 dark:text-stone-400">
-              Atelier opera bajo una arquitectura <strong>100% Client-Side & Zero-Cloud</strong>. El motor DuckDB-WASM y el autoguardado almacenan tus archivos y reportes en dos capas locales de tu máquina:
+              Atelier operates under a <strong>100% Client-Side & Zero-Cloud</strong> architecture. The DuckDB-WASM engine and autosave store your files and workbooks across two local machine layers:
             </p>
 
             <div className="space-y-2">
               <div className="rounded-lg border border-stone-200 bg-white p-3 dark:border-stone-800 dark:bg-stone-900">
                 <div className="flex items-center justify-between mb-1">
                   <span className="font-semibold text-stone-800 dark:text-stone-200">
-                    1. Almacén IndexedDB del Navegador (`atelier_analytics_db_v1`)
+                    1. Browser IndexedDB Store (`atelier_analytics_db_v1`)
                   </span>
                   <span className="rounded bg-emerald-100 dark:bg-emerald-950/60 px-1.5 py-0.5 text-[10px] font-mono font-medium text-emerald-800 dark:text-emerald-300">
-                    Resiliente a F5 / Cierre
+                    Resilient to Refresh / Exit
                   </span>
                 </div>
                 <p className="text-[11px] text-stone-500 dark:text-stone-400 leading-normal">
-                  Guarda los archivos binarios CSV/Parquet (tienda <code className="font-mono text-stone-700 dark:text-stone-300">datasets</code>) y el catálogo de todos tus reportes (tienda <code className="font-mono text-stone-700 dark:text-stone-300">workbooks</code>). Sobrevive a recargas accidentales, reinicios de pestañas o del navegador.
+                  Saves raw CSV/Parquet binaries (<code className="font-mono text-stone-700 dark:text-stone-300">datasets</code> store) and your complete workbook catalog (<code className="font-mono text-stone-700 dark:text-stone-300">workbooks</code> store). Survives accidental page reloads, tab crashes, or browser restarts.
                 </p>
               </div>
 
               <div className="rounded-lg border border-stone-200 bg-white p-3 dark:border-stone-800 dark:bg-stone-900">
                 <div className="flex items-center justify-between mb-1">
                   <span className="font-semibold text-stone-800 dark:text-stone-200">
-                    2. Ubicación Física en macOS
+                    2. Physical Location on macOS
                   </span>
                   <button
                     type="button"
                     onClick={handleCopyPath}
                     className="flex items-center gap-1 text-[11px] font-mono text-stone-500 hover:text-stone-800 dark:hover:text-stone-200"
-                    title="Copiar ruta al portapapeles"
+                    title="Copy path to clipboard"
                   >
                     {copiedPath ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3" />}
-                    <span>{copiedPath ? 'Copiado' : 'Copiar ruta'}</span>
+                    <span>{copiedPath ? 'Copied' : 'Copy path'}</span>
                   </button>
                 </div>
                 <p className="text-[11px] text-stone-500 dark:text-stone-400 mb-1.5 leading-normal">
-                  Físicamente en macOS, el motor de tu navegador guarda la base de datos IndexedDB en tu disco en:
+                  Physically on macOS, your browser engine stores the IndexedDB database on disk at:
                 </p>
                 <code className="block rounded bg-stone-100 p-2 font-mono text-[10px] text-stone-800 dark:bg-stone-800/80 dark:text-stone-200 break-all select-all">
                   ~/Library/Application Support/Google/Chrome/Default/IndexedDB/http_localhost_5173_0.indexeddb.leveldb/
                 </code>
                 <p className="text-[10px] text-stone-400 mt-1">
-                  (O la carpeta correspondiente si usas Arc, Safari, Brave o Edge).
+                  (Or corresponding directory if using Arc, Safari, Brave, or Edge).
                 </p>
               </div>
             </div>
@@ -198,7 +198,7 @@ export const StorageInspectorModal: React.FC<StorageInspectorModalProps> = ({
             <div className="flex items-center gap-2 rounded-lg bg-emerald-50 border border-emerald-200/80 p-2.5 text-[11px] text-emerald-900 dark:bg-emerald-950/20 dark:border-emerald-900/40 dark:text-emerald-300">
               <ShieldCheck className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
               <span>
-                <strong>Privacidad Total:</strong> Ningún byte de tus datos sale jamás de tu Mac. No hay telemetría ni servidores remotos.
+                <strong>Total Privacy:</strong> No byte of your data ever leaves your computer. Zero telemetry, zero external servers.
               </span>
             </div>
           </div>
@@ -207,25 +207,25 @@ export const StorageInspectorModal: React.FC<StorageInspectorModalProps> = ({
           <div className="rounded-xl border border-stone-200/80 bg-stone-50/50 p-4 dark:border-stone-800 dark:bg-stone-950/30 space-y-2.5">
             <div className="flex items-center gap-2 text-stone-900 dark:text-stone-100 font-semibold text-xs">
               <Layers className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-              <span>¿Cómo crear un nuevo reporte sin cerrar o perder el que estás haciendo?</span>
+              <span>How to create a new workbook without closing or losing current work?</span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
               <div className="rounded-lg border border-stone-200 bg-white p-3 dark:border-stone-800 dark:bg-stone-900">
                 <span className="font-semibold text-stone-800 dark:text-stone-200 block mb-1">
-                  Opción A: Nuevas Hojas o Dashboards (Abajo)
+                  Option A: New Worksheets or Dashboards (Bottom)
                 </span>
                 <p className="text-[11px] text-stone-500 dark:text-stone-400 leading-relaxed">
-                  Si deseas hacer múltiples análisis sobre el mismo proyecto, pulsa el botón <strong>+</strong> en la barra inferior para agregar otra Hoja o un Dashboard interactivo que combine visualizaciones.
+                  To perform multiple analyses on the same dataset, click the <strong>+</strong> button in the bottom tab bar to add another Worksheet or an interactive Dashboard.
                 </p>
               </div>
 
               <div className="rounded-lg border border-stone-200 bg-white p-3 dark:border-stone-800 dark:bg-stone-900">
                 <span className="font-semibold text-stone-800 dark:text-stone-200 block mb-1">
-                  Opción B: Catálogo de Reportes (Arriba)
+                  Option B: Workbook Catalog (Top)
                 </span>
                 <p className="text-[11px] text-stone-500 dark:text-stone-400 leading-relaxed">
-                  Junto al logo de Atelier en la barra superior, haz clic en el selector de reporte y pulsa <strong>+ Nuevo Reporte</strong>. Tu reporte actual se resguarda de inmediato y puedes alternar entre ellos cuando quieras.
+                  Next to the Atelier logo in the top bar, click the workbook switcher and click <strong>+ New Workbook</strong>. Your current workbook is immediately saved and you can toggle between them anytime.
                 </p>
               </div>
             </div>
@@ -235,10 +235,10 @@ export const StorageInspectorModal: React.FC<StorageInspectorModalProps> = ({
           <div className="rounded-xl border border-stone-200/80 bg-white p-4 dark:border-stone-800 dark:bg-stone-900 flex items-center justify-between gap-4">
             <div className="space-y-1">
               <span className="font-semibold text-stone-900 dark:text-stone-100 block">
-                Descargar Archivo Físico (.atelier) a tu Disco
+                Download Physical File (.atelier) to Disk
               </span>
               <p className="text-[11px] text-stone-500 dark:text-stone-400 leading-normal">
-                Exporta el estado completo de este reporte ({currentWorkbookName}) a tu carpeta <code className="font-mono text-stone-700 dark:text-stone-300">~/Downloads</code> para compartirlo o respaldarlo.
+                Export full snapshot of this workbook ({currentWorkbookName}) to your <code className="font-mono text-stone-700 dark:text-stone-300">~/Downloads</code> folder for backup or sharing.
               </p>
             </div>
             <button
@@ -249,7 +249,7 @@ export const StorageInspectorModal: React.FC<StorageInspectorModalProps> = ({
               className="flex items-center gap-2 shrink-0 rounded-xl bg-stone-900 px-4 py-2 font-medium text-xs text-white shadow-sm hover:bg-stone-800 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200"
             >
               <Download className="h-3.5 w-3.5" />
-              <span>Descargar .atelier</span>
+              <span>Download .atelier</span>
             </button>
           </div>
         </div>
@@ -261,7 +261,7 @@ export const StorageInspectorModal: React.FC<StorageInspectorModalProps> = ({
             onClick={onClose}
             className="rounded-lg border border-stone-200 bg-white px-4 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-300 dark:hover:bg-stone-700"
           >
-            Entendido
+            Got it
           </button>
         </div>
       </div>

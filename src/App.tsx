@@ -344,7 +344,7 @@ export const App: React.FC = () => {
                       onSetFormat={updatePillFormat}
                       onChangeColumnType={changeDatasetColumnType}
                       onChangeColumnRole={changeDatasetColumnRole}
-                      placeholder="Arrastra dimensiones o métricas para el Eje X..."
+                      placeholder="Drop dimensions or measures for X-axis..."
                     />
                     <ShelfDropZone
                       shelfId="rows"
@@ -362,13 +362,13 @@ export const App: React.FC = () => {
                       onSetFormat={updatePillFormat}
                       onChangeColumnType={changeDatasetColumnType}
                       onChangeColumnRole={changeDatasetColumnRole}
-                      placeholder="Arrastra dimensiones o métricas para el Eje Y..."
+                      placeholder="Drop dimensions or measures for Y-axis..."
                     />
                   </div>
                   <button
                     type="button"
                     onClick={swapShelves}
-                    title="Intercambiar Ejes (Swap Rows and Columns - Tableau)"
+                    title="Swap Rows and Columns"
                     className="mr-3 flex items-center gap-1 rounded-md border border-stone-200 bg-stone-50 px-2 py-1.5 text-2xs font-medium text-stone-600 transition-colors hover:bg-stone-100 hover:text-stone-900 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-300 dark:hover:bg-stone-700"
                   >
                     <ArrowUpDown className="h-3.5 w-3.5 text-stone-500" />
@@ -411,7 +411,7 @@ export const App: React.FC = () => {
                     {(!isEngineReady || isExecuting) && (
                       <div className="flex items-center gap-2 rounded-full border border-stone-200 bg-white/90 px-3 py-1 text-xs font-mono text-stone-600 shadow-sm dark:border-stone-700 dark:bg-stone-800/90 dark:text-stone-300">
                         <Loader2 className="h-3.5 w-3.5 animate-spin text-sky-600 dark:text-sky-400" />
-                        <span>Procesando consulta OLAP...</span>
+                        <span>Processing OLAP query...</span>
                       </div>
                     )}
 
@@ -424,7 +424,7 @@ export const App: React.FC = () => {
                           ? 'border-amber-500 bg-amber-50 text-amber-900 dark:bg-amber-950/60 dark:text-amber-200 font-bold'
                           : 'border-stone-200 bg-white hover:bg-stone-50 text-stone-700 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-300'
                       }`}
-                      title="Abrir galería inteligente Show Me (Tableau)"
+                      title="Open Show Me smart gallery"
                     >
                       <Sparkles className="h-3.5 w-3.5 text-amber-500" />
                       <span>Show Me</span>
@@ -451,7 +451,7 @@ export const App: React.FC = () => {
 
                   {/* Observable Plot Graphic Container */}
                   <div className="flex-1 w-full h-full min-h-[400px]">
-                    <CanvasErrorBoundary fallbackTitle="Error al renderizar el lienzo de la hoja">
+                    <CanvasErrorBoundary fallbackTitle="Error rendering worksheet canvas">
                       <PlotRenderer ast={ast} result={queryResult} theme={theme} />
                     </CanvasErrorBoundary>
                   </div>

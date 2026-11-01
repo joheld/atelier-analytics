@@ -91,8 +91,8 @@ export const DataModelModal: React.FC<DataModelModalProps> = ({
         if (rightMeta.columns.length > 0 && !rightKey) setRightKey(rightMeta.columns[0].name);
       }
 
-      const defaultName = `${leftTable}_con_${rightTable}`;
-      if (!modelName || modelName.includes('_con_') || modelName.includes('_union')) {
+      const defaultName = `${leftTable}_with_${rightTable}`;
+      if (!modelName || modelName.includes('_con_') || modelName.includes('_with_') || modelName.includes('_union')) {
         setModelName(defaultName);
       }
     }
@@ -101,9 +101,9 @@ export const DataModelModal: React.FC<DataModelModalProps> = ({
   // Update default name for union mode
   useEffect(() => {
     if (mode === 'union') {
-      setModelName('datos_consolidados_union');
+      setModelName('consolidated_union_data');
     } else if (leftTable && rightTable) {
-      setModelName(`${leftTable}_con_${rightTable}`);
+      setModelName(`${leftTable}_with_${rightTable}`);
     }
     setPreviewResult(null);
     setError(null);
@@ -118,7 +118,7 @@ export const DataModelModal: React.FC<DataModelModalProps> = ({
 
       if (mode === 'join') {
         if (!leftTable || !rightTable || !leftKey || !rightKey) {
-          setError('Selecciona ambas tablas y sus columnas de enlace.');
+          setError('Select both tables and their linking key columns.');
           return;
         }
 
@@ -133,7 +133,7 @@ export const DataModelModal: React.FC<DataModelModalProps> = ({
         setPreviewResult(res);
       } else {
         if (selectedUnionTables.length < 2) {
-          setError('Selecciona al menos dos tablas para apilar.');
+          setError('Select at least two tables to union.');
           return;
         }
         const selectParts = selectedUnionTables.map((t) => `SELECT * FROM "${t}"`);
@@ -156,7 +156,7 @@ export const DataModelModal: React.FC<DataModelModalProps> = ({
     try {
       if (mode === 'join') {
         if (!leftTable || !rightTable || !leftKey || !rightKey) {
-          throw new Error('Debes seleccionar las dos tablas y las columnas clave para la relación.');
+          throw new Error('You must select both tables and key columns for the relationship.');
         }
         await onCreateJoin({
           name: modelName.trim() || `${leftTable}_${rightTable}_join`,
@@ -168,10 +168,10 @@ export const DataModelModal: React.FC<DataModelModalProps> = ({
         });
       } else {
         if (selectedUnionTables.length < 2) {
-          throw new Error('Debes seleccionar al menos dos tablas para apilar.');
+          throw new Error('You must select at least two tables to union.');
         }
         await onCreateUnion({
-          name: modelName.trim() || 'datos_consolidados_union',
+          name: modelName.trim() || 'consolidated_union_data',
           tableNames: selectedUnionTables,
         });
       }
@@ -200,10 +200,10 @@ export const DataModelModal: React.FC<DataModelModalProps> = ({
             </div>
             <div>
               <h2 className="font-editorial text-base font-bold text-stone-900 dark:text-stone-100">
-                Modelado de Datos Relacional
+                Relational Data Modeling
               </h2>
               <p className="text-xs text-stone-500 dark:text-stone-400">
-                Combina múltiples tablas en DuckDB-WASM mediante relaciones (JOIN) o apilado vertical (UNION)
+                Combine multiple tables in DuckDB-WASM via relationships (JOIN) or vertical stacking (UNION)
               </p>
             </div>
           </div>
@@ -228,7 +228,7 @@ export const DataModelModal: React.FC<DataModelModalProps> = ({
             }`}
           >
             <GitMerge className="h-3.5 w-3.5" />
-            <span>Relación / JOIN (Cruzar por clave)</span>
+            <span>Relationship / JOIN (Key match)</span>
           </button>
           <button
             type="button"
@@ -240,7 +240,7 @@ export const DataModelModal: React.FC<DataModelModalProps> = ({
             }`}
           >
             <Layers className="h-3.5 w-3.5" />
-            <span>Apilar Tablas / UNION (Mismo esquema)</span>
+            <span>Stack Tables / UNION (Same schema)</span>
           </button>
         </div>
 
@@ -250,9 +250,9 @@ export const DataModelModal: React.FC<DataModelModalProps> = ({
             <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50/70 p-3.5 text-xs text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-300">
               <AlertCircle className="h-4 w-4 shrink-0 text-amber-600 mt-0.5" />
               <div>
-                <p className="font-semibold">Se necesitan al menos 2 archivos cargados</p>
+                <p className="font-semibold">At least 2 loaded files required</p>
                 <p className="text-amber-700 dark:text-amber-400 mt-0.5">
-                  Actualmente tienes {availableDatasets.length} archivo en memoria. Carga un segundo archivo en la barra lateral para poder relacionarlos o unirlos.
+                  You currently have {availableDatasets.length} file in memory. Load a second file in the data sidebar to relate or union them.
                 </p>
               </div>
             </div>
@@ -263,14 +263,14 @@ export const DataModelModal: React.FC<DataModelModalProps> = ({
               {/* Visual Model Canvas */}
               <div className="rounded-xl border border-stone-200 bg-stone-50/60 p-4 dark:border-stone-800 dark:bg-stone-950/40">
                 <div className="text-[11px] font-bold uppercase tracking-wider text-stone-500 font-mono mb-3">
-                  Configuración de Enlace Relacional
+                  Relational Link Configuration
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-center">
                   {/* Left Table & Key */}
                   <div className="rounded-lg border border-stone-200 bg-white p-3 dark:border-stone-800 dark:bg-stone-900 shadow-2xs">
                     <label className="block text-[11px] font-semibold text-stone-600 dark:text-stone-400 mb-1">
-                      Tabla Izquierda
+                      Left Table
                     </label>
                     <select
                       value={leftTable}
@@ -279,13 +279,13 @@ export const DataModelModal: React.FC<DataModelModalProps> = ({
                     >
                       {availableDatasets.map((ds) => (
                         <option key={ds.tableName} value={ds.tableName}>
-                          {ds.name} ({ds.rowCount.toLocaleString()} f.)
+                          {ds.name} ({ds.rowCount.toLocaleString()} rows)
                         </option>
                       ))}
                     </select>
 
                     <label className="block text-[11px] font-semibold text-stone-600 dark:text-stone-400 mt-2.5 mb-1">
-                      Columna Clave (Izquierda)
+                      Key Column (Left)
                     </label>
                     <select
                       value={leftKey}
@@ -303,7 +303,7 @@ export const DataModelModal: React.FC<DataModelModalProps> = ({
                   {/* Join Type Selector */}
                   <div className="flex flex-col items-center justify-center gap-1.5 py-2">
                     <span className="text-[10px] font-bold uppercase tracking-widest text-stone-400 font-mono">
-                      Tipo de JOIN
+                      JOIN Type
                     </span>
                     <div className="grid grid-cols-2 gap-1.5 w-full">
                       {(['LEFT', 'INNER', 'FULL', 'RIGHT'] as JoinType[]).map((jt) => (
@@ -322,17 +322,17 @@ export const DataModelModal: React.FC<DataModelModalProps> = ({
                       ))}
                     </div>
                     <span className="text-[10px] text-center text-stone-500 dark:text-stone-400 mt-1">
-                      {joinType === 'LEFT' && 'Conserva todas las filas de la tabla izquierda.'}
-                      {joinType === 'INNER' && 'Solo filas con coincidencia en ambas tablas.'}
-                      {joinType === 'FULL' && 'Todas las filas de ambas tablas con nulos.'}
-                      {joinType === 'RIGHT' && 'Conserva todas las filas de la tabla derecha.'}
+                      {joinType === 'LEFT' && 'Preserves all rows from the left table.'}
+                      {joinType === 'INNER' && 'Only rows with matches in both tables.'}
+                      {joinType === 'FULL' && 'All rows from both tables with nulls.'}
+                      {joinType === 'RIGHT' && 'Preserves all rows from the right table.'}
                     </span>
                   </div>
 
                   {/* Right Table & Key */}
                   <div className="rounded-lg border border-stone-200 bg-white p-3 dark:border-stone-800 dark:bg-stone-900 shadow-2xs">
                     <label className="block text-[11px] font-semibold text-stone-600 dark:text-stone-400 mb-1">
-                      Tabla Derecha
+                      Right Table
                     </label>
                     <select
                       value={rightTable}
@@ -341,13 +341,13 @@ export const DataModelModal: React.FC<DataModelModalProps> = ({
                     >
                       {availableDatasets.map((ds) => (
                         <option key={ds.tableName} value={ds.tableName} disabled={ds.tableName === leftTable}>
-                          {ds.name} ({ds.rowCount.toLocaleString()} f.)
+                          {ds.name} ({ds.rowCount.toLocaleString()} rows)
                         </option>
                       ))}
                     </select>
 
                     <label className="block text-[11px] font-semibold text-stone-600 dark:text-stone-400 mt-2.5 mb-1">
-                      Columna Clave (Derecha)
+                      Key Column (Right)
                     </label>
                     <select
                       value={rightKey}
@@ -369,10 +369,10 @@ export const DataModelModal: React.FC<DataModelModalProps> = ({
             <div className="space-y-4">
               <div className="rounded-xl border border-stone-200 bg-stone-50/60 p-4 dark:border-stone-800 dark:bg-stone-950/40">
                 <div className="text-[11px] font-bold uppercase tracking-wider text-stone-500 font-mono mb-2">
-                  Selecciona las tablas a apilar verticalmente (UNION ALL BY NAME)
+                  Select tables to stack vertically (UNION ALL BY NAME)
                 </div>
                 <p className="text-xs text-stone-500 dark:text-stone-400 mb-3">
-                  DuckDB emparejará automáticamente columnas con el mismo nombre y rellenará con NULL si una columna solo existe en una tabla.
+                  DuckDB will automatically match columns with the same name and fill with NULL if a column only exists in one table.
                 </p>
 
                 <div className="space-y-2">
@@ -400,7 +400,7 @@ export const DataModelModal: React.FC<DataModelModalProps> = ({
                               {ds.name}
                             </span>
                             <span className="block text-[11px] font-mono text-stone-400">
-                              Tabla: "{ds.tableName}" • {ds.rowCount.toLocaleString()} filas • {ds.columns.length} columnas
+                              Table: "{ds.tableName}" • {ds.rowCount.toLocaleString()} rows • {ds.columns.length} columns
                             </span>
                           </div>
                         </div>
@@ -416,14 +416,14 @@ export const DataModelModal: React.FC<DataModelModalProps> = ({
           {/* Model Name Input */}
           <div>
             <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
-              Nombre de la Nueva Fuente Unificada
+              New Unified Data Source Name
             </label>
             <div className="relative">
               <input
                 type="text"
                 value={modelName}
                 onChange={(e) => setModelName(e.target.value)}
-                placeholder="ej: pedidos_con_clientes"
+                placeholder="e.g.: orders_with_customers"
                 className="w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-xs font-mono text-stone-800 focus:border-sky-500 focus:outline-hidden dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100"
                 required
               />
@@ -443,7 +443,7 @@ export const DataModelModal: React.FC<DataModelModalProps> = ({
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-stone-700 dark:text-stone-300">
-                Validación de Esquema
+                Schema Validation
               </span>
               <button
                 type="button"
@@ -452,7 +452,7 @@ export const DataModelModal: React.FC<DataModelModalProps> = ({
                 className="flex items-center gap-1.5 text-xs font-semibold text-sky-600 hover:text-sky-700 dark:text-sky-400 dark:hover:text-sky-300 disabled:opacity-50 cursor-pointer"
               >
                 <Play className="h-3 w-3" />
-                <span>{isPreviewLoading ? 'Ejecutando...' : 'Previsualizar 5 filas'}</span>
+                <span>{isPreviewLoading ? 'Executing...' : 'Preview 5 rows'}</span>
               </button>
             </div>
 
@@ -460,7 +460,7 @@ export const DataModelModal: React.FC<DataModelModalProps> = ({
               <div className="rounded-lg border border-stone-200 bg-stone-50 p-2.5 dark:border-stone-800 dark:bg-stone-950 overflow-x-auto text-2xs font-mono">
                 <div className="text-[11px] font-sans font-semibold text-emerald-700 dark:text-emerald-400 mb-1.5 flex items-center gap-1">
                   <Check className="h-3.5 w-3.5" />
-                  <span>Esquema validado exitosamente ({previewResult.columns.length} columnas resultantes):</span>
+                  <span>Schema successfully validated ({previewResult.columns.length} resulting columns):</span>
                 </div>
                 <table className="w-full text-left border-collapse">
                   <thead>
@@ -471,7 +471,7 @@ export const DataModelModal: React.FC<DataModelModalProps> = ({
                         </th>
                       ))}
                       {previewResult.columns.length > 7 && (
-                        <th className="p-1 text-stone-400">+{previewResult.columns.length - 7} más</th>
+                        <th className="p-1 text-stone-400">+{previewResult.columns.length - 7} more</th>
                       )}
                     </tr>
                   </thead>
@@ -498,7 +498,7 @@ export const DataModelModal: React.FC<DataModelModalProps> = ({
               onClick={onClose}
               className="rounded-lg border border-stone-300 bg-white px-3.5 py-1.5 text-xs font-semibold text-stone-700 hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-300 dark:hover:bg-stone-700 cursor-pointer"
             >
-              Cancelar
+              Cancel
             </button>
             <button
               type="submit"
@@ -506,12 +506,12 @@ export const DataModelModal: React.FC<DataModelModalProps> = ({
               className="flex items-center gap-1.5 rounded-lg bg-sky-600 px-4 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-sky-500 disabled:opacity-50 cursor-pointer"
             >
               {isSubmitting ? (
-                <span>Creando modelo...</span>
+                <span>Creating model...</span>
               ) : (
                 <>
                   <TableIcon className="h-3.5 w-3.5" />
                   <span>
-                    {mode === 'join' ? 'Crear Relación y Activar' : 'Crear Unión y Activar'}
+                    {mode === 'join' ? 'Create Relationship & Activate' : 'Create Union & Activate'}
                   </span>
                 </>
               )}
